@@ -1,7 +1,7 @@
 # Plan de construcción
 
 
-Estado: 0a, 0b, 1a, 1b y 2 completados; paso 3a pendiente.
+Estado: 0a, 0b, 1a, 1b, 2 y 3a completados; paso 3b pendiente.
 Última actualización: 2026-11-12.
 
 Regla de cierre: un paso se cierra con tests en verde, este archivo actualizado y
@@ -104,10 +104,38 @@ la forma documentada de cada API, no son capturas reales (no hubo red).
 
 ## Paso 3a - Contador y reserva atómica
 Objetivo: no pasarse del cupo diario con varios workers.
-Archivos: apps/providers/quota.py, tests de concurrencia.
-Aceptación: dos hilos simultáneos no superan el límite; el test falla si se quita
-el select_for_update.
-Estado: pendiente.
+Archivos: apps/core/models.py, apps/core/migrations/0003_contadorcuota.py,
+apps/providers/quota.py, tests/test_quota.py.
+Aceptación: tres reservas con límite 3 devuelven True y la cuarta False; dos
+hilos simultáneos con límite 1 no superan el cupo. En SQLite
+select_for_update es un no-op, así que la garantía real allí es el UPDATE
+condicional; no se puede demostrar que quitar select_for_update rompa el test.
+Estado: completado (2026-11-12).
+Evidencia (2026-11-12):
+```
+$ .venv\Scripts\python.exe manage.py makemigrations core
+Migrations for 'core':
+  apps\core\migrations\0003_contadorcuota.py
+    + Create model ContadorCuota
+
+$ .venv\Scripts\python.exe manage.py migrate
+Operations to perform:
+  Apply all migrations: admin, auth, contenttypes, core, sessions
+Running migrations:
+  Applying core.0003_contadorcuota... OK
+
+$ .venv\Scripts\python.exe -m pytest -q
+.................................                                        [100%]
+33 passed in 11.58s
+
+$ .venv\Scripts\python.exe manage.py check
+System check identified no issues (0 silenced).
+```
+Notas: ContadorCuota guarda una fila por proveedor y fecha local; cambiar de día
+crea un contador nuevo. reservar() usa transaction.atomic + select_for_update
+para Postgres y un UPDATE condicional (usadas < límite) para SQLite, con hasta
+5 reintentos ante "database is locked". liberar() decrementa solo si usadas > 0;
+limite_diario=0 sigue significando sin límite y no escribe contador.
 
 ## Paso 3b - Caché y fallback
 Objetivo: ahorrar cuota y sobrevivir a un proveedor caído.
@@ -157,9 +185,14 @@ Estado: pendiente.
 - 2026-11-13: SQLite y Huey en lugar de Postgres y Celery por el límite de 8 GB.
 - 2026-11-13: sin Docker ni WSL; todo nativo en Windows.
 - 2026-11-13: modelo de opencode elegido por sesión, no fijado en configuración.
+- 2026-11-12: la cuota diaria vive en ContadorCuota (proveedor + fecha local).
+- 2026-11-12: en SQLite select_for_update es no-op; la exclusión real la da el
+  UPDATE condicional con reintentos ante "database is locked".
 
 ## Pendientes y dudas
-- Siguiente paso: 3a - Contador y reserva atómica.
+- Siguiente paso: 3b - Caché y fallback.
+- Exportar CuotaDiaria desde apps/providers/__init__.py; se omitió para respetar
+  el límite de 4 archivos del paso 3a.
 - Conectar los adaptadores con Proveedor/ModeloLLM en el router (paso 3b).
 - Definir en el paso 4 la reintención fallo->cola y el límite de intentos.
 - api_key se guarda en claro en SQLite; falta cifrarla con la clave fuera del

@@ -25,6 +25,29 @@ class Proveedor(models.Model):
         return self.nombre
 
 
+class ContadorCuota(models.Model):
+    """Llamadas reservadas a un proveedor en una fecha local concreta."""
+
+    proveedor = models.ForeignKey(
+        Proveedor, on_delete=models.CASCADE, related_name="contadores_cuota"
+    )
+    fecha = models.DateField()
+    usadas = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        verbose_name = "contador de cuota"
+        verbose_name_plural = "contadores de cuota"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["proveedor", "fecha"],
+                name="unique_cuota_por_proveedor_y_fecha",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.proveedor.nombre} {self.fecha}: {self.usadas}"
+
+
 class ModeloLLM(models.Model):
     """Modelo concreto ofrecido por un proveedor."""
 
