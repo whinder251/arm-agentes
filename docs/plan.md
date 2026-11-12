@@ -1,7 +1,7 @@
 # Plan de construcción
 
 
-Estado: 0a y 0b completados; paso 1 pendiente.
+Estado: 0a, 0b y 1a completados; paso 1b pendiente.
 Última actualización: 2026-11-12.
 
 Regla de cierre: un paso se cierra con tests en verde, este archivo actualizado y
@@ -17,11 +17,44 @@ Evidencia (2026-11-12):
 - .venv\Scripts\python.exe -m pytest -q -> 1 passed in 0.22s
 - .venv\Scripts\python.exe manage.py check -> System check identified no issues (0 silenced).
 
-## Paso 1 - Modelos de datos
-Objetivo: esquema persistente del sistema.
-Archivos: apps/core/models.py, apps/core/admin.py, migración inicial, tests.
-Aceptación: se crean Proveedor, ModeloLLM, Agente, Habilidad, Tarea, Ejecucion y
-Artefacto desde el shell; las transiciones de estado quedan registradas.
+## Paso 1a - Modelos de catálogo
+Objetivo: catálogo persistente de proveedores, modelos, habilidades y agentes.
+Archivos: apps/core/models.py, apps/core/admin.py, tests/test_models.py,
+apps/core/migrations/0001_initial.py.
+Aceptación: los cuatro modelos se crean y se relacionan (FK y M2M), el slug de
+Habilidad es único, admin registrado con list_display útil.
+Estado: completado (2026-11-12).
+Evidencia (2026-11-12):
+```
+$ .venv\Scripts\python.exe manage.py makemigrations core
+Migrations for 'core':
+  apps\core\migrations\0001_initial.py
+    + Create model Habilidad
+    + Create model ModeloLLM
+    + Create model Proveedor
+    + Create model Agente
+    + Add field proveedor to modelollm
+    + Create constraint unique_modelo_por_proveedor on model modelollm
+
+$ .venv\Scripts\python.exe manage.py migrate
+Operations to perform:
+  Apply all migrations: admin, auth, contenttypes, core, sessions
+Running migrations:
+  Applying core.0001_initial... OK
+
+$ .venv\Scripts\python.exe -m pytest -q
+........                                                                 [100%]
+8 passed in 1.95s
+
+$ .venv\Scripts\python.exe manage.py check
+System check identified no issues (0 silenced).
+```
+
+## Paso 1b - Modelos de trabajo
+Objetivo: esquema de tareas, ejecuciones y artefactos con transiciones de estado.
+Archivos: apps/core/models.py, apps/core/admin.py, migración nueva, tests.
+Aceptación: se crean Tarea, Ejecucion y Artefacto; las transiciones de estado
+quedan registradas.
 Estado: pendiente.
 
 ## Paso 2 - Adaptadores de proveedores
@@ -88,6 +121,8 @@ Estado: pendiente.
 - 2026-11-13: modelo de opencode elegido por sesión, no fijado en configuración.
 
 ## Pendientes y dudas
-- Siguiente paso: 1 - Modelos de datos.
+- Siguiente paso: 1b - Modelos de trabajo (Tarea, Ejecucion, Artefacto).
+- api_key se guarda en claro en SQLite; falta cifrarla con la clave fuera del
+  repositorio (dependencia cryptography ya autorizada).
 - Confirmar qué proveedor gratuito usará AI Workforce en producción.
 - Medir el consumo real del paso 3 antes de subir a un servidor.
