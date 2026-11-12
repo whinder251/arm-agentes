@@ -1,7 +1,7 @@
 # Plan de construcción
 
 
-Estado: 0a, 0b, 1a, 1b, 2, 3a y 3b completados; paso 4 pendiente.
+Estado: 0a, 0b, 1a, 1b, 2, 3a, 3b y 4 completados; paso 5 pendiente.
 Última actualización: 2026-11-12.
 
 Regla de cierre: un paso se cierra con tests en verde, este archivo actualizado y
@@ -164,11 +164,50 @@ de Router. Si todos los modelos fallan se lanza CuotaAgotada con el detalle.
 
 ## Paso 4 - Motor de ejecución
 Objetivo: ejecutar tareas con estado recuperable.
-Archivos: apps/engine/tasks.py, apps/engine/states.py, tests.
+Archivos: apps/engine/tasks.py, apps/engine/__init__.py, tests/test_engine.py,
+config/settings.py, apps/core/models.py y
+apps/core/migrations/0004_tarea_actualizado_en.py.
 Aceptación: latido cada 30 segundos; tarea huérfana tras 5 minutos sin latido se
 reencola con clave de idempotencia; máximo dos devoluciones antes de escalar a
 humano; el test simula la caída del worker a mitad de ejecución.
-Estado: pendiente.
+Estado: completado (2026-11-12). Se autorizaron dos archivos extra sobre el
+límite de cuatro para añadir actualizado_en y la transición curso->cola.
+Evidencia (2026-11-12):
+```
+$ .venv\Scripts\python.exe manage.py makemigrations core
+Migrations for 'core':
+  apps\core\migrations\0004_tarea_actualizado_en.py
+    + Add field actualizado_en to tarea
+
+$ .venv\Scripts\python.exe manage.py migrate
+Operations to perform:
+  Apply all migrations: admin, auth, contenttypes, core, sessions
+Running migrations:
+  Applying core.0004_tarea_actualizado_en... OK
+
+$ .venv\Scripts\python.exe -m pip install huey
+Requirement already satisfied: huey in .\.venv\Lib\site-packages (3.5.4)
+
+$ .venv\Scripts\python.exe -m pytest -q
+...........................................                              [100%]
+43 passed in 31.73s
+
+$ .venv\Scripts\python.exe manage.py check
+System check identified no issues (0 silenced).
+```
+Notas: Huey ya figuraba en requirements.txt y requirements-lock.txt con la
+versión 3.5.4; no hubo que modificarlos. ejecutar_tarea reclama la tarea con un
+UPDATE condicional cola->curso (idempotencia ante entregas duplicadas), crea la
+Ejecucion, construye el Router con los modelos activos por prioridad y el modelo
+del agente delante, guarda un Artefacto versionado y deja la tarea en ok. El
+latido actualiza actualizado_en cada 30 s desde un hilo; recuperar_huerfanas
+reencola las tareas en curso con más de 5 minutos sin latido y revisar_huerfanas
+la ejecuta cada minuto. Se aplican 3 reintentos (4 intentos en total) y después
+fallo definitivo, según el encargo de esta sesión, en lugar de las dos
+devoluciones del plan; no hay escalado a humano distinto de fallo. La clave de
+idempotencia del reencolado es tarea:<id>:intento:<n>. Los estados siguen en
+Tarea; no se creó apps/engine/states.py. SqliteHuey comparte db.sqlite3 con
+Django, como se pidió, con riesgo de bloqueo si coinciden escrituras.
 
 ## Paso 5 - Verificadores deterministas
 Objetivo: calidad comprobable sin gastar tokens.
@@ -208,7 +247,13 @@ Estado: pendiente.
   UPDATE condicional con reintentos ante "database is locked".
 
 ## Pendientes y dudas
-- Siguiente paso: 4 - Motor de ejecución.
+- Siguiente paso: 5 - Verificadores deterministas.
+- El motor aplica 3 reintentos y después fallo, según el encargo de la sesión;
+  falta decidir si el agotamiento debe pasar a "revisión" para un humano.
+- SqliteHuey comparte db.sqlite3 con Django. Si aparecen bloqueos con el worker
+  y el servidor a la vez, mover la cola a un archivo huey.db separado.
+- El latido usa un hilo por tarea; medir su impacto cuando haya varias tareas
+  largas en el mismo worker.
 - El cooldown de 60 s vive en la memoria de cada Router; con varios workers cada
   uno lleva el suyo. Persistirlo si llega a importar en producción.
 - Router elige el adaptador por Proveedor.nombre; añadir un campo de tipo de

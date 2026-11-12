@@ -132,7 +132,7 @@ class Tarea(models.Model):
 
     TRANSICIONES = {
         Estado.COLA: {Estado.CURSO, Estado.FALLO},
-        Estado.CURSO: {Estado.REVISION, Estado.FALLO},
+        Estado.CURSO: {Estado.COLA, Estado.REVISION, Estado.FALLO},
         Estado.REVISION: {Estado.OK, Estado.FALLO},
         Estado.OK: set(),
         Estado.FALLO: set(),
@@ -156,6 +156,9 @@ class Tarea(models.Model):
         "self", blank=True, symmetrical=False, related_name="dependientes"
     )
     intentos = models.PositiveSmallIntegerField(default=0)
+    actualizado_en = models.DateTimeField(
+        auto_now=True, help_text="Último latido del worker que ejecuta la tarea."
+    )
 
     class Meta:
         verbose_name = "tarea"
