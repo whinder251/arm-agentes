@@ -1,8 +1,8 @@
 # Plan de construcción
 
 
-Estado: 0a completado (entorno y requisitos fijados); 0b pendiente.
-Última actualización: 2026-11-13.
+Estado: 0a y 0b completados; paso 1 pendiente.
+Última actualización: 2026-11-12.
 
 Regla de cierre: un paso se cierra con tests en verde, este archivo actualizado y
 un commit. Prohibido avanzar con tests rojos.
@@ -13,6 +13,9 @@ Archivos: requirements.txt, manage.py, config/settings.py, config/urls.py,
 .env.example, .gitignore, pytest.ini, apps/core/views.py, tests/test_health.py.
 Aceptación: /healthz devuelve JSON con estado ok; pytest pasa; runserver arranca.
 Estado: completado (0a entorno y requisitos; 0b proyecto Django, /healthz y test).
+Evidencia (2026-11-12):
+- .venv\Scripts\python.exe -m pytest -q -> 1 passed in 0.22s
+- .venv\Scripts\python.exe manage.py check -> System check identified no issues (0 silenced).
 
 ## Paso 1 - Modelos de datos
 Objetivo: esquema persistente del sistema.
@@ -85,5 +88,6 @@ Estado: pendiente.
 - 2026-11-13: modelo de opencode elegido por sesión, no fijado en configuración.
 
 ## Pendientes y dudas
+- Siguiente paso: 1 - Modelos de datos.
 - Confirmar qué proveedor gratuito usará AI Workforce en producción.
 - Medir el consumo real del paso 3 antes de subir a un servidor.
