@@ -1,6 +1,7 @@
 # Plan de construcción
 
-Estado general: paso 0 completado (0a y 0b).
+
+Estado: 0a completado (entorno y requisitos fijados); 0b pendiente.
 Última actualización: 2026-11-13.
 
 Regla de cierre: un paso se cierra con tests en verde, este archivo actualizado y
