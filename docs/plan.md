@@ -1,7 +1,7 @@
 # Plan de construcción
 
 
-Estado: 0a, 0b, 1a, 1b, 2, 3a, 3b y 4 completados; paso 5 pendiente.
+Estado: 0a, 0b, 1a, 1b, 2, 3a, 3b, 4 y 5a completados; 5b pendiente.
 Última actualización: 2026-11-12.
 
 Regla de cierre: un paso se cierra con tests en verde, este archivo actualizado y
@@ -211,10 +211,28 @@ Django, como se pidió, con riesgo de bloqueo si coinciden escrituras.
 
 ## Paso 5 - Verificadores deterministas
 Objetivo: calidad comprobable sin gastar tokens.
-Archivos: apps/checks/seo.py, apps/checks/estilo.py, apps/checks/hechos.py, tests.
+Archivos: apps/checks/__init__.py, apps/checks/seo.py, apps/checks/estilo.py,
+tests/test_checks.py.
 Aceptación: las reglas de docs/estilo.md se cargan desde el archivo; doce casos
 parametrizados, incluidos los que deben fallar; ninguna llamada a modelos.
-Estado: pendiente.
+Estado: 5a completado (2026-11-12); 5b (apps/checks/hechos.py) pendiente.
+Evidencia (2026-11-12):
+```
+$ .venv\Scripts\python.exe -m pytest -q
+....................................................................     [100%]
+68 passed in 23.05s
+
+$ .venv\Scripts\python.exe manage.py check
+System check identified no issues (0 silenced).
+```
+Notas: 23 casos parametrizados (11 de SEO y 12 de estilo) y dos pruebas de carga
+de reglas. cargar_reglas() lee EST-001, EST-002, EST-003, EST-005 y EST-006 de
+docs/estilo.md; las listas, las comillas y los umbrales salen del markdown.
+verificar_seo() cubre título, meta, H1, slug, densidad y una aproximación INFLESZ
+con conteo silábico heurístico, sin dependencias nuevas. verificar_estilo()
+devuelve regla, severidad, posición, mensaje y sugerencia. No hay red ni modelos:
+son funciones puras. hechos.py no cupo en el límite de cuatro archivos; queda
+para 5b con anclar_hechos() y sus casos de entidad nueva y entidad existente.
 
 ## Paso 6 - Pipeline editorial
 Objetivo: un artículo entra y sale reescrito con SEO e informe.
@@ -247,7 +265,7 @@ Estado: pendiente.
   UPDATE condicional con reintentos ante "database is locked".
 
 ## Pendientes y dudas
-- Siguiente paso: 5 - Verificadores deterministas.
+- Siguiente paso: 5b - Verificadores de hechos (apps/checks/hechos.py).
 - El motor aplica 3 reintentos y después fallo, según el encargo de la sesión;
   falta decidir si el agotamiento debe pasar a "revisión" para un humano.
 - SqliteHuey comparte db.sqlite3 con Django. Si aparecen bloqueos con el worker
