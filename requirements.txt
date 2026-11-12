@@ -1,0 +1,9 @@
+﻿Django==5.2.19
+huey==3.5.4
+httpx==0.28.1
+pydantic==2.14.3
+python-dotenv==1.2.4
+cryptography==50.0.2
+pytest==9.2.0
+pytest-django==4.14.0
+respx==0.23.1

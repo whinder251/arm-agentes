@@ -1,6 +1,6 @@
 # Plan de construcción
 
-Estado general: paso 0 pendiente.
+Estado general: paso 0 completado (0a y 0b).
 Última actualización: 2026-11-13.
 
 Regla de cierre: un paso se cierra con tests en verde, este archivo actualizado y
@@ -11,7 +11,7 @@ Objetivo: proyecto que arranca y tiene una prueba.
 Archivos: requirements.txt, manage.py, config/settings.py, config/urls.py,
 .env.example, .gitignore, pytest.ini, apps/core/views.py, tests/test_health.py.
 Aceptación: /healthz devuelve JSON con estado ok; pytest pasa; runserver arranca.
-Estado: pendiente.
+Estado: completado (0a entorno y requisitos; 0b proyecto Django, /healthz y test).
 
 ## Paso 1 - Modelos de datos
 Objetivo: esquema persistente del sistema.
