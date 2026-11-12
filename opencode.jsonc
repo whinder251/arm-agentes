@@ -1,0 +1,35 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": ["docs/plan.md", "docs/estilo.md"],
+
+  // Las reglas se evalúan en orden y gana la última que coincide.
+  // Por eso las excepciones van después de la regla general.
+  "permissions": [
+    { "action": "shell", "resource": "*", "effect": "ask" },
+    { "action": "shell", "resource": "git status *", "effect": "allow" },
+    { "action": "shell", "resource": "git diff *", "effect": "allow" },
+    { "action": "shell", "resource": "git log *", "effect": "allow" },
+    { "action": "shell", "resource": "git push *", "effect": "deny" },
+    { "action": "shell", "resource": "python -m pytest *", "effect": "allow" },
+    { "action": "shell", "resource": "python manage.py check *", "effect": "allow" },
+    { "action": "shell", "resource": "python manage.py makemigrations *", "effect": "ask" },
+    { "action": "shell", "resource": "python manage.py migrate *", "effect": "ask" },
+    { "action": "shell", "resource": "pip install *", "effect": "ask" },
+    { "action": "read", "resource": "*.env", "effect": "deny" },
+    { "action": "edit", "resource": "*.env", "effect": "deny" },
+    { "action": "edit", "resource": "*/migrations/*", "effect": "ask" },
+    { "action": "subagent", "resource": "*", "effect": "ask" }
+  ],
+
+  "agents": {
+    "revisor": {
+      "description": "Revisa cambios y reporta hallazgos sin modificar archivos",
+      "mode": "subagent",
+      "system": "Eres un revisor de código. Lees el diff y reportas hallazgos ordenados por gravedad, con archivo y línea. Buscas dependencias no autorizadas, llamadas de red en los tests, claves escritas en el código, estados que no se persisten y escrituras no atómicas en contadores. No modificas archivos. No propones parches largos: señalas el problema y la corrección mínima. Escribes en español.",
+      "permissions": [
+        { "action": "edit", "resource": "*", "effect": "deny" },
+        { "action": "shell", "resource": "*", "effect": "deny" }
+      ]
+    }
+  }
+}
