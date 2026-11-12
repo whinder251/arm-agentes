@@ -1,7 +1,7 @@
 # Plan de construcción
 
 
-Estado: 0a, 0b, 1a, 1b, 2 y 3a completados; paso 3b pendiente.
+Estado: 0a, 0b, 1a, 1b, 2, 3a y 3b completados; paso 4 pendiente.
 Última actualización: 2026-11-12.
 
 Regla de cierre: un paso se cierra con tests en verde, este archivo actualizado y
@@ -139,10 +139,28 @@ limite_diario=0 sigue significando sin límite y no escribe contador.
 
 ## Paso 3b - Caché y fallback
 Objetivo: ahorrar cuota y sobrevivir a un proveedor caído.
-Archivos: apps/providers/router.py, apps/providers/cache.py, tests.
+Archivos: apps/providers/router.py, apps/providers/cache.py,
+apps/providers/__init__.py, tests/test_router.py.
 Aceptación: la segunda llamada idéntica sale de caché con coste cero; ante 429 hay
 cooldown de 60 segundos y salto al siguiente modelo por prioridad.
-Estado: pendiente.
+Estado: completado (2026-11-12).
+Evidencia (2026-11-12):
+```
+$ .venv\Scripts\python.exe -m pytest -q
+.......................................                                  [100%]
+39 passed in 29.37s
+
+$ .venv\Scripts\python.exe manage.py check
+System check identified no issues (0 silenced).
+```
+Notas: CacheRespuestas guarda en la tabla propia providers_cache_respuestas con
+clave sha256 de (messages, model_id, config) normalizados; la tabla se crea con
+CREATE TABLE IF NOT EXISTS desde cache.py para no añadir modelo ni migración en
+un paso limitado a cuatro archivos. Router elige el adaptador por
+proveedor.nombre (gemini/openrouter), reserva cuota antes de llamar y la libera
+solo ante 429 o configuración inválida; ante 5xx o timeout no la libera porque
+la llamada pudo consumirse. El cooldown de 60 s vive en memoria de cada instancia
+de Router. Si todos los modelos fallan se lanza CuotaAgotada con el detalle.
 
 ## Paso 4 - Motor de ejecución
 Objetivo: ejecutar tareas con estado recuperable.
@@ -190,11 +208,14 @@ Estado: pendiente.
   UPDATE condicional con reintentos ante "database is locked".
 
 ## Pendientes y dudas
-- Siguiente paso: 3b - Caché y fallback.
-- Exportar CuotaDiaria desde apps/providers/__init__.py; se omitió para respetar
-  el límite de 4 archivos del paso 3a.
-- Conectar los adaptadores con Proveedor/ModeloLLM en el router (paso 3b).
-- Definir en el paso 4 la reintención fallo->cola y el límite de intentos.
+- Siguiente paso: 4 - Motor de ejecución.
+- El cooldown de 60 s vive en la memoria de cada Router; con varios workers cada
+  uno lleva el suyo. Persistirlo si llega a importar en producción.
+- Router elige el adaptador por Proveedor.nombre; añadir un campo de tipo de
+  adaptador en el paso 4 para no depender del texto del nombre.
+- La caché usa una tabla propia creada con SQL: migrarla a modelo Django cuando
+  haya que caducarla o verla desde el admin.
+- Decidir si 5xx y timeout deben liberar la cuota reservada (ahora no se libera).
 - api_key se guarda en claro en SQLite; falta cifrarla con la clave fuera del
   repositorio (dependencia cryptography ya autorizada).
 - Confirmar qué proveedor gratuito usará AI Workforce en producción.
