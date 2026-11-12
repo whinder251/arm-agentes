@@ -1,6 +1,14 @@
 from django.contrib import admin
 
-from .models import Agente, Habilidad, ModeloLLM, Proveedor
+from .models import (
+    Agente,
+    Artefacto,
+    Ejecucion,
+    Habilidad,
+    ModeloLLM,
+    Proveedor,
+    Tarea,
+)
 
 
 @admin.register(Proveedor)
@@ -27,3 +35,22 @@ class AgenteAdmin(admin.ModelAdmin):
     list_display = ("nombre", "modelo", "temperatura")
     list_filter = ("modelo",)
     filter_horizontal = ("habilidades",)
+
+
+@admin.register(Tarea)
+class TareaAdmin(admin.ModelAdmin):
+    list_display = ("id", "estado", "habilidad", "agente", "intentos")
+    list_filter = ("estado", "habilidad", "agente")
+    filter_horizontal = ("depende_de",)
+
+
+@admin.register(Ejecucion)
+class EjecucionAdmin(admin.ModelAdmin):
+    list_display = ("id", "tarea", "modelo_usado", "tokens_in", "tokens_out", "ms")
+    list_filter = ("modelo_usado",)
+
+
+@admin.register(Artefacto)
+class ArtefactoAdmin(admin.ModelAdmin):
+    list_display = ("id", "tarea", "version")
+    search_fields = ("tarea__id",)

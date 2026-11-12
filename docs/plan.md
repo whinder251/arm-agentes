@@ -1,7 +1,7 @@
 # Plan de construcción
 
 
-Estado: 0a, 0b y 1a completados; paso 1b pendiente.
+Estado: 0a, 0b, 1a y 1b completados; paso 2 pendiente.
 Última actualización: 2026-11-12.
 
 Regla de cierre: un paso se cierra con tests en verde, este archivo actualizado y
@@ -55,7 +55,32 @@ Objetivo: esquema de tareas, ejecuciones y artefactos con transiciones de estado
 Archivos: apps/core/models.py, apps/core/admin.py, migración nueva, tests.
 Aceptación: se crean Tarea, Ejecucion y Artefacto; las transiciones de estado
 quedan registradas.
-Estado: pendiente.
+Estado: completado (2026-11-12).
+Evidencia (2026-11-12):
+```
+$ .venv\Scripts\python.exe manage.py makemigrations core
+Migrations for 'core':
+  apps\core\migrations\0002_tarea_ejecucion_artefacto.py
+    + Create model Tarea
+    + Create model Ejecucion
+    + Create model Artefacto
+
+$ .venv\Scripts\python.exe manage.py migrate
+Operations to perform:
+  Apply all migrations: admin, auth, contenttypes, core, sessions
+Running migrations:
+  Applying core.0002_tarea_ejecucion_artefacto... OK
+
+$ .venv\Scripts\python.exe -m pytest -q
+...............                                                          [100%]
+15 passed in 1.19s
+
+$ .venv\Scripts\python.exe manage.py check
+System check identified no issues (0 silenced).
+```
+Notas: las transiciones válidas viven en Tarea.TRANSICIONES y se aplican con
+transicionar(); "fallo" es terminal en este paso. La reintención fallo->cola se
+definirá con el motor (paso 4).
 
 ## Paso 2 - Adaptadores de proveedores
 Objetivo: capa de IA intercambiable.
@@ -121,7 +146,8 @@ Estado: pendiente.
 - 2026-11-13: modelo de opencode elegido por sesión, no fijado en configuración.
 
 ## Pendientes y dudas
-- Siguiente paso: 1b - Modelos de trabajo (Tarea, Ejecucion, Artefacto).
+- Siguiente paso: 2 - Adaptadores de proveedores.
+- Definir en el paso 4 la reintención fallo->cola y el límite de intentos.
 - api_key se guarda en claro en SQLite; falta cifrarla con la clave fuera del
   repositorio (dependencia cryptography ya autorizada).
 - Confirmar qué proveedor gratuito usará AI Workforce en producción.

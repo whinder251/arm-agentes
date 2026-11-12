@@ -95,3 +95,102 @@ class Agente(models.Model):
 
     def __str__(self):
         return self.nombre
+
+
+class Tarea(models.Model):
+    """Unidad de trabajo que pasa por estados hasta completarse."""
+
+    class Estado(models.TextChoices):
+        COLA = "cola", "En cola"
+        CURSO = "curso", "En curso"
+        REVISION = "revision", "En revisión"
+        OK = "ok", "Completada"
+        FALLO = "fallo", "Fallida"
+
+    TRANSICIONES = {
+        Estado.COLA: {Estado.CURSO, Estado.FALLO},
+        Estado.CURSO: {Estado.REVISION, Estado.FALLO},
+        Estado.REVISION: {Estado.OK, Estado.FALLO},
+        Estado.OK: set(),
+        Estado.FALLO: set(),
+    }
+
+    estado = models.CharField(
+        max_length=10, choices=Estado.choices, default=Estado.COLA
+    )
+    agente = models.ForeignKey(
+        Agente,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="tareas",
+    )
+    habilidad = models.ForeignKey(
+        Habilidad, on_delete=models.PROTECT, related_name="tareas"
+    )
+    payload = models.JSONField(default=dict, blank=True)
+    depende_de = models.ManyToManyField(
+        "self", blank=True, symmetrical=False, related_name="dependientes"
+    )
+    intentos = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        verbose_name = "tarea"
+        verbose_name_plural = "tareas"
+
+    def __str__(self):
+        return f"Tarea {self.pk} ({self.get_estado_display()})"
+
+    def transicionar(self, nuevo_estado):
+        """Aplica una transición válida o lanza ValueError."""
+        if nuevo_estado not in self.TRANSICIONES.get(self.estado, set()):
+            raise ValueError(
+                f"Transición no permitida: {self.estado} -> {nuevo_estado}"
+            )
+        self.estado = nuevo_estado
+        self.save(update_fields=["estado"])
+
+
+class Ejecucion(models.Model):
+    """Registro de una llamada a un modelo dentro de una tarea."""
+
+    tarea = models.ForeignKey(
+        Tarea, on_delete=models.CASCADE, related_name="ejecuciones"
+    )
+    modelo_usado = models.CharField(max_length=120, blank=True)
+    tokens_in = models.PositiveIntegerField(default=0)
+    tokens_out = models.PositiveIntegerField(default=0)
+    ms = models.PositiveIntegerField(default=0)
+    salida = models.JSONField(null=True, blank=True)
+    error = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = "ejecución"
+        verbose_name_plural = "ejecuciones"
+
+    def __str__(self):
+        return f"Ejecución {self.pk} de la tarea {self.tarea_id}"
+
+
+class Artefacto(models.Model):
+    """Resultado versionado producido por una tarea."""
+
+    tarea = models.ForeignKey(
+        Tarea, on_delete=models.CASCADE, related_name="artefactos"
+    )
+    version = models.PositiveIntegerField(default=1)
+    contenido = models.TextField()
+    metadata = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        verbose_name = "artefacto"
+        verbose_name_plural = "artefactos"
+        ordering = ["tarea", "version"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["tarea", "version"], name="unique_version_por_tarea"
+            )
+        ]
+
+    def __str__(self):
+        return f"Artefacto v{self.version} de la tarea {self.tarea_id}"

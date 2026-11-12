@@ -2,7 +2,15 @@ import pytest
 from django.contrib import admin
 from django.db import IntegrityError, transaction
 
-from apps.core.models import Agente, Habilidad, ModeloLLM, Proveedor
+from apps.core.models import (
+    Agente,
+    Artefacto,
+    Ejecucion,
+    Habilidad,
+    ModeloLLM,
+    Proveedor,
+    Tarea,
+)
 
 
 def crear_proveedor(**extra):
@@ -26,6 +34,14 @@ def crear_habilidad(**extra):
     }
     datos.update(extra)
     return Habilidad.objects.create(**datos)
+
+
+def crear_tarea(**extra):
+    datos = {"payload": {"texto": "Artículo original"}}
+    if "habilidad" not in extra:
+        datos["habilidad"] = crear_habilidad()
+    datos.update(extra)
+    return Tarea.objects.create(**datos)
 
 
 @pytest.mark.django_db
@@ -96,4 +112,94 @@ def test_agente_y_habilidades_se_relacionan():
 @pytest.mark.django_db
 def test_admin_registra_los_cuatro_modelos():
     for modelo in (Proveedor, ModeloLLM, Habilidad, Agente):
+        assert admin.site.is_registered(modelo)
+
+
+@pytest.mark.django_db
+def test_crear_tarea_con_estado_por_defecto():
+    tarea = crear_tarea()
+    assert tarea.pk is not None
+    assert tarea.estado == "cola"
+    assert tarea.agente is None
+    assert tarea.intentos == 0
+    assert tarea.payload["texto"] == "Artículo original"
+
+
+@pytest.mark.django_db
+def test_transiciones_de_estado_validas():
+    tarea = crear_tarea()
+
+    tarea.transicionar("curso")
+    tarea.refresh_from_db()
+    assert tarea.estado == "curso"
+
+    tarea.transicionar("revision")
+    tarea.refresh_from_db()
+    assert tarea.estado == "revision"
+
+    tarea.transicionar("ok")
+    tarea.refresh_from_db()
+    assert tarea.estado == "ok"
+
+
+@pytest.mark.django_db
+def test_transicion_de_estado_invalida():
+    tarea = crear_tarea()
+    with pytest.raises(ValueError):
+        tarea.transicionar("ok")
+    tarea.refresh_from_db()
+    assert tarea.estado == "cola"
+
+
+@pytest.mark.django_db
+def test_dependencias_entre_tareas():
+    primera = crear_tarea()
+    segunda = crear_tarea(habilidad=crear_habilidad(nombre="Estilo", slug="estilo"))
+
+    segunda.depende_de.add(primera)
+
+    assert segunda.depende_de.count() == 1
+    assert primera.dependientes.get() == segunda
+    # La relación es asimétrica: la primera no depende de la segunda.
+    assert primera.depende_de.count() == 0
+
+
+@pytest.mark.django_db
+def test_crear_ejecucion_vinculada_a_tarea():
+    tarea = crear_tarea()
+    ejecucion = Ejecucion.objects.create(
+        tarea=tarea,
+        modelo_usado="gemini-2.5-flash",
+        tokens_in=120,
+        tokens_out=340,
+        ms=950,
+        salida={"titulo": "Reescritura"},
+    )
+
+    assert ejecucion.pk is not None
+    assert ejecucion.tarea == tarea
+    assert tarea.ejecuciones.count() == 1
+    assert ejecucion.salida["titulo"] == "Reescritura"
+    assert ejecucion.error == ""
+
+
+@pytest.mark.django_db
+def test_crear_artefacto_vinculado_a_tarea():
+    tarea = crear_tarea()
+    artefacto = Artefacto.objects.create(
+        tarea=tarea,
+        contenido="Texto reescrito",
+        metadata={"seo": "ok"},
+    )
+
+    assert artefacto.pk is not None
+    assert artefacto.tarea == tarea
+    assert artefacto.version == 1
+    assert tarea.artefactos.count() == 1
+    assert artefacto.metadata["seo"] == "ok"
+
+
+@pytest.mark.django_db
+def test_admin_registra_modelos_de_trabajo():
+    for modelo in (Tarea, Ejecucion, Artefacto):
         assert admin.site.is_registered(modelo)
