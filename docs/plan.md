@@ -1,7 +1,7 @@
 # Plan de construcción
 
 
-Estado: 0a, 0b, 1a y 1b completados; paso 2 pendiente.
+Estado: 0a, 0b, 1a, 1b y 2 completados; paso 3a pendiente.
 Última actualización: 2026-11-12.
 
 Regla de cierre: un paso se cierra con tests en verde, este archivo actualizado y
@@ -87,7 +87,20 @@ Objetivo: capa de IA intercambiable.
 Archivos: apps/providers/base.py, gemini.py, openrouter.py, tests con fixtures.
 Aceptación: 429, 5xx y timeout se mapean a excepciones propias; cero llamadas de
 red en los tests; el uso de tokens se normaliza entre proveedores.
-Estado: pendiente.
+Estado: completado (2026-11-12).
+Evidencia (2026-11-12):
+```
+$ .venv\Scripts\python.exe -m pytest -q
+............................                                             [100%]
+28 passed in 11.51s
+
+$ .venv\Scripts\python.exe manage.py check
+System check identified no issues (0 silenced).
+```
+Notas: BaseProveedor centraliza el mapeo 429 -> LimiteVelocidad, 5xx ->
+ErrorServidor, timeout -> TimeoutProveedor y 402 -> CuotaAgotada. Gemini usa
+x-goog-api-key; OpenRouter usa Bearer. Los fixtures de tests/fixtures/ reproducen
+la forma documentada de cada API, no son capturas reales (no hubo red).
 
 ## Paso 3a - Contador y reserva atómica
 Objetivo: no pasarse del cupo diario con varios workers.
@@ -146,7 +159,8 @@ Estado: pendiente.
 - 2026-11-13: modelo de opencode elegido por sesión, no fijado en configuración.
 
 ## Pendientes y dudas
-- Siguiente paso: 2 - Adaptadores de proveedores.
+- Siguiente paso: 3a - Contador y reserva atómica.
+- Conectar los adaptadores con Proveedor/ModeloLLM en el router (paso 3b).
 - Definir en el paso 4 la reintención fallo->cola y el límite de intentos.
 - api_key se guarda en claro en SQLite; falta cifrarla con la clave fuera del
   repositorio (dependencia cryptography ya autorizada).

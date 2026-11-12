@@ -1,0 +1,19 @@
+{
+  "id": "fixture-openrouter-200",
+  "model": "openrouter/auto",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "La capital de Francia es París."
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 21,
+    "completion_tokens": 9,
+    "total_tokens": 30
+  }
+}
