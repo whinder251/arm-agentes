@@ -46,6 +46,11 @@ No encadenes comandos con &&. PowerShell 5.1 no lo acepta; usa líneas separadas
 13. Al cerrar el paso, actualiza docs/plan.md con lo hecho y lo pendiente.
 14. La ruta del proyecto contiene espacios. Cita siempre las rutas en los comandos
     de PowerShell. Nunca nombres un módulo o paquete Python con espacios.
+15. Prohibido marcar un paso como completado en docs/plan.md sin haber ejecutado
+    su criterio de aceptación en esta sesión. Pega la salida del comando que lo
+    prueba. Si no lo ejecutaste, el estado es pendiente.
+
+    
 ## Arquitectura
 apps/core, apps/agents, apps/providers, apps/engine, apps/checks, apps/panel.
 
