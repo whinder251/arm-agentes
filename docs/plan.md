@@ -1,7 +1,7 @@
 # Plan de construcción
 
 
-Estado: 0a, 0b, 1a, 1b, 2, 3a, 3b, 4, 5a y 5b completados.
+Estado: 0a, 0b, 1a, 1b, 2, 3a, 3b, 4, 5a, 5b y 6 completados.
 Última actualización: 2026-11-12.
 
 Regla de cierre: un paso se cierra con tests en verde, este archivo actualizado y
@@ -252,7 +252,32 @@ Archivos: apps/engine/pipelines.py, fixtures del equipo editorial, comando
 procesar_articulo, test de extremo a extremo.
 Aceptación: con proveedores simulados se produce un Artefacto versionado y un
 informe de calidad.
-Estado: pendiente.
+Estado: completado (2026-11-12).
+Evidencia (2026-11-12):
+```
+$ .venv\Scripts\python.exe -m pytest -q tests/test_pipeline.py
+...                                                                      [100%]
+3 passed in 6.99s
+
+$ .venv\Scripts\python.exe -m pytest -q
+........................................................................ [ 94%]
+....                                                                     [100%]
+76 passed in 42.27s
+
+$ .venv\Scripts\python.exe manage.py check
+System check identified no issues (0 silenced).
+```
+Notas: pipeline_editorial() exige la tarea principal en "cola" y llama dos veces
+a ejecutar_tarea.call_local(): la reescritura y la tarea SEO hija. La tarea SEO
+usa la habilidad con slug "seo", hereda el agente y el payload, sustituye "texto"
+por el artefacto reescrito y se vincula con depende_de. Sus problemas quedan en
+el metadata del artefacto final como problemas, verificacion y tarea_principal.
+Ejecutar_tarea deja la principal en "ok", que es terminal en TRANSICIONES; para
+pasar a "revision" el pipeline hace un UPDATE directo, sin tocar models.py en
+este paso. El comando procesar_articulo exige las habilidades "reescritura" y
+"seo" ya creadas y recorta la meta a 155 caracteres; si el texto es más corto de
+140, SEO-002 la mandará a revisión. La derivación de título, meta y slug es una
+heurística provisional: falta que el modelo devuelva esos campos validados.
 
 ## Paso 7 - Panel
 Objetivo: operar el sistema desde el navegador.
@@ -277,7 +302,13 @@ Estado: pendiente.
   UPDATE condicional con reintentos ante "database is locked".
 
 ## Pendientes y dudas
-- Siguiente paso: 6 - Pipeline editorial.
+- Siguiente paso: 7 - Panel.
+- Formalizar la transición ok -> revision en Tarea.TRANSICIONES; ahora el
+  pipeline la aplica con un UPDATE directo.
+- El pipeline deriva título, meta y slug del texto reescrito con heurísticas.
+  Hacer que el modelo los devuelva validados con Pydantic.
+- procesar_articulo no crea el catálogo: exige las habilidades "reescritura" y
+  "seo" y al menos un modelo activo.
 - La lista de exclusión de 5b vive en hechos.py; moverla a docs/estilo.md si debe
   editarse sin tocar código.
 - El motor aplica 3 reintentos y después fallo, según el encargo de la sesión;

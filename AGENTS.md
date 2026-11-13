@@ -49,7 +49,10 @@ No encadenes comandos con &&. PowerShell 5.1 no lo acepta; usa líneas separadas
 15. Prohibido marcar un paso como completado en docs/plan.md sin haber ejecutado
     su criterio de aceptación en esta sesión. Pega la salida del comando que lo
     prueba. Si no lo ejecutaste, el estado es pendiente.
-
+16. Para leer archivos usa tu herramienta de lectura, no Get-Content por shell.
+    Los comandos de shell quedan para operaciones que esa herramienta no cubre.
+17. Escribe el intérprete siempre como .venv\Scripts\python.exe, sin el punto
+    y barra iniciales. Las reglas de permisos comparan texto literal.  
     
 ## Arquitectura
 apps/core, apps/agents, apps/providers, apps/engine, apps/checks, apps/panel.
