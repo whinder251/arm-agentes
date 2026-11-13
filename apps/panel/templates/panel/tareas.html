@@ -1,63 +1,55 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Panel ARM - Tareas</title>
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-    <style>
-        body { font-family: sans-serif; margin: 20px; background: #f9f9f9; color: #333; }
-        h1, h2, h3 { color: #111; }
-        table { width: 100%; border-collapse: collapse; background: #fff; margin-top: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        th, td { padding: 12px; border-bottom: 1px solid #ddd; text-align: left; }
-        th { background: #f4f4f4; }
-        .badge { padding: 4px 8px; border-radius: 4px; color: #fff; font-size: 0.85em; font-weight: bold; }
-        .badge-cola { background: #6c757d; }
-        .badge-curso { background: #007bff; }
-        .badge-revision { background: #fd7e14; }
-        .badge-ok { background: #28a745; }
-        .badge-fallo { background: #dc3545; }
-        a { color: #007bff; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-        .card { background: #fff; padding: 20px; margin-top: 20px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        pre { background: #f1f1f1; padding: 10px; border-radius: 4px; overflow-x: auto; }
-        .btn { background: #28a745; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
-        .btn:hover { background: #218838; }
-        .nav { margin-bottom: 20px; }
-    </style>
-</head>
-<body>
-    <div class="nav">
-        <a href="{% url 'lista_tareas' %}">&larr; Volver al Listado</a>
-    </div>
+{% extends "panel/base.html" %}
 
-    {% if single_row %}
-        <tr id="task-{{ tarea.pk }}">
-            <td><a href="{% url 'detalle_tarea' tarea.pk %}">{{ tarea.pk }}</a></td>
-            <td>
-                <span class="badge badge-{{ tarea.estado }}">{{ tarea.estado }}</span>
-            </td>
-            <td>{{ tarea.agente }}</td>
-            <td>{{ tarea.habilidad }}</td>
-            <td>{{ tarea.actualizado_en|date:"Y-m-d H:i:s" }}</td>
-            <td>
-                {% if tarea.estado == 'revision' %}
-                    <button class="btn" hx-post="{% url 'aprobar_tarea' %}" hx-vals='{"task_id": {{ tarea.pk }}}' hx-target="closest tr" hx-swap="outerHTML">Aprobar</button>
-                {% endif %}
-            </td>
-        </tr>
-    {% elif tarea %}
-        <h1>Detalle de Tarea #{{ tarea.pk }}</h1>
-        <div class="card">
+{% block content %}
+<style>
+    .encabezado-tareas { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 24px; }
+    .encabezado-tareas h1 { margin: 0; font-size: 1.8rem; }
+    .encabezado-tareas .cuenta { color: #5a5a5a; font-size: 0.9rem; }
+    .filtros { margin-bottom: 18px; font-size: 0.9rem; }
+    .filtros a { color: #1a1a1a; text-decoration: none; margin-right: 4px; padding: 2px 6px; }
+    .filtros a:hover { color: #009CFF; }
+    .filtros a.activo { border-bottom: 2px solid #009CFF; color: #009CFF; }
+    .tabla-tareas { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #d5ceb9; }
+    .tabla-tareas th { background: #f0ebd9; color: #1a1a1a; text-align: left; font-weight: normal; font-size: 0.82rem; letter-spacing: 0.04em; text-transform: uppercase; padding: 10px 12px; border-bottom: 1px solid #d5ceb9; }
+    .tabla-tareas td { padding: 11px 12px; border-bottom: 1px solid #eee7d3; vertical-align: middle; }
+    .tabla-tareas tr:last-child td { border-bottom: none; }
+    .tabla-tareas a { color: #009CFF; text-decoration: none; }
+    .tabla-tareas a:hover { text-decoration: underline; }
+    .badge { display: inline-block; padding: 3px 8px; color: #fff; font-size: 0.78rem; letter-spacing: 0.03em; }
+    .badge-cola { background: #5a5a5a; }
+    .badge-curso { background: #009CFF; }
+    .badge-revision { background: #fd7e14; }
+    .badge-ok { background: #2e7d32; }
+    .badge-fallo { background: #c1121f; }
+    .btn-aprobar { background: #2e7d32; color: #fff; border: none; padding: 6px 12px; cursor: pointer; font-size: 0.85rem; }
+    .btn-aprobar:hover { background: #256428; }
+    .vacio { color: #5a5a5a; }
+    .volver { display: inline-block; margin-bottom: 18px; color: #009CFF; text-decoration: none; }
+    .volver:hover { text-decoration: underline; }
+    .detalle { margin-top: 8px; }
+    .detalle h1 { margin-top: 0; }
+    .bloque { background: #fff; border: 1px solid #d5ceb9; border-left: 4px solid #009CFF; padding: 18px 20px; margin-top: 18px; }
+    .bloque h2 { margin-top: 0; font-size: 1.1rem; }
+    .bloque p { margin: 6px 0; }
+    .bloque pre { background: #faf5e5; border: 1px solid #e3dcc6; padding: 12px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
+</style>
+
+{% if tarea %}
+    <a class="volver" href="{% url 'lista_tareas' %}">&larr; Volver al listado</a>
+    <div class="detalle">
+        <h1>Detalle de tarea #{{ tarea.pk }}</h1>
+
+        <div class="bloque">
             <p><strong>Estado:</strong> <span class="badge badge-{{ tarea.estado }}">{{ tarea.estado }}</span></p>
             <p><strong>Agente:</strong> {{ tarea.agente }}</p>
             <p><strong>Habilidad:</strong> {{ tarea.habilidad }}</p>
             <p><strong>Actualizado en:</strong> {{ tarea.actualizado_en }}</p>
-            <h3>Payload</h3>
+            <h2>Payload</h2>
             <pre>{{ tarea.payload }}</pre>
         </div>
 
-        <div class="card">
-            <h2>Último Artefacto</h2>
+        <div class="bloque">
+            <h2>Último artefacto</h2>
             {% if ultimo_artefacto %}
                 <p><strong>Versión:</strong> {{ ultimo_artefacto.version }}</p>
                 <p><strong>Metadata:</strong></p>
@@ -69,62 +61,53 @@
             {% endif %}
         </div>
 
-        <div class="card">
-            <h2>Última Ejecución</h2>
+        <div class="bloque">
+            <h2>Última ejecución</h2>
             {% if ultima_ejecucion %}
                 <p><strong>Modelo usado:</strong> {{ ultima_ejecucion.modelo_usado }}</p>
-                <p><strong>Tokens In:</strong> {{ ultima_ejecucion.tokens_in }}</p>
-                <p><strong>Tokens Out:</strong> {{ ultima_ejecucion.tokens_out }}</p>
+                <p><strong>Tokens in:</strong> {{ ultima_ejecucion.tokens_in }}</p>
+                <p><strong>Tokens out:</strong> {{ ultima_ejecucion.tokens_out }}</p>
                 <p><strong>Duración (ms):</strong> {{ ultima_ejecucion.ms }}</p>
             {% else %}
                 <p>No hay ejecuciones registradas.</p>
             {% endif %}
         </div>
-    {% else %}
-        <h1>Listado de Tareas</h1>
-        <div style="margin-bottom: 15px;">
-            Filtrar estado: 
-            <a href="{% url 'lista_tareas' %}">Todos</a> |
-            <a href="?estado=cola">Cola</a> |
-            <a href="?estado=curso">Curso</a> |
-            <a href="?estado=revision">Revisión</a> |
-            <a href="?estado=ok">OK</a> |
-            <a href="?estado=fallo">Fallo</a>
-        </div>
-        <table>
-            <thead>
+    </div>
+{% else %}
+    <div class="encabezado-tareas">
+        <h1>Tareas</h1>
+        <span class="cuenta">{{ tareas|length }} en total</span>
+    </div>
+
+    <nav class="filtros">
+        <a href="{% url 'lista_tareas' %}"{% if not estado_filtro %} class="activo"{% endif %}>Todas</a>
+        <a href="?estado=cola"{% if estado_filtro == 'cola' %} class="activo"{% endif %}>Cola</a>
+        <a href="?estado=curso"{% if estado_filtro == 'curso' %} class="activo"{% endif %}>Curso</a>
+        <a href="?estado=revision"{% if estado_filtro == 'revision' %} class="activo"{% endif %}>Revisión</a>
+        <a href="?estado=ok"{% if estado_filtro == 'ok' %} class="activo"{% endif %}>OK</a>
+        <a href="?estado=fallo"{% if estado_filtro == 'fallo' %} class="activo"{% endif %}>Fallo</a>
+    </nav>
+
+    <table class="tabla-tareas">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Estado</th>
+                <th>Agente</th>
+                <th>Habilidad</th>
+                <th>Actualizado en</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in tareas %}
+                {% include "panel/fila_tarea.html" with tarea=t %}
+            {% empty %}
                 <tr>
-                    <th>ID</th>
-                    <th>Estado</th>
-                    <th>Agente</th>
-                    <th>Habilidad</th>
-                    <th>Actualizado en</th>
-                    <th>Acciones</th>
+                    <td colspan="6" class="vacio">No hay tareas encontradas.</td>
                 </tr>
-            </thead>
-            <tbody>
-                {% for t in tareas %}
-                    <tr id="task-{{ t.pk }}">
-                        <td><a href="{% url 'detalle_tarea' t.pk %}">{{ t.pk }}</a></td>
-                        <td>
-                            <span class="badge badge-{{ t.estado }}">{{ t.estado }}</span>
-                        </td>
-                        <td>{{ t.agente }}</td>
-                        <td>{{ t.habilidad }}</td>
-                        <td>{{ t.actualizado_en|date:"Y-m-d H:i:s" }}</td>
-                        <td>
-                            {% if t.estado == 'revision' %}
-                                <button class="btn" hx-post="{% url 'aprobar_tarea' %}" hx-vals='{"task_id": {{ t.pk }}}' hx-target="closest tr" hx-swap="outerHTML">Aprobar</button>
-                            {% endif %}
-                        </td>
-                    </tr>
-                {% empty %}
-                    <tr>
-                        <td colspan="6">No hay tareas encontradas.</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% endif %}
-</body>
-</html>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+{% endblock %}

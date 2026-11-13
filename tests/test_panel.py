@@ -103,3 +103,33 @@ class TestPanel(TestCase):
         assert response.status_code == 302
         tarea.refresh_from_db()
         assert tarea.estado == 'revision'
+
+    def test_aprobar_htmx_devuelve_solo_fila(self):
+        tarea = Tarea.objects.create(
+            agente=self.agente,
+            habilidad=self.habilidad,
+            estado='revision',
+            payload={'texto': 'revision text'}
+        )
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('aprobar_tarea')
+        response = self.client.post(url, {'task_id': tarea.pk}, HTTP_HX_REQUEST='true')
+
+        content = response.content.decode('utf-8')
+        assert response.status_code == 200
+        assert f'<tr id="task-{tarea.pk}">' in content
+        assert '<html' not in content
+        assert 'Panel ARM' not in content
+        assert 'Aprobar' not in content
+
+        tarea.refresh_from_db()
+        assert tarea.estado == 'ok'
+
+    def test_sidebar_enlaza_configuracion(self):
+        self.client.login(username='testuser', password='testpass123')
+        response = self.client.get(reverse('lista_tareas'))
+        content = response.content.decode('utf-8')
+        enlace = f'href="{reverse("configuracion")}"'
+        assert content.count(enlace) == 2
+        assert '<a href="#">Proveedores</a>' not in content
+        assert '<a href="#">Modelos</a>' not in content

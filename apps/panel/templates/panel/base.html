@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Panel ARM</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <style>
         body {
             background-color: #faf5e5;
@@ -71,8 +72,8 @@
             <h2>Panel ARM</h2>
             <nav>
                 <a href="{% url 'lista_tareas' %}">Tareas</a>
-                <a href="#">Proveedores</a>
-                <a href="#">Modelos</a>
+                <a href="{% url 'configuracion' %}">Proveedores</a>
+                <a href="{% url 'configuracion' %}">Modelos</a>
                 <a href="{% url 'lista_habilidades' %}">Habilidades</a>
                 <a href="{% url 'lista_agentes' %}">Agentes</a>
             </nav>

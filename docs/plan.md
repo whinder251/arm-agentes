@@ -1,7 +1,8 @@
 # Plan de construcción
 
 
-Estado: 0a, 0b, 1a, 1b, 2, 3a, 3b, 4, 5a, 5b, 6, 9a, 9b, 9c, 9d-1 y 9d-2 completados.
+Estado: 0a, 0b, 1a, 1b, 2, 3a, 3b, 4, 5a, 5b, 6, 9a, 9b, 9c, 9d-1, 9d-2 y 9e
+completados.
 Paso 9 (panel propio) completo.
 Última actualización: 2026-11-12.
 
@@ -460,4 +461,37 @@ sidebar con {% url 'lista_habilidades' %} y {% url 'lista_agentes' %}. Tests
 nuevos en tests/test_panel_listas.py: 6 casos de agentes (lista sin login 302,
 lista 200 con modelo, formulario 200 con habilidad marcada, edición 302 con
 datos y habilidades persistidos, borrado POST 302 y GET 405 sin borrar). La
-advertencia RemovedInDjango60Warning de URLField sigue siendo preexistente. 
+advertencia RemovedInDjango60Warning de URLField sigue siendo preexistente.
+
+9e: Migración de tareas.html al diseño nuevo y enlaces del menú.
+COMPLETADO (2026-11-12).
+Evidencia (2026-11-12):
+```
+$ .venv\Scripts\python.exe -m pytest -q
+........................................................................ [ 66%]
+.....................................                                    [100%]
+=============================== warnings summary ===============================
+tests/test_panel.py::TestPanel::test_aprobar_cambia_estado
+  C:\Users\Drogo\Downloads\ARM agentes\.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148: RemovedInDjango60Warning: The default scheme will be changed from 'http' to 'https' in Django 6.0. Pass the forms.URLField.assume_scheme argument to silence this warning, or set the FORMS_URLFIELD_ASSUME_HTTPS transitional setting to True to opt into using 'https' as the new default scheme.
+    return form_class(**defaults)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+109 passed, 1 warning in 136.13s (0:02:16)
+
+$ .venv\Scripts\python.exe manage.py check
+System check identified no issues (0 silenced).
+```
+Notas: tareas.html ahora extiende panel/base.html y solo define el bloque
+content, con filtros por estado, tabla y vista de detalle condicional (payload,
+último artefacto y última ejecución). Se eliminaron html, head, style global y
+body. Los badges usan cola #5a5a5a, curso #009CFF, revision #fd7e14, ok #2e7d32
+y fallo #c1121f, sin sombras rgba ni radios. fila_tarea.html es un parcial puro
+con el <tr> y el botón Aprobar; se reutiliza en el bucle y es lo que devuelve
+aprobar_tarea cuando HX-Request está presente. El botón envía X-CSRFToken por
+hx-headers, que antes faltaba. base.html carga HTMX en el head (antes vivía en
+tareas.html) y enlaza Proveedores y Modelos con {% url 'configuracion' %}.
+Tests nuevos en tests/test_panel.py: respuesta HTMX sin <html> ni sidebar y
+estado ok, y sidebar con dos enlaces a configuración y sin href="#".
+Pendiente: el filtro por estado y la tabla no se refrescan por HTMX; el parcial
+solo cubre la aprobación de una fila. La advertencia RemovedInDjango60Warning de
+URLField sigue siendo preexistente. 

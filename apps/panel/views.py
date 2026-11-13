@@ -46,7 +46,7 @@ def aprobar_tarea(request):
                 ultimo_artefacto.metadata = meta
                 ultimo_artefacto.save()
         if request.headers.get('HX-Request'):
-            return render(request, 'panel/tareas.html', {'tarea': tarea, 'single_row': True})
+            return render(request, 'panel/fila_tarea.html', {'tarea': tarea})
         return redirect('lista_tareas')
     return redirect('lista_tareas')
 

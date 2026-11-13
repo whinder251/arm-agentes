@@ -1,0 +1,17 @@
+<tr id="task-{{ tarea.pk }}">
+    <td><a href="{% url 'detalle_tarea' tarea.pk %}">{{ tarea.pk }}</a></td>
+    <td><span class="badge badge-{{ tarea.estado }}">{{ tarea.estado }}</span></td>
+    <td>{{ tarea.agente }}</td>
+    <td>{{ tarea.habilidad }}</td>
+    <td>{{ tarea.actualizado_en|date:"Y-m-d H:i:s" }}</td>
+    <td>
+        {% if tarea.estado == 'revision' %}
+            <button class="btn-aprobar"
+                    hx-post="{% url 'aprobar_tarea' %}"
+                    hx-vals='{"task_id": {{ tarea.pk }}}'
+                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                    hx-target="closest tr"
+                    hx-swap="outerHTML">Aprobar</button>
+        {% endif %}
+    </td>
+</tr>
