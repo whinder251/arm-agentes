@@ -11,6 +11,7 @@ from django.db.models import Sum
 from django.forms import inlineformset_factory
 from apps.core.models import (
     Tarea, Proveedor, ModeloLLM, Habilidad, Agente, Equipo, Workflow, PasoWorkflow,
+    Ejecucion,
 )
 from apps.engine.tasks import ejecutar_tarea, continuar_workflow
 from apps.providers.wordpress import WordPressProvider
@@ -524,3 +525,14 @@ def integraciones(request):
     return render(request, "panel/integraciones.html", {
         "arm_api_key": settings.ARM_API_KEY,
     })
+
+
+@login_required
+def lista_ejecuciones(request):
+    """Historial de solo lectura de todas las ejecuciones de IA."""
+    ejecuciones = (
+        Ejecucion.objects
+        .select_related('tarea__agente__modelo__proveedor')
+        .order_by('-id')[:100]
+    )
+    return render(request, 'panel/lista_ejecuciones.html', {'ejecuciones': ejecuciones})

@@ -1,8 +1,8 @@
 # Plan de construcción — ARM
 
 ## Estado Actual (2026-11-14)
-**Pasos 0 a 21 COMPLETADOS.** 
-El sistema cuenta con: panel web estilo Apple/SaaS, creación de tareas con asignación automática, modelos Workflow/PasoWorkflow/Equipo, API REST con Pydantic v2, publicación en WordPress (borradores), cifrado de API keys y validación de cuotas.
+**Pasos 0 a 25 COMPLETADOS. Núcleo de ARM v1.0 terminado.** 
+El sistema cuenta con: panel web estilo Apple/SaaS, creación de tareas con asignación automática, modelos Workflow/PasoWorkflow/Equipo, API REST con Pydantic v2, publicación en WordPress (borradores), cifrado de API keys, validación de cuotas, orquestación de workflows paso a paso, conteo real de tokens, dashboard de métricas, integraciones con ARM_API_KEY visible, propagación de fallos y vista de historial de ejecuciones para auditoría.
 *Ver `docs/plan_historial.md` para el registro detallado de evidencias de los pasos 0-20.*
 
 ## Reglas de Ejecución (NO ROMPER)
@@ -102,3 +102,22 @@ Panel de integraciones con ARM_API_KEY visible y botón copiar; fallo definitivo
 - `docs/plan.md`: esta sección.
 
 **Criterio de aceptación:** Documentación limpia y profesional; roadmap sincronizado con el estado real del proyecto. Sin ejecución de tests (solo documentación).
+
+## Paso 25 - Historial de Ejecuciones — COMPLETADO
+
+**Objetivo:** Vista de solo lectura que muestre el historial de todas las ejecuciones de IA, permitiendo auditar consumo de tokens, duración y errores por tarea.
+
+**Archivos tocados:**
+- `apps/panel/views.py`: importación de `Ejecucion`, nueva vista `lista_ejecuciones` con `@login_required`, queryset `Ejecucion.objects.select_related('tarea__agente__modelo__proveedor').order_by('-id')[:100]` pasando el contexto como `ejecuciones`.
+- `apps/panel/urls.py`: ruta `path('ejecuciones/', views.lista_ejecuciones, name='lista_ejecuciones')`.
+- `apps/panel/templates/panel/base.html`: enlace "Ejecuciones" como último de la sección "Operación" del sidebar, con clase `activo` condicional.
+- `apps/panel/templates/panel/lista_ejecuciones.html` (nuevo): extiende `panel/base.html`, título "Historial de Ejecuciones", subtítulo "Auditoría de consumo y rendimiento", tabla estilo Apple/SaaS estricta con columnas Fecha/Hora (usando `tarea.actualizado_en`), Tarea (ID), Proveedor, Tokens (In/Out), Duración (ms), Estado con badge de color.
+- `tests/test_panel.py`: prueba `test_lista_ejecuciones_render` (login, crear Ejecucion asociada a Tarea, GET a 'lista_ejecuciones', status 200, presencia del ID de tarea y del proveedor).
+- `docs/plan.md`: esta sección y estado general actualizado a "Pasos 0 a 25 COMPLETADOS. Núcleo de ARM v1.0 terminado."
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "ejecuciones" -q` → `1 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -q` → `23 passed`.
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+
+Historial de ejecuciones listo para auditoría de tokens y errores, sin fondos crema ni emojis.

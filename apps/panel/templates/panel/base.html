@@ -163,6 +163,7 @@
                 <a href="{% url 'lista_tareas' %}" {% if request.resolver_match.url_name == 'lista_tareas' %}class="activo"{% endif %}>Tareas</a>
                 <a href="{% url 'lista_workflows' %}" {% if request.resolver_match.url_name == 'lista_workflows' %}class="activo"{% endif %}>Workflows</a>
                 <a href="{% url 'lista_equipos' %}" {% if request.resolver_match.url_name == 'lista_equipos' %}class="activo"{% endif %}>Equipos</a>
+                <a href="{% url 'lista_ejecuciones' %}" {% if request.resolver_match.url_name == 'lista_ejecuciones' %}class="activo"{% endif %}>Ejecuciones</a>
                 <h3 class="seccion">Configuración</h3>
                 <a href="{% url 'lista_agentes' %}" {% if request.resolver_match.url_name == 'lista_agentes' %}class="activo"{% endif %}>Agentes</a>
                 <a href="{% url 'lista_habilidades' %}" {% if request.resolver_match.url_name == 'lista_habilidades' %}class="activo"{% endif %}>Habilidades</a>

@@ -158,6 +158,29 @@ class TestPanel(TestCase):
         assert 'Integraciones y API' in content
         assert 'ARM_API_KEY' in content
 
+    def test_lista_ejecuciones_render(self):
+        tarea = Tarea.objects.create(
+            agente=self.agente,
+            habilidad=self.habilidad,
+            estado='ok',
+            payload={'texto': 'texto de auditoría'}
+        )
+        Ejecucion.objects.create(
+            tarea=tarea,
+            modelo_usado='gemini-flash',
+            tokens_in=10,
+            tokens_out=20,
+            ms=500,
+            error='',
+        )
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('lista_ejecuciones')
+        response = self.client.get(url)
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        assert str(tarea.pk) in content
+        assert self.proveedor.nombre in content
+
     def test_crear_tarea_requiere_login(self):
         response = self.client.get(reverse('crear_tarea'))
         assert response.status_code == 302
