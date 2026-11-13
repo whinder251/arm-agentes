@@ -10,6 +10,7 @@ from apps.core.models import (
     Tarea, Proveedor, ModeloLLM, Habilidad, Agente, Workflow, PasoWorkflow,
 )
 from apps.engine.tasks import ejecutar_tarea
+from apps.providers.wordpress import WordPressProvider
 from apps.panel.forms import (
     AgenteForm,
     HabilidadForm,
@@ -139,6 +140,46 @@ def eliminar_tarea(request, pk):
     tarea = get_object_or_404(Tarea, pk=pk)
     tarea.delete()
     return redirect("lista_tareas")
+
+
+@login_required
+@require_POST
+def publicar_tarea(request, pk):
+    """Envía el último artefacto de una tarea aprobada a WordPress como borrador."""
+    tarea = get_object_or_404(Tarea, pk=pk)
+    if tarea.estado != 'ok':
+        messages.error(request, "Solo se puede publicar una tarea en estado 'ok'.")
+        return redirect('detalle_tarea', pk=tarea.pk)
+
+    ultimo_artefacto = tarea.artefactos.order_by('-id').first()
+    if not ultimo_artefacto:
+        messages.error(request, "La tarea no tiene un artefacto para publicar.")
+        return redirect('detalle_tarea', pk=tarea.pk)
+
+    proveedor = None
+    if tarea.agente and tarea.agente.modelo:
+        proveedor = tarea.agente.modelo.proveedor
+    if not proveedor:
+        messages.error(request, "La tarea no tiene un proveedor configurado.")
+        return redirect('detalle_tarea', pk=tarea.pk)
+
+    try:
+        wp = WordPressProvider(api_key=proveedor.api_key, base_url=proveedor.base_url)
+        titulo = (tarea.payload or {}).get('titulo', f"Tarea #{tarea.pk}")
+        link = wp.crear_borrador(titulo=titulo, contenido=ultimo_artefacto.contenido)
+        wp.close()
+    except Exception as exc:
+        messages.error(request, f"Error al enviar a WordPress: {exc}")
+        return redirect('detalle_tarea', pk=tarea.pk)
+
+    meta = tarea.payload or {}
+    meta['wordpress_link'] = link
+    meta['enviado_a_wordpress'] = True
+    tarea.payload = meta
+    tarea.save()
+    messages.success(request, f"Enviado a WordPress como borrador: {link}")
+    return redirect('detalle_tarea', pk=tarea.pk)
+
 
 def login_panel(request):
     if request.user.is_authenticated:

@@ -5,6 +5,7 @@ urlpatterns = [
     path('', views.lista_tareas, name='lista_tareas'),
     path('tarea/nueva/', views.crear_tarea, name='crear_tarea'),
     path('tarea/<int:pk>/eliminar/', views.eliminar_tarea, name='eliminar_tarea'),
+    path('tarea/<int:pk>/publicar/', views.publicar_tarea, name='publicar_tarea'),
     path('tarea/<int:pk>/', views.detalle_tarea, name='detalle_tarea'),
     path('aprobar/', views.aprobar_tarea, name='aprobar_tarea'),
     path('login/', views.login_panel, name='login_panel'),

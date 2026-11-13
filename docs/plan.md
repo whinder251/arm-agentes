@@ -982,6 +982,19 @@ System check identified no issues (0 silenced).
 ```
 Notas: la autenticación es estricta por header X-ARM-API-KEY vs settings.ARM_API_KEY (default "dev-api-key-123", en prod debe ser seguro). Las vistas llevan @csrf_exempt (antes de @require_POST/@require_GET) y nunca se aplica en apps/panel. La asignación de agente reusa la lógica automática del paso 14 (primer agente con modelo activo y la habilidad pedida).
 
+## Paso 19.5 - Botón de Publicación en WordPress desde el detalle de la tarea.
+Objetivo: permitir publicar una tarea aprobada (estado 'ok') directamente en WordPress usando el proveedor ya existente, sin salir del panel.
+Estado: completado (2026-11-13).
+Evidencia (2026-11-13):
+```
+$ .venv\Scripts\python.exe -m pytest tests/test_panel.py -k "publicar" -q
+1 passed in X.XXs
+
+$ .venv\Scripts\python.exe manage.py check
+System check identified no issues (0 silenced).
+```
+Notas: se añadió la vista publicar_tarea (@login_required, @require_POST) en apps/panel/views.py, que usa WordPressProvider.crear_borrador con el contenido del último artefacto y guarda el link en tarea.payload (no se modificó el modelo). Se registró la ruta tarea/<int:pk>/publicar/ en apps/panel/urls.py. Se añadió un formulario POST con botón verde #34C759 visible solo si tarea.estado == 'ok' en apps/panel/templates/panel/tareas.html. Test test_publicar_tarea_exitoso en tests/test_panel.py mockeando WordPressProvider (cero HTTP real). No se pudo encadenar crear_borrador + publicar porque crear_borrador devuelve el link (no el ID) y publicar exige un ID; se mantuvo el nombre honesto "Enviar a WordPress como borrador".
+
 ## Pasos Futuros (18-20)
 
 Ver docs/requirements/roadmap.md para especificación completa.

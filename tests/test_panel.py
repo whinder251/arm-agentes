@@ -229,6 +229,45 @@ class TestPanel(TestCase):
         assert response.status_code == 405
         assert Tarea.objects.filter(pk=tarea.pk).exists()
 
+    def test_publicar_tarea_exitoso(self):
+        proveedor_wp = Proveedor.objects.create(
+            nombre='wordpress',
+            api_key='usuario:contraseña',
+            base_url='http://wp.test.invalid',
+        )
+        modelo_wp = ModeloLLM.objects.create(
+            proveedor=proveedor_wp, model_id='wp-modelo'
+        )
+        agente_wp = Agente.objects.create(
+            nombre='Agente WP', modelo=modelo_wp, rol='Publicador'
+        )
+        agente_wp.habilidades.add(self.habilidad)
+        tarea = Tarea.objects.create(
+            agente=agente_wp,
+            habilidad=self.habilidad,
+            estado='ok',
+            payload={'texto': 'Contenido de prueba'},
+        )
+        Artefacto.objects.create(
+            tarea=tarea, version=1,
+            contenido='Contenido del artículo para publicar en WordPress.',
+            metadata={},
+        )
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('publicar_tarea', args=[tarea.pk])
+
+        with patch('apps.panel.views.WordPressProvider') as mock_wp:
+            instance = mock_wp.return_value
+            instance.crear_borrador.return_value = 'http://wp.test.invalid/123'
+            response = self.client.post(url)
+
+        assert response.status_code == 302
+        assert response.url == reverse('detalle_tarea', args=[tarea.pk])
+        instance.crear_borrador.assert_called_once()
+        tarea.refresh_from_db()
+        assert tarea.payload.get('wordpress_link') == 'http://wp.test.invalid/123'
+        assert tarea.payload.get('enviado_a_wordpress') is True
+
     def test_crear_tarea_formulario_chat(self):
         self.client.login(username='testuser', password='testpass123')
         response = self.client.get(reverse('crear_tarea'))
