@@ -5,9 +5,10 @@ from django.contrib.auth import authenticate, login as auth_login, logout as aut
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django import forms
+from django.db import models
 from django.forms import inlineformset_factory
 from apps.core.models import (
-    Tarea, Proveedor, ModeloLLM, Habilidad, Agente, Workflow, PasoWorkflow,
+    Tarea, Proveedor, ModeloLLM, Habilidad, Agente, Equipo, Workflow, PasoWorkflow,
 )
 from apps.engine.tasks import ejecutar_tarea
 from apps.providers.wordpress import WordPressProvider
@@ -401,3 +402,79 @@ def crear_workflow(request):
         "panel/formulario_workflow.html",
         {"form": form, "formset": formset},
     )
+
+
+@login_required
+def lista_equipos(request):
+    equipos = (
+        Equipo.objects.prefetch_related("agentes")
+        .annotate(cantidad_agentes=models.Count("agentes"))
+        .order_by("nombre")
+    )
+    return render(request, "panel/lista_equipos.html", {
+        "equipos": equipos,
+    })
+
+
+@login_required
+def crear_equipo(request):
+    agentes = Agente.objects.select_related("modelo").order_by("nombre")
+    error = None
+    if request.method == "POST":
+        nombre = request.POST.get("nombre", "").strip()
+        descripcion = request.POST.get("descripcion", "").strip()
+        agentes_ids = request.POST.getlist("agentes")
+        if not nombre:
+            error = "El nombre es obligatorio."
+        elif Equipo.objects.filter(nombre=nombre).exists():
+            error = "Ya existe un equipo con ese nombre."
+        else:
+            equipo = Equipo.objects.create(nombre=nombre, descripcion=descripcion)
+            equipo.agentes.set(agentes_ids)
+            messages.success(request, f"Equipo '{equipo.nombre}' creado.")
+            return redirect("lista_equipos")
+    return render(request, "panel/formulario_equipo.html", {
+        "error": error,
+        "agentes": agentes,
+    })
+
+
+@login_required
+def editar_equipo(request, pk):
+    equipo = get_object_or_404(Equipo, pk=pk)
+    agentes = Agente.objects.select_related("modelo").order_by("nombre")
+    seleccionados = [
+        str(pk) for pk in equipo.agentes.values_list("id", flat=True)
+    ]
+    error = None
+    if request.method == "POST":
+        nombre = request.POST.get("nombre", "").strip()
+        descripcion = request.POST.get("descripcion", "").strip()
+        agentes_ids = request.POST.getlist("agentes")
+        if not nombre:
+            error = "El nombre es obligatorio."
+        elif Equipo.objects.exclude(pk=pk).filter(nombre=nombre).exists():
+            error = "Ya existe un equipo con ese nombre."
+        else:
+            equipo.nombre = nombre
+            equipo.descripcion = descripcion
+            equipo.save()
+            equipo.agentes.set(agentes_ids)
+            messages.success(request, f"Equipo '{equipo.nombre}' actualizado.")
+            return redirect("lista_equipos")
+    return render(request, "panel/formulario_equipo.html", {
+        "error": error,
+        "equipo": equipo,
+        "agentes": agentes,
+        "agentes_seleccionados": seleccionados,
+    })
+
+
+@login_required
+@require_POST
+def eliminar_equipo(request, pk):
+    equipo = get_object_or_404(Equipo, pk=pk)
+    nombre = equipo.nombre
+    equipo.delete()
+    messages.success(request, f"Equipo '{nombre}' eliminado.")
+    return redirect("lista_equipos")

@@ -995,6 +995,22 @@ System check identified no issues (0 silenced).
 ```
 Notas: se añadió la vista publicar_tarea (@login_required, @require_POST) en apps/panel/views.py, que usa WordPressProvider.crear_borrador con el contenido del último artefacto y guarda el link en tarea.payload (no se modificó el modelo). Se registró la ruta tarea/<int:pk>/publicar/ en apps/panel/urls.py. Se añadió un formulario POST con botón verde #34C759 visible solo si tarea.estado == 'ok' en apps/panel/templates/panel/tareas.html. Test test_publicar_tarea_exitoso en tests/test_panel.py mockeando WordPressProvider (cero HTTP real). No se pudo encadenar crear_borrador + publicar porque crear_borrador devuelve el link (no el ID) y publicar exige un ID; se mantuvo el nombre honesto "Enviar a WordPress como borrador".
 
+## Paso 20 - UI de Gestión de Equipos de Agentes.
+Objetivo: permitir crear, listar y editar equipos de agentes desde el panel, completando la funcionalidad del modelo Equipo creado en el Paso 18.
+Estado: completado (2026-11-13).
+Evidencia (2026-11-13):
+```
+$ .venv\Scripts\python.exe -m pytest tests/test_panel.py -k "equipo" -q
+1 passed in 8.70s
+
+$ .venv\Scripts\python.exe manage.py check
+System check identified no issues (0 silenced).
+
+$ .venv\Scripts\python.exe -m pytest -q
+132 passed, 1 warning in 233.11s (0:03:53)
+```
+Notas: se añadieron las vistas lista_equipos, crear_equipo, editar_equipo y eliminar_equipo en apps/panel/views.py con @login_required (eliminar_equipo además @require_POST); las rutas equipos/, equipos/nuevo/, equipos/<int:pk>/editar/ y equipos/<int:pk>/eliminar/ en apps/panel/urls.py; las plantillas lista_equipos.html (tabla Apple/SaaS con Nombre, Descripción, Cantidad de Agentes y Acciones) y formulario_equipo.html (campos Nombre, Descripción y checkboxes de agentes disponibles), ambas con paleta estricta (#F5F5F7, #FFFFFF, #D2D2D7, radios 8/12px, acento #0071E3, cero fondos crema); y el test test_crud_equipo_exitoso en tests/test_panel.py que crea un equipo con 2 agentes, verifica 302, existencia en BD y relación M2M guardada correctamente. Se mantuvo el estilo Apple/SaaS estricto y no se ejecutó git push.
+
 ## Pasos Futuros (18-20)
 
 Ver docs/requirements/roadmap.md para especificación completa.

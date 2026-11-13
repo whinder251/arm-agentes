@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 from apps.core.models import (
-    Proveedor, ModeloLLM, Habilidad, Agente, Tarea, Artefacto, Ejecucion,
+    Proveedor, ModeloLLM, Habilidad, Agente, Equipo, Tarea, Artefacto, Ejecucion,
     Workflow, PasoWorkflow,
 )
 
@@ -369,3 +369,32 @@ class TestPanel(TestCase):
         assert paso.habilidad == self.habilidad
         assert paso.agente == self.agente
         assert paso.modo_ejecucion == 'auto'
+
+    def test_crud_equipo_exitoso(self):
+        agente2 = Agente.objects.create(
+            nombre="Agente 2", rol="Rol 2", modelo=self.modelo
+        )
+        self.client.login(username='testuser', password='testpass123')
+
+        url = reverse('crear_equipo')
+        data = {
+            'nombre': 'Equipo SEO',
+            'descripcion': 'Equipo de prueba',
+            'agentes': [self.agente.pk, agente2.pk],
+        }
+        response = self.client.post(url, data)
+        assert response.status_code == 302
+        assert response.url == reverse('lista_equipos')
+
+        equipo = Equipo.objects.get(nombre='Equipo SEO')
+        assert equipo.descripcion == 'Equipo de prueba'
+        assert equipo.agentes.count() == 2
+        assert self.agente in equipo.agentes.all()
+        assert agente2 in equipo.agentes.all()
+
+        # Lista muestra el equipo creado
+        response = self.client.get(reverse('lista_equipos'))
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        assert 'Equipo SEO' in content
+        assert '2' in content

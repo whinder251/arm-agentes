@@ -1,0 +1,151 @@
+{% extends "panel/base.html" %}
+
+{% block content %}
+<style>
+    h2 {
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        margin-top: 0;
+    }
+    .cabecera-lista {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        border-bottom: 1px solid #D2D2D7;
+        padding-bottom: 16px;
+        margin-bottom: 24px;
+    }
+    .cabecera-lista h2 {
+        margin: 0;
+    }
+    .btn-acento {
+        background-color: #0071E3;
+        color: #FFFFFF;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 18px;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 0.9rem;
+        font-weight: 500;
+        text-decoration: none;
+        display: inline-block;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+        transition: background-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .btn-acento:hover {
+        background-color: #0062c4;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    table.equipos {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        background: #FFFFFF;
+        border: 1px solid #D2D2D7;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+        overflow: hidden;
+    }
+    table.equipos th {
+        text-align: left;
+        font-weight: 600;
+        font-size: 0.75rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #6E6E73;
+        background: #F5F5F7;
+        border-bottom: 1px solid #D2D2D7;
+        padding: 12px 16px;
+    }
+    table.equipos td {
+        border-bottom: 1px solid #D2D2D7;
+        padding: 14px 16px;
+        vertical-align: middle;
+        font-size: 0.9rem;
+    }
+    table.equipos tbody tr:last-child td {
+        border-bottom: none;
+    }
+    table.equipos tbody tr:hover {
+        background: #FAFAFC;
+    }
+    .acciones {
+        white-space: nowrap;
+    }
+    .enlace-editar {
+        color: #0071E3;
+        text-decoration: none;
+        font-weight: 500;
+        margin-right: 12px;
+    }
+    .enlace-editar:hover {
+        text-decoration: underline;
+    }
+    .form-eliminar {
+        display: inline;
+        margin: 0;
+    }
+    .btn-eliminar {
+        background-color: #FF3B30;
+        color: #FFFFFF;
+        border: none;
+        border-radius: 8px;
+        padding: 7px 14px;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 0.85rem;
+        font-weight: 500;
+        transition: background-color 0.15s ease;
+    }
+    .btn-eliminar:hover {
+        background-color: #d92b22;
+    }
+    .vacio {
+        color: #6E6E73;
+        text-align: center;
+        padding: 24px;
+    }
+    .cantidad {
+        font-size: 0.9rem;
+        color: #6E6E73;
+    }
+</style>
+
+<div class="cabecera-lista">
+    <h2>Equipos</h2>
+    <a class="btn-acento" href="{% url 'crear_equipo' %}">A&ntilde;adir equipo</a>
+</div>
+
+<table class="equipos">
+    <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>Descripci&oacute;n</th>
+            <th>Cantidad de Agentes</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for equipo in equipos %}
+        <tr>
+            <td>{{ equipo.nombre }}</td>
+            <td>{{ equipo.descripcion|default:"-" }}</td>
+            <td class="cantidad">{{ equipo.cantidad_agentes }}</td>
+            <td class="acciones">
+                <a class="enlace-editar" href="{% url 'editar_equipo' equipo.pk %}">Editar</a>
+                <form class="form-eliminar" method="post" action="{% url 'eliminar_equipo' equipo.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-eliminar">Eliminar</button>
+                </form>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="4" class="vacio">No hay equipos registrados.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
