@@ -13,5 +13,9 @@
                     hx-target="closest tr"
                     hx-swap="outerHTML">Aprobar</button>
         {% endif %}
+        <form method="post" action="{% url 'eliminar_tarea' tarea.pk %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn-eliminar-tarea">Eliminar</button>
+        </form>
     </td>
 </tr>

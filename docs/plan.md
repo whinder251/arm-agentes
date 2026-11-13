@@ -2,10 +2,10 @@
 
 
 Estado: 0a, 0b, 1a, 1b, 2, 3a, 3b, 4, 5a, 5b, 6, 9a, 9b, 9c, 9d-1, 9d-2, 9e,
-10a, 10b, 11a, 11b, 12, 13 y 14a completados.
+10a, 10b, 11a, 11b, 12, 13 y 14 completados.
 Pasos 9 (panel propio), 11 (rediseño visual), 12 (creación flexible de tareas),
-13 (encolado en Huey desde el panel) y 14a (asignación automática y borrado de
-tareas) completos.
+13 (encolado en Huey desde el panel) y 14 (interfaz tipo chat, asignación
+automática y borrado de tareas) completos.
 Última actualización: 2026-11-13.
 
 Regla de cierre: un paso se cierra con tests en verde, este archivo actualizado y
@@ -720,7 +720,7 @@ ok o revisión; los tests mockean el encolado y no ejecutan Huey.
 Objetivo: simplificar la creación de tareas a un diseño tipo chat, asignar agente automáticamente si no se elige, y añadir botón para eliminar tareas.
 Archivos: apps/panel/views.py, apps/panel/urls.py, apps/panel/templates/panel/crear_tarea.html, apps/panel/templates/panel/tareas.html, apps/panel/templates/panel/fila_tarea.html, tests/test_panel.py.
 Criterio: Formulario minimalista tipo chat. Asignación automática de agente con modelo activo. Botón de eliminar tarea (POST) funcional. Tests en verde.
-Estado: 14a completado (2026-11-13); 14b pendiente.
+Estado: completado (2026-11-13).
 
 14a: backend de asignación automática y eliminación de tareas.
 Evidencia (2026-11-13):
@@ -751,5 +751,43 @@ automática; test_crear_tarea_sin_agente_seleccionado pasó a
 test_crear_tarea_sin_agentes_activos; se añadieron test_eliminar_tarea_exitoso y
 test_eliminar_tarea_get_no_permitido. La advertencia RemovedInDjango60Warning de
 URLField es preexistente.
-Pendiente: 14b (rediseño tipo chat de crear_tarea.html y botón Eliminar en
-tareas.html y fila_tarea.html). No se tocaron plantillas en 14a.
+
+14b: rediseño tipo chat de crear_tarea.html y botón Eliminar en el listado.
+COMPLETADO (2026-11-13). Paso 14 completo.
+Evidencia (2026-11-13):
+```
+$ .venv\Scripts\python.exe -m pytest -q
+........................................................................ [ 61%]
+.............................................                            [100%]
+=============================== warnings summary ===============================
+tests/test_panel.py::TestPanel::test_aprobar_cambia_estado
+  C:\Users\Drogo\Downloads\ARM agentes\.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148: RemovedInDjango60Warning: The default scheme will be changed from 'http' to 'https' in Django 6.0. Pass the forms.URLField.assume_scheme argument to silence this warning, or set the FORMS_URLFIELD_ASSUME_HTTPS transitional setting to True to opt into using 'https' as the new default scheme.
+    return form_class(**defaults)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+117 passed, 1 warning in 160.91s (0:02:40)
+
+$ .venv\Scripts\python.exe manage.py check
+System check identified no issues (0 silenced).
+```
+Notas: crear_tarea.html pasa a una tarjeta blanca de radio 12px y sombra suave
+centrada a 760px. El contenido principal es un textarea de rows=12 con
+placeholder "Escribe o pega aquí el contenido que quieres procesar..."; debajo
+una fila flex con gap 16px contiene la keyword opcional y el select de agente
+opcional, cuya primera opción vacía es "Asignación automática" (se eliminó el
+required para permitir el reparto automático de 14a). Las instrucciones
+adicionales se conservan en un textarea rows=3 y el botón "Procesar con IA" es
+primario, azul #0071E3, de ancho completo y padding 14px 28px. Inputs, select y
+textareas usan borde #D2D2D7, radio 8px y foco #0071E3 con halo suave; bajo
+640px la fila keyword/agente pasa a columna. fila_tarea.html añade un formulario
+POST con csrf_token a eliminar_tarea y el botón .btn-eliminar-tarea; tareas.html
+define su estilo (fondo transparente, borde y texto #FF3B30, radio 6px, padding
+4px 8px, 0.75rem y hover con fondo #FF3B30 y texto blanco). No se tocaron
+views.py ni urls.py. Tests nuevos en tests/test_panel.py:
+test_crear_tarea_formulario_chat (botón, rows=12, placeholder, keyword, agente,
+instrucciones y opción vacía) y test_lista_muestra_formulario_eliminar (form
+POST con la URL de borrado y la clase del botón). La advertencia
+RemovedInDjango60Warning de URLField sigue siendo preexistente.
+Pendiente: el botón Eliminar no pide confirmación antes de borrar; valorar un
+diálogo de confirmación. Revisar en navegador el responsive de la fila
+keyword/agente.

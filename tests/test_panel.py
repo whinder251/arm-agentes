@@ -225,3 +225,34 @@ class TestPanel(TestCase):
 
         assert response.status_code == 405
         assert Tarea.objects.filter(pk=tarea.pk).exists()
+
+    def test_crear_tarea_formulario_chat(self):
+        self.client.login(username='testuser', password='testpass123')
+        response = self.client.get(reverse('crear_tarea'))
+        content = response.content.decode('utf-8')
+
+        assert response.status_code == 200
+        assert 'Procesar con IA' in content
+        assert 'rows="12"' in content
+        assert 'placeholder="Escribe o pega aquí el contenido que quieres procesar..."' in content
+        assert 'name="keyword"' in content
+        assert 'name="agente_id"' in content
+        assert 'name="instrucciones"' in content
+        assert '<option value="">Asignación automática</option>' in content
+
+    def test_lista_muestra_formulario_eliminar(self):
+        tarea = Tarea.objects.create(
+            agente=self.agente,
+            habilidad=self.habilidad,
+            estado='cola',
+            payload={'texto': 'tarea con boton eliminar'}
+        )
+        self.client.login(username='testuser', password='testpass123')
+        response = self.client.get(reverse('lista_tareas'))
+        content = response.content.decode('utf-8')
+        accion = reverse('eliminar_tarea', args=[tarea.pk])
+
+        assert response.status_code == 200
+        assert f'<form method="post" action="{accion}"' in content
+        assert 'btn-eliminar-tarea' in content
+        assert '>Eliminar</button>' in content
