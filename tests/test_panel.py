@@ -3,7 +3,10 @@ from unittest.mock import patch
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
-from apps.core.models import Proveedor, ModeloLLM, Habilidad, Agente, Tarea, Artefacto, Ejecucion
+from apps.core.models import (
+    Proveedor, ModeloLLM, Habilidad, Agente, Tarea, Artefacto, Ejecucion,
+    Workflow, PasoWorkflow,
+)
 
 @pytest.mark.django_db
 class TestPanel(TestCase):
@@ -285,3 +288,45 @@ class TestPanel(TestCase):
         assert f'<form method="post" action="{accion}"' in content
         assert 'btn-eliminar-tarea' in content
         assert '>Eliminar</button>' in content
+
+    def test_lista_workflows_render(self):
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('lista_workflows')
+        response = self.client.get(url)
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        assert 'Workflows' in content
+        assert 'Nombre' in content
+        assert 'Descripci' in content
+        assert 'Estado' in content
+        assert 'N&ordm; de Pasos' in content or 'Nº de Pasos' in content
+        assert 'Fecha' in content
+        assert 'Nuevo Workflow' in content
+
+    def test_crear_workflow_exitoso(self):
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('crear_workflow')
+        data = {
+            'nombre': 'Campaña SEO',
+            'descripcion': 'Flujo de reescritura y optimizaci&oacute;n.',
+            'pasos-TOTAL_FORMS': '1',
+            'pasos-INITIAL_FORMS': '0',
+            'pasos-MIN_NUM_FORMS': '0',
+            'pasos-MAX_NUM_FORMS': '1000',
+            'pasos-0-orden': '1',
+            'pasos-0-habilidad': self.habilidad.pk,
+            'pasos-0-agente': self.agente.pk,
+            'pasos-0-modo_ejecucion': 'auto',
+        }
+        response = self.client.post(url, data)
+        assert response.status_code == 302
+        assert response.url == reverse('lista_workflows')
+        assert Workflow.objects.filter(nombre='Campaña SEO').exists()
+        workflow = Workflow.objects.get(nombre='Campaña SEO')
+        assert workflow.descripcion == 'Flujo de reescritura y optimizaci&oacute;n.'
+        paso = PasoWorkflow.objects.filter(workflow=workflow).first()
+        assert paso is not None
+        assert paso.orden == 1
+        assert paso.habilidad == self.habilidad
+        assert paso.agente == self.agente
+        assert paso.modo_ejecucion == 'auto'

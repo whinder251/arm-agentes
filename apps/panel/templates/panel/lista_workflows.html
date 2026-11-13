@@ -1,0 +1,162 @@
+{% extends "panel/base.html" %}
+
+{% block content %}
+<style>
+    h2 {
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        margin-top: 0;
+    }
+    .cabecera-lista {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        border-bottom: 1px solid #D2D2D7;
+        padding-bottom: 16px;
+        margin-bottom: 24px;
+    }
+    .cabecera-lista h2 {
+        margin: 0;
+    }
+    .btn-acento {
+        background-color: #0071E3;
+        color: #FFFFFF;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 18px;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 0.9rem;
+        font-weight: 500;
+        text-decoration: none;
+        display: inline-block;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+        transition: background-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .btn-acento:hover {
+        background-color: #0062c4;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    table.workflows {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        background: #FFFFFF;
+        border: 1px solid #D2D2D7;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+        overflow: hidden;
+    }
+    table.workflows th {
+        text-align: left;
+        font-weight: 600;
+        font-size: 0.75rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #6E6E73;
+        background: #F5F5F7;
+        border-bottom: 1px solid #D2D2D7;
+        padding: 12px 16px;
+    }
+    table.workflows td {
+        border-bottom: 1px solid #D2D2D7;
+        padding: 14px 16px;
+        vertical-align: middle;
+        font-size: 0.9rem;
+    }
+    table.workflows tbody tr:last-child td {
+        border-bottom: none;
+    }
+    table.workflows tbody tr:hover {
+        background: #FAFAFC;
+    }
+    .badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    .badge-borrador { background: #E5E5EA; color: #1D1D1F; }
+    .badge-en_ejecucion { background: #E2F3FE; color: #0071E3; }
+    .badge-completado { background: #E9F7EF; color: #34C759; }
+    .badge-fallido { background: #FEE4E2; color: #FF3B30; }
+    .acciones {
+        white-space: nowrap;
+    }
+    .enlace-editar {
+        color: #0071E3;
+        text-decoration: none;
+        font-weight: 500;
+        margin-right: 12px;
+    }
+    .enlace-editar:hover {
+        text-decoration: underline;
+    }
+    .form-eliminar {
+        display: inline;
+        margin: 0;
+    }
+    .btn-eliminar {
+        background-color: #FF3B30;
+        color: #FFFFFF;
+        border: none;
+        border-radius: 8px;
+        padding: 7px 14px;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 0.85rem;
+        font-weight: 500;
+        transition: background-color 0.15s ease;
+    }
+    .btn-eliminar:hover {
+        background-color: #d92b22;
+    }
+    .vacio {
+        color: #6E6E73;
+        text-align: center;
+        padding: 24px;
+    }
+    .fecha {
+        color: #6E6E73;
+        font-size: 0.85rem;
+    }
+</style>
+
+<div class="cabecera-lista">
+    <h2>Workflows</h2>
+    <a class="btn-acento" href="{% url 'crear_workflow' %}">Nuevo Workflow</a>
+</div>
+
+<table class="workflows">
+    <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>Descripci&oacute;n</th>
+            <th>Estado</th>
+            <th>N&ordm; de Pasos</th>
+            <th>Fecha</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for workflow in workflows %}
+        <tr>
+            <td>{{ workflow.nombre }}</td>
+            <td>{{ workflow.descripcion|default:"Sin descripci&oacute;n" }}</td>
+            <td>
+                <span class="badge badge-{{ workflow.estado }}">
+                    {{ workflow.get_estado_display }}
+                </span>
+            </td>
+            <td>{{ workflow.pasos.count }}</td>
+            <td class="fecha">{{ workflow.fecha_creacion|date:"d/m/Y H:i" }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="5" class="vacio">No hay workflows registrados.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

@@ -20,4 +20,6 @@ urlpatterns = [
     path('configuracion/agentes/', views.lista_agentes, name='lista_agentes'),
     path('configuracion/agentes/<int:pk>/editar/', views.editar_agente, name='editar_agente'),
     path('configuracion/agentes/<int:pk>/eliminar/', views.eliminar_agente, name='eliminar_agente'),
+    path('workflows/', views.lista_workflows, name='lista_workflows'),
+    path('workflows/nuevo/', views.crear_workflow, name='crear_workflow'),
 ]

@@ -4,7 +4,11 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.utils import timezone
 from django.views.decorators.http import require_POST
-from apps.core.models import Tarea, Proveedor, ModeloLLM, Habilidad, Agente
+from django import forms
+from django.forms import inlineformset_factory
+from apps.core.models import (
+    Tarea, Proveedor, ModeloLLM, Habilidad, Agente, Workflow, PasoWorkflow,
+)
 from apps.engine.tasks import ejecutar_tarea
 from apps.panel.forms import (
     AgenteForm,
@@ -12,6 +16,15 @@ from apps.panel.forms import (
     ModeloLLMForm,
     ProveedorForm,
 )
+
+
+class WorkflowForm(forms.ModelForm):
+    class Meta:
+        model = Workflow
+        fields = ["nombre", "descripcion"]
+        widgets = {
+            "descripcion": forms.Textarea(attrs={"rows": 4}),
+        }
 
 @login_required
 def lista_tareas(request):
@@ -309,3 +322,41 @@ def eliminar_agente(request, pk):
     agente = get_object_or_404(Agente, pk=pk)
     agente.delete()
     return redirect("lista_agentes")
+
+
+@login_required
+def lista_workflows(request):
+    workflows = (
+        Workflow.objects.prefetch_related("pasos")
+        .order_by("-fecha_creacion")
+    )
+    return render(request, "panel/lista_workflows.html", {"workflows": workflows})
+
+
+@login_required
+def crear_workflow(request):
+    PasoWorkflowFormSet = inlineformset_factory(
+        Workflow,
+        PasoWorkflow,
+        fields=["orden", "habilidad", "agente", "modo_ejecucion"],
+        extra=2,
+        can_delete=True,
+    )
+    if request.method == "POST":
+        form = WorkflowForm(request.POST)
+        formset = PasoWorkflowFormSet(request.POST, prefix="pasos")
+        if form.is_valid() and formset.is_valid():
+            workflow = form.save()
+            formset.instance = workflow
+            formset.save()
+            messages.success(request, f"Workflow '{workflow.nombre}' creado.")
+            return redirect("lista_workflows")
+
+    else:
+        form = WorkflowForm()
+        formset = PasoWorkflowFormSet(prefix="pasos")
+    return render(
+        request,
+        "panel/formulario_workflow.html",
+        {"form": form, "formset": formset},
+    )

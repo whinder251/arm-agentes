@@ -2,7 +2,7 @@
 
 
 Estado: 0a, 0b, 1a, 1b, 2, 3a, 3b, 4, 5a, 5b, 6, 9a, 9b, 9c, 9d-1, 9d-2, 9e,
-10a, 10b, 11a, 11b, 12, 13, 14, 15a, 15b y 16 completados.
+10a, 10b, 11a, 11b, 12, 13, 14, 15a, 15b, 16 y 17 completados.
 Pasos 9 (panel propio), 11 (rediseño visual), 12 (creación flexible de tareas),
 13 (encolado en Huey desde el panel) y 14 (interfaz tipo chat, asignación
 automática y borrado de tareas) y 15 (validación de cuota, modo ejecución y
@@ -917,14 +917,37 @@ System check identified no issues (0 silenced).
 ```
 Notas: se añadieron Workflow (nombre, descripcion, estado con choices borrador/en_ejecucion/completado/fallido, fecha_creacion) y PasoWorkflow (workflow FK CASCADE related_name='pasos', orden, habilidad FK PROTECT, agente FK SET_NULL null/blank, modo_ejecucion auto/manual default auto, Meta ordering=['orden']). No se implementó aún lógica de orquestación (encolado en cadena), solo modelos, migración y tests de integridad.
 
-## Pasos Futuros (17-20)
+## Paso 17 - Interfaz de usuario para crear y listar Workflows.
+Objetivo: permitir al usuario crear, visualizar y listar flujos de trabajo (Workflows) y sus pasos desde el panel, usando un diseño Apple/SaaS limpio.
+Archivos: apps/panel/views.py, apps/panel/urls.py,
+apps/panel/templates/panel/lista_workflows.html,
+apps/panel/templates/panel/formulario_workflow.html,
+tests/test_panel.py, docs/plan.md.
+Aceptación: lista_workflows devuelve 200 y contiene la tabla;
+crear_workflow con POST válido devuelve 302 a lista_workflows y crea
+el workflow y sus pasos en BD; sin lógica de orquestación (solo CRUD visual);
+estilo Apple/SaaS estricto (fondo #F5F5F7, tarjetas #FFFFFF, bordes #D2D2D7,
+radios 8px/12px, acento #0071E3, cero fondos crema).
+Estado: completado (2026-11-13).
+Evidencia (2026-11-13):
+```
+$ .venv\Scripts\python.exe -m pytest tests/test_panel.py -k "workflow" -q
+2 passed
+$ .venv\Scripts\python.exe manage.py check
+System check identified no issues (0 silenced).
+```
+Notas: crear_workflow usa inlineformset_factory sobre PasoWorkflow con
+exclude=['workflow'], extra=2 y can_delete=True; el prefix del formset es
+'pasos'. No se implementa aún lógica de orquestación.
+
+## Pasos Futuros (18-20)
 
 Ver docs/requirements/roadmap.md para especificación completa.
 
 Resumen:
 - Paso 15: completado (validación de cuota, modo ejecución, confirmación de borrado)
 - Paso 16: completado (modelos Workflow y PasoWorkflow para flujos multi-paso)
-- Paso 17: UI de Flujos de Trabajo (crear, editar, ejecutar pipelines)
+- Paso 17: completado (UI para crear y listar Workflows y sus pasos)
 - Paso 18: Orquestador de Equipos (asignar workflows a equipos de agentes)
 - Paso 19: API REST para integraciones externas (webhook)
 - Paso 20: Plugin WordPress (consumidor de API ARM)
