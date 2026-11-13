@@ -354,5 +354,14 @@ Notas: se han cubierto los casos de éxito y fallo de WordPress (usando respx) y
 ## Paso 9 - Panel propio (reemplazo del admin)
 Objetivo: mover la configuración y operación al panel web.
 9a: Login propio y esqueleto (base.html, login, logout). COMPLETADO.
-9b: Formularios de Proveedor y ModeloLLM.
-9c: Formularios de Habilidad y Agente.
+9b: Formularios de Proveedor y ModeloLLM. COMPLETADO (2026-11-12).
+Evidencia (2026-11-12):
+```
+$ .venv\Scripts\python.exe -m pytest -q
+90 passed, 1 warning in 98.68s
+
+$ .venv\Scripts\python.exe manage.py check
+System check identified no issues (0 silenced).
+```
+Notas: la advertencia es RemovedInDjango60Warning de URLField (preexistente, no es error de check). Se añadieron apps/panel/forms.py, apps/panel/views.py (vistas configuracion, crear_proveedor, crear_modelo con @login_required), apps/panel/templates/panel/configuracion.html (layout 60/40, tarjetas y fichas, paleta estricta, formularios en bloques condicionales), apps/panel/urls.py (rutas nuevas, autorizado como 5º archivo) y tests/test_panel_config.py (sin login 302, crear proveedor 302+DB, crear modelo 302+DB).
+9c: Formularios de Habilidad y Agente. PENDIENTE. 

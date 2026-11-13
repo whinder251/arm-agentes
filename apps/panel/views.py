@@ -2,7 +2,8 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.utils import timezone
-from apps.core.models import Tarea
+from apps.core.models import Tarea, Proveedor, ModeloLLM
+from apps.panel.forms import ProveedorForm, ModeloLLMForm
 
 @login_required
 def lista_tareas(request):
@@ -61,3 +62,49 @@ def login_panel(request):
 def logout_panel(request):
     auth_logout(request)
     return redirect('login_panel')
+
+
+@login_required
+def configuracion(request):
+    proveedores = Proveedor.objects.all().order_by("nombre")
+    form_proveedor = ProveedorForm()
+    form_modelo = ModeloLLMForm()
+    mostrar_form_proveedor = request.GET.get("nuevo_proveedor") == "1"
+    mostrar_form_modelo = request.GET.get("nuevo_modelo") == "1"
+    return render(request, "panel/configuracion.html", {
+        "proveedores": proveedores,
+        "form_proveedor": form_proveedor,
+        "form_modelo": form_modelo,
+        "mostrar_form_proveedor": mostrar_form_proveedor,
+        "mostrar_form_modelo": mostrar_form_modelo,
+    })
+
+
+@login_required
+def crear_proveedor(request):
+    if request.method == "POST":
+        form = ProveedorForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect("configuracion")
+    else:
+        form = ProveedorForm()
+    return render(request, "panel/configuracion.html", {
+        "form_proveedor": form,
+        "mostrar_form_proveedor": True,
+    })
+
+
+@login_required
+def crear_modelo(request):
+    if request.method == "POST":
+        form = ModeloLLMForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect("configuracion")
+    else:
+        form = ModeloLLMForm()
+    return render(request, "panel/configuracion.html", {
+        "form_modelo": form,
+        "mostrar_form_modelo": True,
+    })

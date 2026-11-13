@@ -1,0 +1,210 @@
+{% extends "panel/base.html" %}
+
+{% block content %}
+<style>
+    .config-container {
+        display: flex;
+        gap: 24px;
+        margin-top: 16px;
+    }
+    .config-proveedores {
+        flex: 0 0 60%;
+    }
+    .config-modelos {
+        flex: 0 0 40%;
+    }
+    h2, h3, h4 {
+        font-weight: normal;
+        margin-top: 0;
+    }
+    .tarjeta {
+        border: 1px solid #d5ceb9;
+        padding: 14px;
+        margin-bottom: 14px;
+        background: #fff;
+    }
+    .ficha {
+        border: 1px solid #d5ceb9;
+        padding: 8px 12px;
+        margin-bottom: 8px;
+        background: #fff;
+        font-size: 0.9em;
+    }
+    .form-seccion {
+        border: 1px solid #d5ceb9;
+        padding: 14px;
+        margin-top: 14px;
+        background: #fff;
+        display: block;
+    }
+    .form-oculto {
+        display: none;
+    }
+    .btn-acento {
+        background-color: #009CFF;
+        color: #fff;
+        border: none;
+        padding: 8px 16px;
+        cursor: pointer;
+        font-size: 0.9em;
+    }
+    .btn-acento:hover {
+        opacity: 0.9;
+    }
+    .btn-cancelar {
+        background-color: #c1121f;
+        color: #fff;
+        border: none;
+        padding: 8px 16px;
+        cursor: pointer;
+        font-size: 0.9em;
+        margin-left: 8px;
+    }
+    .btn-cancelar:hover {
+        opacity: 0.9;
+    }
+    label {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 0.9em;
+    }
+    input[type="text"],
+    input[type="url"],
+    input[type="password"],
+    input[type="number"],
+    select {
+        display: block;
+        width: 100%;
+        padding: 7px;
+        margin-bottom: 10px;
+        border: 1px solid #d5ceb9;
+        background: #fff;
+        box-sizing: border-box;
+        font-size: 0.9em;
+    }
+    .error {
+        color: #c1121f;
+        margin-bottom: 10px;
+        font-size: 0.9em;
+    }
+    ul.errorlist {
+        color: #c1121f;
+        margin: 0 0 10px 0;
+        padding-left: 18px;
+        font-size: 0.9em;
+    }
+</style>
+
+<h2>Configuraci&oacute;n</h2>
+
+<div class="config-container">
+    <div class="config-proveedores">
+        <h3>Proveedores</h3>
+        <p>
+            <button class="btn-acento"
+                    onclick="toggleForm('form-proveedor')">A&ntilde;adir Proveedor</button>
+        </p>
+
+        <div id="form-proveedor" class="form-seccion form-oculto">
+            <form method="post" action="{% url 'crear_proveedor' %}">
+                {% csrf_token %}
+                {{ form_proveedor.as_p }}
+                <button type="submit" class="btn-acento">Guardar proveedor</button>
+                <button type="button" class="btn-cancelar"
+                        onclick="toggleForm('form-proveedor')">Cancelar</button>
+            </form>
+        </div>
+
+        {% for proveedor in proveedores %}
+        <div class="tarjeta">
+            <h4>{{ proveedor.nombre }}</h4>
+            <p><strong>Base URL:</strong> {{ proveedor.base_url }}</p>
+            <p><strong>RPM:</strong> {{ proveedor.rpm }}
+               | <strong>L&iacute;mite diario:</strong> {{ proveedor.limite_diario }}</p>
+            <div class="modelos-lista">
+                {% for modelo in proveedor.modelos.all %}
+                <div class="ficha">
+                    {{ modelo.model_id }}
+                    (prioridad {{ modelo.prioridad }})
+                    {% if modelo.activo %}
+                    <span style="color:#009CFF"> &bull; activo</span>
+                    {% else %}
+                    <span style="color:#c1121f"> &bull; inactivo</span>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <p style="font-size:0.85em;color:#5a5a5a">Sin modelos.</p>
+                {% endfor %}
+            </div>
+            <p>
+                <button class="btn-acento"
+                        onclick="toggleForm('form-modelo-{{ proveedor.id }}')"
+                        style="font-size:0.85em">A&ntilde;adir Modelo</button>
+            </p>
+            <div id="form-modelo-{{ proveedor.id }}"
+                 class="form-seccion form-oculto">
+                <form method="post" action="{% url 'crear_modelo' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="proveedor" value="{{ proveedor.id }}">
+                    {{ form_modelo.as_p }}
+                    <button type="submit" class="btn-acento">Guardar modelo</button>
+                    <button type="button" class="btn-cancelar"
+                            onclick="toggleForm('form-modelo-{{ proveedor.id }}')">Cancelar</button>
+                </form>
+            </div>
+        </div>
+        {% empty %}
+        <p style="font-size:0.9em;color:#5a5a5a">No hay proveedores registrados.</p>
+        {% endfor %}
+    </div>
+
+    <div class="config-modelos">
+        <h3>Modelos</h3>
+        <p>
+            <button class="btn-acento"
+                    onclick="toggleForm('form-modelo-general')">A&ntilde;adir Modelo</button>
+        </p>
+        <div id="form-modelo-general" class="form-seccion form-oculto">
+            <form method="post" action="{% url 'crear_modelo' %}">
+                {% csrf_token %}
+                {{ form_modelo.as_p }}
+                <button type="submit" class="btn-acento">Guardar modelo</button>
+                <button type="button" class="btn-cancelar"
+                        onclick="toggleForm('form-modelo-general')">Cancelar</button>
+            </form>
+        </div>
+        <div class="modelos-grid">
+            {% for proveedor in proveedores %}
+                {% for modelo in proveedor.modelos.all %}
+                <div class="ficha">
+                    <strong>{{ proveedor.nombre }}</strong> /
+                    {{ modelo.model_id }}
+                    (prioridad {{ modelo.prioridad }})
+                    {% if modelo.activo %}
+                    <span style="color:#009CFF"> &bull; activo</span>
+                    {% else %}
+                    <span style="color:#c1121f"> &bull; inactivo</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% empty %}
+            <p style="font-size:0.85em;color:#5a5a5a">No hay modelos registrados.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleForm(id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        if (el.classList.contains('form-oculto')) {
+            el.classList.remove('form-oculto');
+            el.style.display = 'block';
+        } else {
+            el.classList.add('form-oculto');
+            el.style.display = 'none';
+        }
+    }
+</script>
+{% endblock %}
