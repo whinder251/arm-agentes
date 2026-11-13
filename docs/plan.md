@@ -640,3 +640,10 @@ cubren las cuatro vistas; se verificó por búsqueda que no quedan #faf5e5,
 advertencia RemovedInDjango60Warning de URLField sigue siendo preexistente.
 Pendiente: revisar el resultado en navegador y el responsive de las columnas
 60/40 y 3/2 en pantallas estrechas.
+
+
+## Paso 12 - Flexibilidad en creación de tareas
+Objetivo: permitir selección manual de agente y hacer la keyword opcional.
+12a: Modificar vista crear_tarea para aceptar agente_id y keyword opcional.
+12b: Actualizar formulario con selector de agentes y ajustar tests.
+Estado: pendiente.
