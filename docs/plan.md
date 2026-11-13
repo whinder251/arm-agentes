@@ -499,8 +499,34 @@ URLField sigue siendo preexistente.
 ## Paso 10 - Mejoras de usabilidad del panel
 Objetivo: facilitar la creación de tareas y la edición de agentes desde la interfaz web.
 10a: Arreglar formulario de edición de agentes (renderizado de modelos como tarjetas).
+COMPLETADO (2026-11-12).
+Evidencia (2026-11-12):
+```
+$ .venv\Scripts\python.exe -m pytest -q
+........................................................................ [ 66%]
+.....................................                                    [100%]
+=============================== warnings summary ===============================
+tests/test_panel.py::TestPanel::test_aprobar_cambia_estado
+  C:\Users\Drogo\Downloads\ARM agentes\.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148: RemovedInDjango60Warning: The default scheme will be changed from 'http' to 'https' in Django 6.0. Pass the forms.URLField.assume_scheme argument to silence this warning, or set the FORMS_URLFIELD_ASSUME_HTTPS transitional setting to True to opt into using 'https' as the new default scheme.
+    return form_class(**defaults)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+109 passed, 1 warning in 134.14s (0:02:14)
+
+$ .venv\Scripts\python.exe manage.py check
+System check identified no issues (0 silenced).
+```
+Notas: la causa raíz estaba en AgenteForm.__init__; el RadioSelect nuevo se
+creaba sin choices y form.modelo iteraba vacío. Ahora recibe las choices del campo
+(tercer archivo autorizado en la sesión). lista_agentes.html separa "modelo" del
+bucle genérico y lo pinta con .modelo-card (radio oculto, borde #D2D2D7, selección
+#0071E3 y radius 12px, según el sistema Apple vigente); el bloque {% else %} no se
+tocó. tests/test_panel_listas.py comprueba la tarjeta y el modelo actual marcado.
+La advertencia RemovedInDjango60Warning de URLField es preexistente. El arreglo de
+forms.py también hace visible la lista de modelos en agente_form.html.
 10b: Creación de tareas desde el panel con asignación automática de agente (formulario de texto + keyword).
-Estado: pendiente.
+Estado: 10a completado; 10b pendiente. El resto del panel conserva la paleta
+antigua hasta el paso 11.
 
 
 ## Paso 11 - Rediseño visual estilo Apple/SaaS

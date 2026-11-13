@@ -132,6 +132,10 @@ class TestPanelListaAgentes(TestCase):
         contenido = response.content.decode()
         assert 'value="Agente Test"' in contenido
         assert "Guardar cambios" in contenido
+        assert 'class="modelo-card"' in contenido
+        tarjeta_modelo = contenido.split('class="modelo-card"', 1)[1].split("</label>", 1)[0]
+        assert 'name="modelo"' in tarjeta_modelo
+        assert "checked" in tarjeta_modelo
         assert re.search(
             r'value="%s"\s+checked' % self.habilidad_uno.pk, contenido
         )

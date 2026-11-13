@@ -42,4 +42,6 @@ class AgenteForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["modelo"].empty_label = None
         self.fields["modelo"].required = False
-        self.fields["modelo"].widget = forms.RadioSelect()
+        self.fields["modelo"].widget = forms.RadioSelect(
+            choices=self.fields["modelo"].choices
+        )

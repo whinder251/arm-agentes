@@ -117,6 +117,39 @@
     .form-edicion ul li label {
         display: inline;
     }
+    .modelos-lista {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+    .modelo-card {
+        position: relative;
+        display: block;
+        border: 1px solid #D2D2D7;
+        border-radius: 12px;
+        background: #FFFFFF;
+        padding: 12px 16px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        color: #1D1D1F;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .modelo-card:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    .modelo-card input[type="radio"] {
+        position: absolute;
+        opacity: 0;
+        width: 1px;
+        height: 1px;
+    }
+    .modelo-card:has(input:checked),
+    .modelo-card.seleccionada {
+        border-color: #0071E3;
+        background: #F5F5F7;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+    }
     .habilidades-edicion {
         margin-bottom: 12px;
     }
@@ -151,6 +184,7 @@
 <form method="post" class="form-edicion">
     {% csrf_token %}
     {% for field in form %}
+    {% if field.name != "modelo" %}
     <label for="{{ field.id_for_label }}">{{ field.label }}</label>
     {{ field }}
     {% if field.errors %}
@@ -159,7 +193,25 @@
     </ul>
     {% endif %}
     {% if field.help_text %}<p class="ayuda">{{ field.help_text }}</p>{% endif %}
+    {% endif %}
     {% endfor %}
+
+    <label>Modelo</label>
+    <div class="modelos-lista">
+        {% for radio in form.modelo %}
+        <label class="modelo-card">
+            {{ radio.tag }}
+            <span>{{ radio.choice_label }}</span>
+        </label>
+        {% empty %}
+        <p class="vacio">No hay modelos activos. Crea uno en Configuraci&oacute;n.</p>
+        {% endfor %}
+    </div>
+    {% if form.modelo.errors %}
+    <ul class="errorlist">
+        {% for error in form.modelo.errors %}<li>{{ error }}</li>{% endfor %}
+    </ul>
+    {% endif %}
 
     <label>Habilidades</label>
     <div class="habilidades-edicion">
