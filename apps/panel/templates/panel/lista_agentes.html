@@ -1,0 +1,214 @@
+{% extends "panel/base.html" %}
+
+{% block content %}
+<style>
+    h2 {
+        font-weight: normal;
+        margin-top: 0;
+    }
+    .cabecera-lista {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        border-bottom: 1px solid #d5ceb9;
+        padding-bottom: 10px;
+        margin-bottom: 18px;
+    }
+    .cabecera-lista h2 {
+        margin: 0;
+    }
+    .btn-acento {
+        background-color: #009CFF;
+        color: #fff;
+        border: none;
+        padding: 8px 16px;
+        cursor: pointer;
+        font-size: 0.9em;
+        text-decoration: none;
+        display: inline-block;
+    }
+    .btn-acento:hover {
+        opacity: 0.9;
+    }
+    table.agentes {
+        width: 100%;
+        border-collapse: collapse;
+        background: #fff;
+    }
+    table.agentes th {
+        text-align: left;
+        font-weight: normal;
+        font-size: 0.85em;
+        letter-spacing: 0.04em;
+        color: #5a5a5a;
+        background: #f0ebd9;
+        border-bottom: 1px solid #d5ceb9;
+        padding: 8px 12px;
+    }
+    table.agentes td {
+        border-bottom: 1px solid #d5ceb9;
+        padding: 10px 12px;
+        vertical-align: middle;
+    }
+    .modelo {
+        font-family: Consolas, monospace;
+        font-size: 0.9em;
+        color: #5a5a5a;
+    }
+    .acciones {
+        white-space: nowrap;
+    }
+    .enlace-editar {
+        color: #009CFF;
+        text-decoration: none;
+        margin-right: 12px;
+    }
+    .enlace-editar:hover {
+        text-decoration: underline;
+    }
+    .form-eliminar {
+        display: inline;
+        margin: 0;
+    }
+    .btn-eliminar {
+        background-color: #c1121f;
+        color: #fff;
+        border: none;
+        padding: 6px 12px;
+        cursor: pointer;
+        font-size: 0.85em;
+    }
+    .btn-eliminar:hover {
+        opacity: 0.9;
+    }
+    .vacio {
+        color: #5a5a5a;
+        font-size: 0.9em;
+    }
+    .form-edicion {
+        max-width: 680px;
+        background: #fff;
+        border: 1px solid #d5ceb9;
+        padding: 18px;
+    }
+    .form-edicion label {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 0.9em;
+    }
+    .form-edicion input[type="text"],
+    .form-edicion input[type="number"],
+    .form-edicion textarea {
+        display: block;
+        width: 100%;
+        padding: 7px;
+        margin-bottom: 12px;
+        border: 1px solid #d5ceb9;
+        background: #fff;
+        box-sizing: border-box;
+        font-size: 0.9em;
+        font-family: inherit;
+    }
+    .form-edicion ul {
+        list-style: none;
+        margin: 0 0 12px 0;
+        padding: 0;
+    }
+    .form-edicion ul li label {
+        display: inline;
+    }
+    .habilidades-edicion {
+        margin-bottom: 12px;
+    }
+    .habilidades-edicion label {
+        display: block;
+        padding: 4px 0;
+    }
+    ul.errorlist {
+        color: #c1121f;
+        margin: 0 0 10px 0;
+        padding-left: 18px;
+        font-size: 0.9em;
+    }
+    .ayuda {
+        color: #5a5a5a;
+        font-size: 0.85em;
+        margin: -8px 0 10px 0;
+    }
+    .volver {
+        margin-bottom: 14px;
+        font-size: 0.9em;
+    }
+    .volver a {
+        color: #009CFF;
+        text-decoration: none;
+    }
+</style>
+
+{% if form %}
+<div class="volver"><a href="{% url 'lista_agentes' %}">&larr; Volver al listado</a></div>
+<h2>Editar agente</h2>
+<form method="post" class="form-edicion">
+    {% csrf_token %}
+    {% for field in form %}
+    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+    {{ field }}
+    {% if field.errors %}
+    <ul class="errorlist">
+        {% for error in field.errors %}<li>{{ error }}</li>{% endfor %}
+    </ul>
+    {% endif %}
+    {% if field.help_text %}<p class="ayuda">{{ field.help_text }}</p>{% endif %}
+    {% endfor %}
+
+    <label>Habilidades</label>
+    <div class="habilidades-edicion">
+        {% for habilidad in habilidades %}
+        <label>
+            <input type="checkbox" name="habilidades" value="{{ habilidad.id }}"
+                   {% if habilidad.id|stringformat:"s" in habilidades_seleccionadas %}checked{% endif %}>
+            {{ habilidad.nombre }} <span class="modelo">({{ habilidad.slug }})</span>
+        </label>
+        {% empty %}
+        <p class="vacio">No hay habilidades registradas.</p>
+        {% endfor %}
+    </div>
+
+    <button type="submit" class="btn-acento">Guardar cambios</button>
+</form>
+{% else %}
+<div class="cabecera-lista">
+    <h2>Agentes</h2>
+    <a class="btn-acento" href="{% url 'crear_agente' %}">A&ntilde;adir agente</a>
+</div>
+
+<table class="agentes">
+    <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>Modelo asignado</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for agente in agentes %}
+        <tr>
+            <td>{{ agente.nombre }}</td>
+            <td class="modelo">{{ agente.modelo|default:"Sin modelo" }}</td>
+            <td class="acciones">
+                <a class="enlace-editar" href="{% url 'editar_agente' agente.pk %}">Editar</a>
+                <form class="form-eliminar" method="post" action="{% url 'eliminar_agente' agente.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-eliminar">Eliminar</button>
+                </form>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="3" class="vacio">No hay agentes registrados.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+{% endblock %}

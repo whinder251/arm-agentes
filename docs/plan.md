@@ -1,7 +1,8 @@
 # Plan de construcción
 
 
-Estado: 0a, 0b, 1a, 1b, 2, 3a, 3b, 4, 5a, 5b, 6, 9a, 9b y 9c completados.
+Estado: 0a, 0b, 1a, 1b, 2, 3a, 3b, 4, 5a, 5b, 6, 9a, 9b, 9c, 9d-1 y 9d-2 completados.
+Paso 9 (panel propio) completo.
 Última actualización: 2026-11-12.
 
 Regla de cierre: un paso se cierra con tests en verde, este archivo actualizado y
@@ -324,7 +325,9 @@ Notas: se han cubierto los casos de éxito y fallo de WordPress (usando respx) y
   UPDATE condicional con reintentos ante "database is locked".
 
 ## Pendientes y dudas
-- Siguiente paso: 7 - Panel.
+- Panel propio (paso 9) cerrado; siguiente paso pendiente de definir.
+- Validar que el JSON de esquema_salida sea un objeto antes de guardarlo desde
+  HabilidadForm.
 - Formalizar la transición ok -> revision en Tarea.TRANSICIONES; ahora el
   pipeline la aplica con un UPDATE directo.
 - El pipeline deriva título, meta y slug del texto reescrito con heurísticas.
@@ -397,6 +400,64 @@ Desviación informada: para que el botón "Añadir Habilidad" no quedara muerto 
 añadió en configuracion.html un bloque condicional con {{ form_habilidad.as_p }},
 además de los botones autorizados; retirar si se prefiere otra ubicación.
 La advertencia RemovedInDjango60Warning de URLField es preexistente.
-Pendiente: listado de habilidades y agentes en el panel, enlaces del sidebar
-(ahora apuntan a "#"), edición y borrado, y validar que el JSON de
-esquema_salida sea un objeto. 
+Pendiente: 9d-2 (listado, edición y borrado de agentes, y enlaces del sidebar;
+ahora apuntan a "#") y validar que el JSON de esquema_salida sea un objeto.
+El listado, la edición y el borrado de habilidades quedaron resueltos en 9d-1.
+
+9d-1: Listado, edición y eliminación de Habilidades. COMPLETADO (2026-11-12).
+Evidencia (2026-11-12):
+```
+$ .venv\Scripts\python.exe -m pytest -q
+........................................................................ [ 71%]
+.............................                                            [100%]
+101 passed, 1 warning in 148.08s (0:02:28)
+
+$ .venv\Scripts\python.exe manage.py check
+System check identified no issues (0 silenced).
+```
+Notas: se añadieron lista_habilidades, editar_habilidad y eliminar_habilidad en
+apps/panel/views.py con @login_required. eliminar_habilidad lleva @require_POST:
+un GET devuelve 405 y no borra; el POST redirige a la lista tras eliminar. Las
+rutas se registraron en apps/panel/urls.py (configuracion/habilidades/,
+.../<pk>/editar/ y .../<pk>/eliminar/). lista_habilidades.html muestra una tabla
+con Nombre, Slug y acciones; el botón de borrado es un formulario POST con
+csrf_token, fondo #c1121f y sin sombras ni radios. editar_habilidad reutiliza la
+misma plantilla con HabilidadForm y muestra errores por campo. Tests nuevos en
+tests/test_panel_listas.py: 7 casos (lista sin login 302, lista 200, formulario
+200, edición 302 con datos persistidos, borrado POST 302, GET 405 sin borrar y
+POST sin login 302). La advertencia RemovedInDjango60Warning de URLField sigue
+siendo preexistente. No se tocó base.html: el enlace del sidebar de Habilidades
+queda para 9d-2 junto con los de Agentes.
+
+9d-2: Listado, edición y eliminación de Agentes, y corrección del sidebar.
+COMPLETADO (2026-11-12). Paso 9 completo.
+Evidencia (2026-11-12):
+```
+$ .venv\Scripts\python.exe -m pytest -q
+........................................................................ [ 67%]
+...................................                                      [100%]
+=============================== warnings summary ===============================
+tests/test_panel.py::TestPanel::test_aprobar_cambia_estado
+  C:\Users\Drogo\Downloads\ARM agentes\.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148: RemovedInDjango60Warning: The default scheme will be changed from 'http' to 'https' in Django 6.0. Pass the forms.URLField.assume_scheme argument to silence this warning, or set the FORMS_URLFIELD_ASSUME_HTTPS transitional setting to True to opt into using 'https' as the new default scheme.
+    return form_class(**defaults)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+107 passed, 1 warning in 163.65s (0:02:43)
+
+$ .venv\Scripts\python.exe manage.py check
+System check identified no issues (0 silenced).
+```
+Notas: se añadieron lista_agentes, editar_agente y eliminar_agente en
+apps/panel/views.py con @login_required; eliminar_agente lleva además
+@require_POST, de modo que un GET devuelve 405 y no borra. Las rutas se
+registraron en apps/panel/urls.py (configuracion/agentes/,
+.../<pk>/editar/ y .../<pk>/eliminar/). lista_agentes.html muestra una tabla con
+Nombre, Modelo asignado y acciones; el botón de borrado es un formulario POST con
+csrf_token y fondo #c1121f. editar_agente reutiliza AgenteForm, lee
+request.POST.getlist("habilidades") y aplica agente.habilidades.set(ids); en el
+GET preselecciona las habilidades actuales del agente. base.html enlaza el
+sidebar con {% url 'lista_habilidades' %} y {% url 'lista_agentes' %}. Tests
+nuevos en tests/test_panel_listas.py: 6 casos de agentes (lista sin login 302,
+lista 200 con modelo, formulario 200 con habilidad marcada, edición 302 con
+datos y habilidades persistidos, borrado POST 302 y GET 405 sin borrar). La
+advertencia RemovedInDjango60Warning de URLField sigue siendo preexistente. 

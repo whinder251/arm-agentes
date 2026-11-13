@@ -2,7 +2,8 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.utils import timezone
-from apps.core.models import Tarea, Proveedor, ModeloLLM, Habilidad
+from django.views.decorators.http import require_POST
+from apps.core.models import Tarea, Proveedor, ModeloLLM, Habilidad, Agente
 from apps.panel.forms import (
     AgenteForm,
     HabilidadForm,
@@ -155,3 +156,79 @@ def crear_agente(request):
         "modelos": modelos,
         "habilidades_seleccionadas": request.POST.getlist("habilidades"),
     })
+
+
+@login_required
+def lista_habilidades(request):
+    habilidades = Habilidad.objects.all().order_by("nombre")
+    return render(request, "panel/lista_habilidades.html", {
+        "habilidades": habilidades,
+    })
+
+
+@login_required
+def editar_habilidad(request, pk):
+    habilidad = get_object_or_404(Habilidad, pk=pk)
+    if request.method == "POST":
+        form = HabilidadForm(request.POST, instance=habilidad)
+        if form.is_valid():
+            form.save()
+            return redirect("lista_habilidades")
+    else:
+        form = HabilidadForm(instance=habilidad)
+    return render(request, "panel/lista_habilidades.html", {
+        "form": form,
+        "habilidad": habilidad,
+    })
+
+
+@login_required
+@require_POST
+def eliminar_habilidad(request, pk):
+    habilidad = get_object_or_404(Habilidad, pk=pk)
+    habilidad.delete()
+    return redirect("lista_habilidades")
+
+
+@login_required
+def lista_agentes(request):
+    agentes = Agente.objects.select_related("modelo__proveedor").order_by("nombre")
+    return render(request, "panel/lista_agentes.html", {
+        "agentes": agentes,
+    })
+
+
+@login_required
+def editar_agente(request, pk):
+    agente = get_object_or_404(Agente, pk=pk)
+    habilidades = Habilidad.objects.all().order_by("nombre")
+    modelos = (
+        ModeloLLM.objects.filter(activo=True)
+        .select_related("proveedor")
+        .order_by("prioridad", "id")
+    )
+    if request.method == "POST":
+        form = AgenteForm(request.POST, instance=agente)
+        if form.is_valid():
+            agente = form.save()
+            agente.habilidades.set(request.POST.getlist("habilidades"))
+            return redirect("lista_agentes")
+        seleccionadas = request.POST.getlist("habilidades")
+    else:
+        form = AgenteForm(instance=agente)
+        seleccionadas = [str(pk) for pk in agente.habilidades.values_list("id", flat=True)]
+    return render(request, "panel/lista_agentes.html", {
+        "form": form,
+        "agente": agente,
+        "habilidades": habilidades,
+        "modelos": modelos,
+        "habilidades_seleccionadas": seleccionadas,
+    })
+
+
+@login_required
+@require_POST
+def eliminar_agente(request, pk):
+    agente = get_object_or_404(Agente, pk=pk)
+    agente.delete()
+    return redirect("lista_agentes")
