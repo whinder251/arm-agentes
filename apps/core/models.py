@@ -270,6 +270,24 @@ class Artefacto(models.Model):
         return f"Artefacto v{self.version} de la tarea {self.tarea_id}"
 
 
+class Equipo(models.Model):
+    """Grupo de agentes que pueden ejecutar un workflow."""
+
+    nombre = models.CharField(max_length=100, unique=True)
+    descripcion = models.TextField(blank=True)
+    agentes = models.ManyToManyField(
+        Agente, related_name="equipos", blank=True
+    )
+
+    class Meta:
+        verbose_name = "equipo"
+        verbose_name_plural = "equipos"
+        ordering = ["nombre"]
+
+    def __str__(self):
+        return self.nombre
+
+
 class Workflow(models.Model):
     """Flujo de trabajo multi-paso que encadena habilidades y agentes."""
 
@@ -286,6 +304,14 @@ class Workflow(models.Model):
         default="borrador",
     )
     fecha_creacion = models.DateTimeField(auto_now_add=True)
+    equipo = models.ForeignKey(
+        Equipo,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="workflows",
+        help_text="Equipo de agentes asignado al workflow.",
+    )
 
     class Meta:
         verbose_name = "workflow"

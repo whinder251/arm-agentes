@@ -3,6 +3,7 @@ from django.test import TestCase
 
 from apps.core.models import (
     Agente,
+    Equipo,
     Habilidad,
     ModeloLLM,
     PasoWorkflow,
@@ -66,3 +67,31 @@ class TestWorkflow(TestCase):
 
         with self.assertRaises(ProtectedError):
             self.habilidad.delete()
+
+    def test_crear_equipo_y_asignar_agentes(self):
+        agente2 = Agente.objects.create(
+            nombre="Agente prueba 2", rol="Rol de prueba 2", modelo=self.modelo
+        )
+        equipo = Equipo.objects.create(
+            nombre="Equipo prueba", descripcion="Equipo de pruebas"
+        )
+        equipo.agentes.set([self.agente, agente2])
+
+        self.assertEqual(equipo.agentes.count(), 2)
+        self.assertIn(equipo, self.agente.equipos.all())
+        self.assertIn(equipo, agente2.equipos.all())
+
+    def test_workflow_con_equipo(self):
+        equipo = Equipo.objects.create(
+            nombre="Equipo workflow", descripcion="Equipo para workflow"
+        )
+        equipo.agentes.add(self.agente)
+        workflow = Workflow.objects.create(
+            nombre="Workflow con equipo",
+            descripcion="Workflow que usa un equipo",
+            equipo=equipo,
+        )
+
+        workflow_db = Workflow.objects.get(pk=workflow.pk)
+        self.assertEqual(workflow_db.equipo, equipo)
+        self.assertIn(workflow_db, equipo.workflows.all())

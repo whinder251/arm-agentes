@@ -940,6 +940,33 @@ Notas: crear_workflow usa inlineformset_factory sobre PasoWorkflow con
 exclude=['workflow'], extra=2 y can_delete=True; el prefix del formset es
 'pasos'. No se implementa aún lógica de orquestación.
 
+## Paso 18 - Modelo Equipo y relación con Workflow.
+Objetivo: permitir agrupar agentes en equipos y asignar un equipo a un
+Workflow, sentando las bases para que el orquestador elija el agente disponible.
+Estado: completado (2026-11-13).
+Evidencia (2026-11-13):
+```
+$ .venv\Scripts\python.exe manage.py makemigrations core
+Migrations for 'core':
+  apps\core\migrations\0009_equipo_workflow_equipo.py
+    + Create model Equipo
+    + Add field equipo to workflow
+
+$ .venv\Scripts\python.exe manage.py migrate
+Operations to perform:
+  Apply all migrations: admin, auth, contenttypes, core, sessions
+Running migrations:
+  Applying core.0009_equipo_workflow_equipo... OK
+
+$ .venv\Scripts\python.exe -m pytest tests/test_workflow.py -q
+....                                                                     [100%]
+4 passed in 0.97s
+
+$ .venv\Scripts\python.exe manage.py check
+System check identified no issues (0 silenced).
+```
+Notas: se añadió el modelo Equipo (nombre CharField unique, descripcion TextField blank, agentes ManyToMany a Agente con related_name='equipos') y el campo equipo FK en Workflow (null=True, blank=True, on_delete=SET_NULL, related_name='workflows'). Tests: test_crear_equipo_y_asignar_agentes (count == 2, relación bidireccional) y test_workflow_con_equipo (campo se guarda, equipo.workflows devuelve el workflow). Sin lógica de orquestación.
+
 ## Pasos Futuros (18-20)
 
 Ver docs/requirements/roadmap.md para especificación completa.
