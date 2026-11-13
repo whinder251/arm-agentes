@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'apps.core',
     'apps.engine',
     'apps.panel',
+    'apps.api',
     'huey.contrib.djhuey',
 ]
 
@@ -133,3 +134,7 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_URL = 'login_panel'
+
+# Clave de autenticación para la API REST (endpoints webhook).
+# En producción debe ser una cadena segura definida como variable de entorno.
+ARM_API_KEY = __import__("os").environ.get("ARM_API_KEY", "dev-api-key-123")

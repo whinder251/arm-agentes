@@ -2,7 +2,7 @@
 
 
 Estado: 0a, 0b, 1a, 1b, 2, 3a, 3b, 4, 5a, 5b, 6, 9a, 9b, 9c, 9d-1, 9d-2, 9e,
-10a, 10b, 11a, 11b, 12, 13, 14, 15a, 15b, 16 y 17 completados.
+10a, 10b, 11a, 11b, 12, 13, 14, 15a, 15b, 16, 17, 18 y 19 completados.
 Pasos 9 (panel propio), 11 (rediseño visual), 12 (creación flexible de tareas),
 13 (encolado en Huey desde el panel) y 14 (interfaz tipo chat, asignación
 automática y borrado de tareas) y 15 (validación de cuota, modo ejecución y
@@ -967,6 +967,21 @@ System check identified no issues (0 silenced).
 ```
 Notas: se añadió el modelo Equipo (nombre CharField unique, descripcion TextField blank, agentes ManyToMany a Agente con related_name='equipos') y el campo equipo FK en Workflow (null=True, blank=True, on_delete=SET_NULL, related_name='workflows'). Tests: test_crear_equipo_y_asignar_agentes (count == 2, relación bidireccional) y test_workflow_con_equipo (campo se guarda, equipo.workflows devuelve el workflow). Sin lógica de orquestación.
 
+## Paso 19 - API REST para integraciones externas (Webhook).
+Objetivo: exponer endpoints seguros para que sistemas externos (ej. futuro plugin WordPress) puedan crear tareas y consultar su estado.
+Archivos: apps/core/schemas.py (nuevo), apps/api/views.py (nuevo), apps/api/urls.py (nuevo), apps/api/__init__.py (nuevo), config/settings.py, config/urls.py, tests/test_api.py (nuevo), docs/plan.md.
+Aceptación: webhook_crear_tarea devuelve 201 y encola la tarea con ejecutar_tarea(pk); sin auth o auth incorrecta devuelve 401; payload inválido devuelve 400; habilidad inexistente devuelve 404; consultar_tarea devuelve 200 con estado y artefacto. Sin Django REST Framework: JsonResponse nativo y Pydantic v2. Vistas con @csrf_exempt por ser consumidas desde fuera de Django.
+Estado: completado (2026-11-13).
+Evidencia (2026-11-13):
+```
+$ .venv\Scripts\python.exe -m pytest tests/test_api.py -q
+3 passed in 1.41s
+
+$ .venv\Scripts\python.exe manage.py check
+System check identified no issues (0 silenced).
+```
+Notas: la autenticación es estricta por header X-ARM-API-KEY vs settings.ARM_API_KEY (default "dev-api-key-123", en prod debe ser seguro). Las vistas llevan @csrf_exempt (antes de @require_POST/@require_GET) y nunca se aplica en apps/panel. La asignación de agente reusa la lógica automática del paso 14 (primer agente con modelo activo y la habilidad pedida).
+
 ## Pasos Futuros (18-20)
 
 Ver docs/requirements/roadmap.md para especificación completa.
@@ -975,8 +990,8 @@ Resumen:
 - Paso 15: completado (validación de cuota, modo ejecución, confirmación de borrado)
 - Paso 16: completado (modelos Workflow y PasoWorkflow para flujos multi-paso)
 - Paso 17: completado (UI para crear y listar Workflows y sus pasos)
-- Paso 18: Orquestador de Equipos (asignar workflows a equipos de agentes)
-- Paso 19: API REST para integraciones externas (webhook)
+- Paso 18: completado (Orquestador de Equipos: modelo Equipo y relación con Workflow)
+- Paso 19: completado (API REST para integraciones externas: webhook)
 - Paso 20: Plugin WordPress (consumidor de API ARM)
 
 Dependencias: 15 → 16 → 17/18, 15 → 19 → 20
