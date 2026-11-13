@@ -1,5 +1,41 @@
+import os
+
+from cryptography.fernet import Fernet, InvalidToken
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+
+
+# Clave de cifrado para api_key de Proveedor (RB-013).
+# En producción es obligatorio definir ARM_ENCRYPTION_KEY como variable de entorno.
+# Si no existe, se genera una clave dinámicamente solo para desarrollo.
+_ENCRYPTION_KEY_RAW = os.environ.get("ARM_ENCRYPTION_KEY")
+if not _ENCRYPTION_KEY_RAW:
+    _ENCRYPTION_KEY_RAW = Fernet.generate_key().decode()
+ENCRYPTION_KEY = _ENCRYPTION_KEY_RAW
+_fernet = Fernet(ENCRYPTION_KEY.encode())
+
+
+class EncryptedTextField(models.TextField):
+    """Campo de texto que cifra al guardar y descifra al leer desde la BD.
+
+    La columna en BD sigue siendo TextField; la transformación es en Python.
+    Valores legacy en texto plano (antes del cifrado) se devuelven tal cual
+    cuando falla el descifrado (InvalidToken), para no romper proveedores
+    creados antes de este paso.
+    """
+
+    def get_prep_value(self, value):
+        if value is None:
+            return None
+        return _fernet.encrypt(str(value).encode()).decode()
+
+    def from_db_value(self, value, expression, connection):
+        if value is None:
+            return None
+        try:
+            return _fernet.decrypt(value.encode()).decode()
+        except InvalidToken:
+            return value
 
 
 class Proveedor(models.Model):
@@ -7,8 +43,9 @@ class Proveedor(models.Model):
 
     nombre = models.CharField(max_length=100, unique=True)
     base_url = models.URLField(max_length=300)
-    # Se guarda en claro en esta etapa; se cifrará en paso 15b (NO cifrar aún).
-    api_key = models.TextField(blank=True)
+    # api_key se cifra antes de guardar (RB-013). La columna BD sigue siendo
+    # TextField; la transformación es en Python vía EncryptedTextField.
+    api_key = EncryptedTextField(blank=True)
     rpm = models.PositiveIntegerField(
         default=0, help_text="Peticiones por minuto. 0 significa sin límite."
     )

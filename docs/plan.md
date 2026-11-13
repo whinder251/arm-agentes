@@ -870,6 +870,26 @@ ejecución en un paso posterior; por ahora solo se valida el estado actual.
 La validación maneja agente.modelo None y agente.modelo.proveedor None sin
 lanzar AttributeError.
 
+## Paso 15.5 - Cifrado de API keys de Proveedores.
+Objetivo: implementar el cifrado de api_key en el modelo Proveedor usando
+cryptography, cumpliendo RB-013.
+Archivos: apps/core/models.py, tests/test_core.py, docs/plan.md.
+Estado: completado (2026-11-13).
+Evidencia (2026-11-13):
+```
+$ .venv\Scripts\python.exe manage.py makemigrations core
+$ .venv\Scripts\python.exe manage.py migrate
+$ .venv\Scripts\python.exe -m pytest tests/test_core.py -q
+...                                                                 [100%]
+3 passed
+$ .venv\Scripts\python.exe manage.py check
+System check identified no issues (0 silenced).
+```
+Notas: EncryptedTextField cifra en get_prep_value y descifra en from_db_value
+con try/except InvalidToken para valores legacy en texto plano. La clave se
+toma de ARM_ENCRYPTION_KEY o se genera dinámicamente en dev. La migración 0005
+no se rompe: la columna BD sigue siendo TextField.
+
 ## Pasos Futuros (16-20)
 
 Ver docs/requirements/roadmap.md para especificación completa.
