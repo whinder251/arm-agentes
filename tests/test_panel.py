@@ -134,9 +134,10 @@ class TestPanel(TestCase):
         response = self.client.get(reverse('lista_tareas'))
         content = response.content.decode('utf-8')
         enlace = f'href="{reverse("configuracion")}"'
-        assert content.count(enlace) == 2
+        assert content.count(enlace) == 1
         assert '<a href="#">Proveedores</a>' not in content
         assert '<a href="#">Modelos</a>' not in content
+        assert 'Modelos y proveedores' in content
 
     def test_crear_tarea_requiere_login(self):
         response = self.client.get(reverse('crear_tarea'))
@@ -398,3 +399,12 @@ class TestPanel(TestCase):
         content = response.content.decode('utf-8')
         assert 'Equipo SEO' in content
         assert '2' in content
+
+    def test_sidebar_contiene_workflows_y_equipos(self):
+        self.client.login(username='testuser', password='testpass123')
+        response = self.client.get(reverse('lista_tareas'))
+        content = response.content.decode('utf-8')
+        assert 'href="{}"'.format(reverse('lista_workflows')) in content
+        assert 'href="{}"'.format(reverse('lista_equipos')) in content
+        assert 'Workflows' in content
+        assert 'Equipos' in content

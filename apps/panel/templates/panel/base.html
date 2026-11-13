@@ -53,6 +53,20 @@
             color: #0071E3;
             background-color: rgba(0, 113, 227, 0.08);
         }
+        .sidebar .seccion {
+            font-size: 0.7rem;
+            letter-spacing: 0.05em;
+            color: #6E6E73;
+            font-weight: 600;
+            text-transform: uppercase;
+            padding: 4px 0;
+            margin: 16px 0 8px 0;
+        }
+        .sidebar a.activo {
+            color: #0071E3;
+            background: rgba(0, 113, 227, 0.08);
+            border-radius: 8px;
+        }
         .content {
             flex-grow: 1;
             min-width: 0;
@@ -104,11 +118,14 @@
         <div>
             <h2>Panel ARM</h2>
             <nav>
-                <a href="{% url 'lista_tareas' %}">Tareas</a>
-                <a href="{% url 'configuracion' %}">Proveedores</a>
-                <a href="{% url 'configuracion' %}">Modelos</a>
-                <a href="{% url 'lista_habilidades' %}">Habilidades</a>
-                <a href="{% url 'lista_agentes' %}">Agentes</a>
+                <h3 class="seccion">Operación</h3>
+                <a href="{% url 'lista_tareas' %}" {% if request.resolver_match.url_name == 'lista_tareas' %}class="activo"{% endif %}>Tareas</a>
+                <a href="{% url 'lista_workflows' %}" {% if request.resolver_match.url_name == 'lista_workflows' %}class="activo"{% endif %}>Workflows</a>
+                <a href="{% url 'lista_equipos' %}" {% if request.resolver_match.url_name == 'lista_equipos' %}class="activo"{% endif %}>Equipos</a>
+                <h3 class="seccion">Configuración</h3>
+                <a href="{% url 'lista_agentes' %}" {% if request.resolver_match.url_name == 'lista_agentes' %}class="activo"{% endif %}>Agentes</a>
+                <a href="{% url 'lista_habilidades' %}" {% if request.resolver_match.url_name == 'lista_habilidades' %}class="activo"{% endif %}>Habilidades</a>
+                <a href="{% url 'configuracion' %}" {% if request.resolver_match.url_name == 'configuracion' %}class="activo"{% endif %}>Modelos y proveedores</a>
             </nav>
         </div>
         <div>
