@@ -284,7 +284,19 @@ Objetivo: operar el sistema desde el navegador.
 Archivos: apps/panel/views.py, templates, tests de vista.
 Aceptación: lista de tareas con estado, detalle de ejecución con tokens y modelo,
 bandeja de aprobación con diff; aprobar cambia el estado y registra quién aprobó.
-Estado: pendiente.
+Estado: 7a completado (infraestructura).
+Evidencia (2026-11-12):
+```
+$ .venv\Scripts\python.exe manage.py check
+System check identified no issues (0 silenced).
+
+$ .venv\Scripts\python.exe -m pytest -q
+........................................................................ [ 94%]
+....                                                                     [100%]
+76 passed in 33.37s
+```
+Notas: se ha creado la infraestructura básica de la app `panel` y registrado
+en la configuración del proyecto. Pendiente 7b: implementación de vistas y tests.
 
 ## Paso 8 - Publicación
 Objetivo: enviar borradores a WordPress sin riesgo.

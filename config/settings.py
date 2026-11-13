@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'apps.core',
     'apps.engine',
+    'apps.panel',
     'huey.contrib.djhuey',
 ]
 
