@@ -1,8 +1,8 @@
 # Plan de construcción
 
 
-Estado: 0a, 0b, 1a, 1b, 2, 3a, 3b, 4, 5a, 5b, 6, 9a, 9b, 9c, 9d-1, 9d-2 y 9e
-completados.
+Estado: 0a, 0b, 1a, 1b, 2, 3a, 3b, 4, 5a, 5b, 6, 9a, 9b, 9c, 9d-1, 9d-2, 9e,
+10a y 10b completados.
 Paso 9 (panel propio) completo.
 Última actualización: 2026-11-12.
 
@@ -525,8 +525,42 @@ tocó. tests/test_panel_listas.py comprueba la tarjeta y el modelo actual marcad
 La advertencia RemovedInDjango60Warning de URLField es preexistente. El arreglo de
 forms.py también hace visible la lista de modelos en agente_form.html.
 10b: Creación de tareas desde el panel con asignación automática de agente (formulario de texto + keyword).
-Estado: 10a completado; 10b pendiente. El resto del panel conserva la paleta
-antigua hasta el paso 11.
+COMPLETADO (2026-11-12).
+Evidencia (2026-11-12):
+```
+$ .venv\Scripts\python.exe -m pytest -q
+........................................................................ [ 64%]
+........................................                                 [100%]
+=============================== warnings summary ===============================
+tests/test_panel.py::TestPanel::test_aprobar_cambia_estado
+  C:\Users\Drogo\Downloads\ARM agentes\.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148: RemovedInDjango60Warning: The default scheme will be changed from 'http' to 'https' in Django 6.0. Pass the forms.URLField.assume_scheme argument to silence this warning, or set the FORMS_URLFIELD_ASSUME_HTTPS transitional setting to True to opt into using 'https' as the new default scheme.
+    return form_class(**defaults)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+112 passed, 1 warning in 139.58s (0:02:19)
+
+$ .venv\Scripts\python.exe manage.py check
+System check identified no issues (0 silenced).
+```
+Notas: crear_tarea en apps/panel/views.py (con @login_required) valida texto y
+keyword obligatorios y busca el agente en una sola consulta con
+annotate(Count("habilidades", filter=Q(...))) y coincidencias == 2, porque
+habilidades__slug__in por sí solo es un OR y no garantiza ambas habilidades. La
+tarea se crea en estado cola con el agente encontrado y la Habilidad
+"reescritura" (Tarea.habilidad es FK obligatoria y PROTECT); el payload guarda
+texto, keyword e instrucciones si vienen. Sin agente válido renderiza la misma
+plantilla con error en rojo #FF3B30 sin crear fila; con éxito redirige a
+lista_tareas con messages.success, que tareas.html pinta en un aviso. La ruta es
+tarea/nueva/ en apps/panel/urls.py, declarada antes de tarea/<int:pk>/. La
+plantilla nueva crear_tarea.html aplica la paleta Apple (fondo #F5F5F7, tarjeta
+blanca, radios 12/8 y foco #0071E3); base.html conserva la paleta antigua hasta
+el paso 11. Tests nuevos en tests/test_panel.py: login requerido, creación
+exitosa con tarea en cola y agente asignado, y error visible sin agente con
+ambas habilidades. La advertencia RemovedInDjango60Warning de URLField sigue
+siendo preexistente.
+Pendiente: el formulario no dispara la ejecución de la tarea (solo la encola);
+los slugs reescritura/seo están fijos en views.py; el listado no se refresca por
+HTMX tras crear; el resto del panel conserva la paleta antigua hasta el paso 11.
 
 
 ## Paso 11 - Rediseño visual estilo Apple/SaaS

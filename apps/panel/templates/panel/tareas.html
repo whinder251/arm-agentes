@@ -2,9 +2,13 @@
 
 {% block content %}
 <style>
-    .encabezado-tareas { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 24px; }
+    .encabezado-tareas { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
     .encabezado-tareas h1 { margin: 0; font-size: 1.8rem; }
     .encabezado-tareas .cuenta { color: #5a5a5a; font-size: 0.9rem; }
+    .acciones-encabezado { display: flex; align-items: center; gap: 16px; }
+    .btn-nueva { background: #0071E3; color: #fff; text-decoration: none; border-radius: 8px; padding: 10px 18px; font-size: 0.9rem; }
+    .btn-nueva:hover { background: #0062c4; text-decoration: none; }
+    .mensaje-exito { background: #fff; border: 1px solid #D2D2D7; border-left: 4px solid #34C759; border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; font-size: 0.9rem; }
     .filtros { margin-bottom: 18px; font-size: 0.9rem; }
     .filtros a { color: #1a1a1a; text-decoration: none; margin-right: 4px; padding: 2px 6px; }
     .filtros a:hover { color: #009CFF; }
@@ -33,6 +37,12 @@
     .bloque p { margin: 6px 0; }
     .bloque pre { background: #faf5e5; border: 1px solid #e3dcc6; padding: 12px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
 </style>
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="mensaje-exito">{{ message }}</div>
+    {% endfor %}
+{% endif %}
 
 {% if tarea %}
     <a class="volver" href="{% url 'lista_tareas' %}">&larr; Volver al listado</a>
@@ -76,7 +86,10 @@
 {% else %}
     <div class="encabezado-tareas">
         <h1>Tareas</h1>
-        <span class="cuenta">{{ tareas|length }} en total</span>
+        <div class="acciones-encabezado">
+            <span class="cuenta">{{ tareas|length }} en total</span>
+            <a class="btn-nueva" href="{% url 'crear_tarea' %}">Nueva tarea</a>
+        </div>
     </div>
 
     <nav class="filtros">

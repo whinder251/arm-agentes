@@ -133,3 +133,52 @@ class TestPanel(TestCase):
         assert content.count(enlace) == 2
         assert '<a href="#">Proveedores</a>' not in content
         assert '<a href="#">Modelos</a>' not in content
+
+    def test_crear_tarea_requiere_login(self):
+        response = self.client.get(reverse('crear_tarea'))
+        assert response.status_code == 302
+
+    def test_crear_tarea_exitoso(self):
+        seo = Habilidad.objects.create(
+            nombre='SEO',
+            slug='seo',
+            plantilla_prompt='test seo',
+            esquema_salida={}
+        )
+        self.agente.habilidades.add(seo)
+        self.client.login(username='testuser', password='testpass123')
+
+        response = self.client.post(reverse('crear_tarea'), {
+            'texto': 'Texto de prueba para reescribir.',
+            'keyword': 'energía solar',
+            'instrucciones': 'Tono cercano',
+        })
+
+        assert response.status_code == 302
+        assert response.url == reverse('lista_tareas')
+        tarea = Tarea.objects.get()
+        assert tarea.estado == 'cola'
+        assert tarea.agente == self.agente
+        assert tarea.habilidad == self.habilidad
+        assert tarea.payload['texto'] == 'Texto de prueba para reescribir.'
+        assert tarea.payload['keyword'] == 'energía solar'
+        assert tarea.payload['instrucciones'] == 'Tono cercano'
+
+    def test_crear_tarea_sin_agente_disponible(self):
+        # El agente solo tiene "reescritura"; "seo" existe pero no está asignada.
+        Habilidad.objects.create(
+            nombre='SEO',
+            slug='seo',
+            plantilla_prompt='test seo',
+            esquema_salida={}
+        )
+        self.client.login(username='testuser', password='testpass123')
+
+        response = self.client.post(reverse('crear_tarea'), {
+            'texto': 'Texto de prueba para reescribir.',
+            'keyword': 'energía solar',
+        })
+
+        assert response.status_code == 200
+        assert 'No hay ningún agente' in response.content.decode('utf-8')
+        assert Tarea.objects.count() == 0

@@ -1,6 +1,8 @@
 from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
+from django.db.models import Count, Q
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from apps.core.models import Tarea, Proveedor, ModeloLLM, Habilidad, Agente
@@ -18,6 +20,54 @@ def lista_tareas(request):
     if estado_filtro:
         tareas = tareas.filter(estado=estado_filtro)
     return render(request, 'panel/tareas.html', {'tareas': tareas, 'estado_filtro': estado_filtro})
+
+HABILIDADES_REQUERIDAS = ("reescritura", "seo")
+
+
+@login_required
+def crear_tarea(request):
+    """Crea una tarea y le asigna el primer agente con todas las habilidades."""
+    error = None
+    if request.method == "POST":
+        texto = request.POST.get("texto", "").strip()
+        keyword = request.POST.get("keyword", "").strip()
+        instrucciones = request.POST.get("instrucciones", "").strip()
+        if not texto or not keyword:
+            error = "El texto y la keyword son obligatorios."
+        else:
+            agente = (
+                Agente.objects.annotate(
+                    coincidencias=Count(
+                        "habilidades",
+                        filter=Q(habilidades__slug__in=HABILIDADES_REQUERIDAS),
+                    )
+                )
+                .filter(coincidencias=len(HABILIDADES_REQUERIDAS))
+                .first()
+            )
+            habilidad = Habilidad.objects.filter(slug="reescritura").first()
+            if agente is None or habilidad is None:
+                error = (
+                    "No hay ningún agente con las habilidades 'reescritura' y "
+                    "'seo'. Crea un agente con ambas habilidades antes de "
+                    "encolar una tarea."
+                )
+            else:
+                payload = {"texto": texto, "keyword": keyword}
+                if instrucciones:
+                    payload["instrucciones"] = instrucciones
+                Tarea.objects.create(
+                    agente=agente,
+                    habilidad=habilidad,
+                    estado=Tarea.Estado.COLA,
+                    payload=payload,
+                )
+                messages.success(
+                    request,
+                    f"Tarea creada y encolada con el agente {agente.nombre}.",
+                )
+                return redirect("lista_tareas")
+    return render(request, "panel/crear_tarea.html", {"error": error})
 
 @login_required
 def detalle_tarea(request, pk):
