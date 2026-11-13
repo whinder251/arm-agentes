@@ -136,3 +136,18 @@ Historial de ejecuciones listo para auditoría de tokens y errores, sin fondos c
 - Navegador en http://127.0.0.1:8000/panel/ → sidebar oscuro, enlaces en gris, activo en índigo, estructura base con look ARM Flow.
 
 Sidebar oscuro, enlaces en gris, activo en índigo; CSS centralizado en static/css/app.css; sin fondos crema, sin emojis, sin gradientes.
+
+## Paso B.1.1 - Fix de configuración de archivos estáticos (causa raíz del 404 en app.css) — COMPLETADO
+
+**Objetivo:** Hacer que Django sirva la carpeta static/ de la raíz del proyecto, para que /static/css/app.css cargue correctamente.
+
+**Archivos tocados:**
+- `config/settings.py`: añadido `STATICFILES_DIRS = [BASE_DIR / "static"]` tras `STATIC_URL = 'static/'` (BASE_DIR ya definido en línea 18; no se tocó STATIC_URL ni STATIC_ROOT).
+- `docs/plan.md`: esta nota.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe -c "from django.conf import settings; print(settings.STATICFILES_DIRS)"` → `[WindowsPath('C:/Users/Drogo/Downloads/ARM agentes/static')]`.
+- `pytest -q`: 18 tests de test_panel pasan antes de un cuelgue preexistente de entorno en un test posterior (no relacionado con este cambio; no modifica lógica ni tests).
+
+Nota: `pytest -q` completo se cuelga en un test preexistente de entorno (no relacionado con STATICFILES_DIRS); manage.py check y la verificación de STATICFILES_DIRS pasan correctamente.
