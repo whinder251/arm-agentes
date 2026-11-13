@@ -2,7 +2,7 @@
 
 
 Estado: 0a, 0b, 1a, 1b, 2, 3a, 3b, 4, 5a, 5b, 6, 9a, 9b, 9c, 9d-1, 9d-2, 9e,
-10a y 10b completados.
+10a, 10b y 11a completados.
 Paso 9 (panel propio) completo.
 Última actualización: 2026-11-12.
 
@@ -326,7 +326,8 @@ Notas: se han cubierto los casos de éxito y fallo de WordPress (usando respx) y
   UPDATE condicional con reintentos ante "database is locked".
 
 ## Pendientes y dudas
-- Panel propio (paso 9) cerrado; siguiente paso pendiente de definir.
+- Panel propio (paso 9) cerrado; 11b pendiente de definir para listas,
+  configuración y formularios.
 - Validar que el JSON de esquema_salida sea un objeto antes de guardarlo desde
   HabilidadForm.
 - Formalizar la transición ok -> revision en Tarea.TRANSICIONES; ahora el
@@ -567,4 +568,36 @@ HTMX tras crear; el resto del panel conserva la paleta antigua hasta el paso 11.
 Objetivo: migrar todo el panel al nuevo sistema de diseño (fondo #F5F5F7, tarjetas blancas con sombras suaves, bordes redondeados, tipografía SF Pro, acento azul #0071E3).
 Archivos: base.html, tareas.html, lista_agentes.html, lista_habilidades.html, configuracion.html, agente_form.html, crear_tarea.html, fila_tarea.html.
 Criterio: todas las vistas del panel respetan la paleta, tipografía, radios y sombras del nuevo sistema.
-Estado: pendiente.
+
+11a: Núcleo del panel (base, listado y detalle de tareas). COMPLETADO (2026-11-12).
+Evidencia (2026-11-12):
+```
+$ .venv\Scripts\python.exe -m pytest -q
+........................................................................ [ 64%]
+........................................                                 [100%]
+=============================== warnings summary ===============================
+tests/test_panel.py::TestPanel::test_aprobar_cambia_estado
+  C:\Users\Drogo\Downloads\ARM agentes\.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148: RemovedInDjango60Warning: The default scheme will be changed from 'http' to 'https' in Django 6.0. Pass the forms.URLField.assume_scheme argument to silence this warning, or set the FORMS_URLFIELD_ASSUME_HTTPS transitional setting to True to opt into using 'https' as the new default scheme.
+    return form_class(**defaults)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+112 passed, 1 warning in 163.23s (0:02:43)
+
+$ .venv\Scripts\python.exe manage.py check
+System check identified no issues (0 silenced).
+```
+Notas: base.html pasa a fondo #F5F5F7, texto #1D1D1F y tipografía del sistema
+(-apple-system/SF Pro); sidebar de 260px con rgba(255,255,255,0.8),
+backdrop-filter blur(20px), borde #D2D2D7 y enlaces con hover #0071E3. Botones e
+inputs usan radios de 8px, sombra suave y foco azul; el botón de logout pasa de
+#c1121f a #FF3B30. tareas.html elimina los tonos crema: tabla con solo líneas
+horizontales #D2D2D7, header #F5F5F7 con texto #6E6E73 y weight 600, badges de
+12px con los colores pedidos y fondo al 10%, filtros tipo pill sin subrayado y
+tarjetas de detalle con radio 12px y sombra suave. No existe
+detalle_tarea.html: el detalle vive en tareas.html y se restilizó allí.
+fila_tarea.html solo añade type="button"; el estilo del botón Aprobar (#0071E3,
+hover con sombra) vive en tareas.html y el <tr id="task-N"> se mantiene intacto
+para HTMX. Los 112 tests y el check pasan; la advertencia de URLField es
+preexistente.
+
+11b: Listas, configuración y formularios. PENDIENTE.

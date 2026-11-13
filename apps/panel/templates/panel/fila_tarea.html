@@ -6,7 +6,7 @@
     <td>{{ tarea.actualizado_en|date:"Y-m-d H:i:s" }}</td>
     <td>
         {% if tarea.estado == 'revision' %}
-            <button class="btn-aprobar"
+            <button type="button" class="btn-aprobar"
                     hx-post="{% url 'aprobar_tarea' %}"
                     hx-vals='{"task_id": {{ tarea.pk }}}'
                     hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
