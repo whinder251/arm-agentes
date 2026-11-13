@@ -268,3 +268,62 @@ class Artefacto(models.Model):
 
     def __str__(self):
         return f"Artefacto v{self.version} de la tarea {self.tarea_id}"
+
+
+class Workflow(models.Model):
+    """Flujo de trabajo multi-paso que encadena habilidades y agentes."""
+
+    nombre = models.CharField(max_length=100)
+    descripcion = models.TextField(blank=True)
+    estado = models.CharField(
+        max_length=20,
+        choices=[
+            ("borrador", "Borrador"),
+            ("en_ejecucion", "En ejecución"),
+            ("completado", "Completado"),
+            ("fallido", "Fallido"),
+        ],
+        default="borrador",
+    )
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "workflow"
+        verbose_name_plural = "workflows"
+        ordering = ["nombre"]
+
+    def __str__(self):
+        return self.nombre
+
+
+class PasoWorkflow(models.Model):
+    """Paso de un workflow: qué habilidad ejecuta y con qué agente."""
+
+    workflow = models.ForeignKey(
+        Workflow, on_delete=models.CASCADE, related_name="pasos"
+    )
+    orden = models.PositiveIntegerField(help_text="Orden de ejecución")
+    habilidad = models.ForeignKey(
+        Habilidad, on_delete=models.PROTECT, related_name="pasos_workflow"
+    )
+    agente = models.ForeignKey(
+        Agente,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="pasos_workflow",
+        help_text="Si es nulo, el orquestador asignará uno con esta habilidad",
+    )
+    modo_ejecucion = models.CharField(
+        max_length=10,
+        choices=[("auto", "Automático"), ("manual", "Requiere aprobación")],
+        default="auto",
+    )
+
+    class Meta:
+        verbose_name = "paso de workflow"
+        verbose_name_plural = "pasos de workflow"
+        ordering = ["orden"]
+
+    def __str__(self):
+        return f"Paso {self.orden} de {self.workflow.nombre}"

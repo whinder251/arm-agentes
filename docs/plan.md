@@ -2,7 +2,7 @@
 
 
 Estado: 0a, 0b, 1a, 1b, 2, 3a, 3b, 4, 5a, 5b, 6, 9a, 9b, 9c, 9d-1, 9d-2, 9e,
-10a, 10b, 11a, 11b, 12, 13, 14, 15a y 15b completados.
+10a, 10b, 11a, 11b, 12, 13, 14, 15a, 15b y 16 completados.
 Pasos 9 (panel propio), 11 (rediseño visual), 12 (creación flexible de tareas),
 13 (encolado en Huey desde el panel) y 14 (interfaz tipo chat, asignación
 automática y borrado de tareas) y 15 (validación de cuota, modo ejecución y
@@ -890,13 +890,40 @@ con try/except InvalidToken para valores legacy en texto plano. La clave se
 toma de ARM_ENCRYPTION_KEY o se genera dinámicamente en dev. La migración 0005
 no se rompe: la columna BD sigue siendo TextField.
 
-## Pasos Futuros (16-20)
+## Paso 16 - Crear modelos Workflow y PasoWorkflow.
+Objetivo: establecer la estructura de datos para flujos de trabajo multi-paso,
+permitiendo encadenar habilidades y agentes.
+COMPLETADO (2026-11-13).
+Evidencia (2026-11-13):
+```
+$ .venv\Scripts\python.exe manage.py makemigrations core
+Migrations for 'core':
+  apps\core\migrations\0008_workflow_pasoworkflow.py
+    + Create model Workflow
+    + Create model PasoWorkflow
+
+$ .venv\Scripts\python.exe manage.py migrate
+Operations to perform:
+  Apply all migrations: admin, auth, contenttypes, core, sessions
+Running migrations:
+  Applying core.0008_workflow_pasoworkflow... OK
+
+$ .venv\Scripts\python.exe -m pytest tests/test_workflow.py -q
+..                                                                       [100%]
+2 passed in 0.89s
+
+$ .venv\Scripts\python.exe manage.py check
+System check identified no issues (0 silenced).
+```
+Notas: se añadieron Workflow (nombre, descripcion, estado con choices borrador/en_ejecucion/completado/fallido, fecha_creacion) y PasoWorkflow (workflow FK CASCADE related_name='pasos', orden, habilidad FK PROTECT, agente FK SET_NULL null/blank, modo_ejecucion auto/manual default auto, Meta ordering=['orden']). No se implementó aún lógica de orquestación (encolado en cadena), solo modelos, migración y tests de integridad.
+
+## Pasos Futuros (17-20)
 
 Ver docs/requirements/roadmap.md para especificación completa.
 
 Resumen:
 - Paso 15: completado (validación de cuota, modo ejecución, confirmación de borrado)
-- Paso 16: Modelo Workflow y PasoWorkflow para flujos multi-paso
+- Paso 16: completado (modelos Workflow y PasoWorkflow para flujos multi-paso)
 - Paso 17: UI de Flujos de Trabajo (crear, editar, ejecutar pipelines)
 - Paso 18: Orquestador de Equipos (asignar workflows a equipos de agentes)
 - Paso 19: API REST para integraciones externas (webhook)
