@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel ARM</title>
+    <style>
+        body {
+            background-color: #faf5e5;
+            color: #1a1a1a;
+            font-family: system-ui, sans-serif;
+            margin: 0;
+            display: flex;
+            min-height: 100vh;
+        }
+        h1, h2, h3, h4, h5, h6 {
+            font-weight: normal;
+        }
+        .sidebar {
+            width: 220px;
+            background-color: #f0ebd9;
+            border-right: 1px solid #d5ceb9;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .sidebar a {
+            color: #1a1a1a;
+            text-decoration: none;
+            display: block;
+            padding: 8px 0;
+        }
+        .sidebar a:hover {
+            color: #009CFF;
+        }
+        .content {
+            flex-grow: 1;
+            padding: 40px;
+            box-sizing: border-box;
+        }
+        .btn {
+            background-color: #009CFF;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            cursor: pointer;
+        }
+        .btn:hover {
+            opacity: 0.9;
+        }
+        .error {
+            color: #c1121f;
+            margin-bottom: 15px;
+        }
+        input[type="text"], input[type="password"] {
+            display: block;
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #d5ceb9;
+            background: #fff;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    {% if user.is_authenticated %}
+    <div class="sidebar">
+        <div>
+            <h2>Panel ARM</h2>
+            <nav>
+                <a href="{% url 'lista_tareas' %}">Tareas</a>
+                <a href="#">Proveedores</a>
+                <a href="#">Modelos</a>
+                <a href="#">Habilidades</a>
+                <a href="#">Agentes</a>
+            </nav>
+        </div>
+        <div>
+            <form method="post" action="{% url 'logout_panel' %}">
+                {% csrf_token %}
+                <button type="submit" class="btn" style="background-color: #c1121f; width: 100%;">Logout</button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+    <div class="content">
+        {% block content %}
+        {% if is_login %}
+            <h2>Iniciar Sesión</h2>
+            {% if error %}
+                <div class="error">{{ error }}</div>
+            {% endif %}
+            <form method="post">
+                {% csrf_token %}
+                <label for="username">Usuario:</label>
+                <input type="text" id="username" name="username" required>
+                <label for="password">Contraseña:</label>
+                <input type="password" id="password" name="password" required>
+                <button type="submit" class="btn">Entrar</button>
+            </form>
+        {% endif %}
+        {% endblock %}
+    </div>
+</body>
+</html>

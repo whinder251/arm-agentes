@@ -1,5 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.utils import timezone
 from apps.core.models import Tarea
 
@@ -41,3 +42,22 @@ def aprobar_tarea(request):
             return render(request, 'panel/tareas.html', {'tarea': tarea, 'single_row': True})
         return redirect('lista_tareas')
     return redirect('lista_tareas')
+
+def login_panel(request):
+    if request.user.is_authenticated:
+        return redirect('lista_tareas')
+    error = None
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            auth_login(request, user)
+            return redirect('lista_tareas')
+        else:
+            error = 'Credenciales inválidas'
+    return render(request, 'panel/base.html', {'error': error, 'is_login': True})
+
+def logout_panel(request):
+    auth_logout(request)
+    return redirect('login_panel')

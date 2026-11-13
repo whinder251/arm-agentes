@@ -303,7 +303,17 @@ Objetivo: enviar borradores a WordPress sin riesgo.
 Archivos: apps/providers/wordpress.py, apps/engine/sitemap.py, tests.
 Aceptación: solo crea borradores; publicar exige aprobación previa; el índice de
 URLs sale del sitemap.xml; credenciales inválidas producen error controlado.
-Estado: pendiente.
+Estado: completado (2026-11-13).
+Evidencia (2026-11-13):
+```
+$ .venv\Scripts\python.exe -m pytest -q
+....................................................................................
+84 passed in 46.88s
+
+$ .venv\Scripts\python.exe manage.py check
+System check identified no issues (0 silenced).
+```
+Notas: se han cubierto los casos de éxito y fallo de WordPress (usando respx) y la generación del sitemap en XML válido.
 
 ## Decisiones registradas
 - 2026-11-13: SQLite y Huey en lugar de Postgres y Celery por el límite de 8 GB.
@@ -340,3 +350,9 @@ Estado: pendiente.
   repositorio (dependencia cryptography ya autorizada).
 - Confirmar qué proveedor gratuito usará AI Workforce en producción.
 - Medir el consumo real del paso 3 antes de subir a un servidor.
+
+## Paso 9 - Panel propio (reemplazo del admin)
+Objetivo: mover la configuración y operación al panel web.
+9a: Login propio y esqueleto (base.html, login, logout). COMPLETADO.
+9b: Formularios de Proveedor y ModeloLLM.
+9c: Formularios de Habilidad y Agente.
