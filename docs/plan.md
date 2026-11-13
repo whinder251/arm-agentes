@@ -495,3 +495,9 @@ estado ok, y sidebar con dos enlaces a configuración y sin href="#".
 Pendiente: el filtro por estado y la tabla no se refrescan por HTMX; el parcial
 solo cubre la aprobación de una fila. La advertencia RemovedInDjango60Warning de
 URLField sigue siendo preexistente. 
+
+## Paso 10 - Mejoras de usabilidad del panel
+Objetivo: facilitar la creación de tareas y la edición de agentes desde la interfaz web.
+10a: Arreglar formulario de edición de agentes (renderizado de modelos como tarjetas).
+10b: Creación de tareas desde el panel con asignación automática de agente (formulario de texto + keyword).
+Estado: pendiente.
