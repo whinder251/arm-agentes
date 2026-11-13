@@ -501,3 +501,10 @@ Objetivo: facilitar la creación de tareas y la edición de agentes desde la int
 10a: Arreglar formulario de edición de agentes (renderizado de modelos como tarjetas).
 10b: Creación de tareas desde el panel con asignación automática de agente (formulario de texto + keyword).
 Estado: pendiente.
+
+
+## Paso 11 - Rediseño visual estilo Apple/SaaS
+Objetivo: migrar todo el panel al nuevo sistema de diseño (fondo #F5F5F7, tarjetas blancas con sombras suaves, bordes redondeados, tipografía SF Pro, acento azul #0071E3).
+Archivos: base.html, tareas.html, lista_agentes.html, lista_habilidades.html, configuracion.html, agente_form.html, crear_tarea.html, fila_tarea.html.
+Criterio: todas las vistas del panel respetan la paleta, tipografía, radios y sombras del nuevo sistema.
+Estado: pendiente.

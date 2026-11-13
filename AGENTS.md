@@ -81,3 +81,52 @@ Antes de entregar cualquier paso, ejecuta:
 ## Referencias
 - docs/plan.md: estado del proyecto y criterio de aceptación de cada paso.
 - docs/estilo.md: reglas de escritura que aplica apps/checks al contenido generado.
+
+## Reglas de Diseño UI (estilo Apple / SaaS moderno)
+
+### Paleta
+- Fondo principal: #F5F5F7 (gris claro Apple)
+- Fondo de tarjetas y superficies: #FFFFFF
+- Texto primario: #1D1D1F
+- Texto secundario: #6E6E73
+- Acento primario: #0071E3 (azul Apple)
+- Acento secundario: #34C759 (verde éxito)
+- Error / destructivo: #FF3B30
+- Bordes sutiles: #D2D2D7
+
+### Tipografía
+- Familia: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif
+- Títulos: font-weight 600 o 700, letter-spacing -0.02em
+- Cuerpo: font-weight 400, line-height 1.5
+- Texto pequeño (metadatos): font-size 0.85rem, color #6E6E73
+
+### Formas y bordes
+- Border-radius: 12px para tarjetas, 8px para botones e inputs, 6px para badges
+- Bordes: 1px solid #D2D2D7 en inputs y tarjetas inactivas
+- Sin bordes rectos ni esquinas cuadradas
+
+### Profundidad y elevación
+- Sombras suaves: box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)
+- Hover en tarjetas: box-shadow: 0 4px 12px rgba(0,0,0,0.1)
+- Glassmorphism permitido en barras laterales y modales: backdrop-filter: blur(20px), background: rgba(255,255,255,0.8)
+
+### Layout
+- Espaciado generoso: padding 24px en contenedores, gap 16px entre elementos
+- Grid simétrico cuando aplique (2 o 3 columnas)
+- Sidebar: 260px de ancho, fondo con blur, separador sutil a la derecha
+- Mucho espacio en blanco (whitespace) entre secciones
+
+### Componentes
+- Botones primarios: fondo #0071E3, texto blanco, border-radius 8px, padding 10px 18px
+- Botones secundarios: fondo transparente, borde 1px #D2D2D7, texto #1D1D1F
+- Inputs: fondo #FFFFFF, borde 1px #D2D2D7, border-radius 8px, focus con borde #0071E3 y outline none
+- Badges de estado: border-radius 12px, padding 4px 10px, font-size 0.75rem, font-weight 500
+- Tablas: sin bordes verticales, solo líneas horizontales sutiles #D2D2D7, header con fondo #F5F5F7
+
+### Prohibido
+- Fondos crema (#faf5e5) o tonos sepia
+- Bordes rectos o esquinas cuadradas
+- Sombras duras o con colores saturados
+- Gradientes púrpura/azul genéricos de IA
+- Emojis como iconos de UI
+- Layouts de 3 tarjetas de precios simétricas sin propósito
