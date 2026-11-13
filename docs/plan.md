@@ -49,3 +49,21 @@ Un Workflow con 2 pasos encadena paso 1 ('ok') → paso 2 creado, vinculado al `
 - `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
 
 Sidebar reorganizado por secciones sin tocar vistas; paleta, radios, tipografía y glassmorphism del sidebar sin cambios.
+
+## Paso 22b - Dashboard de Métricas — COMPLETADO
+
+**Objetivo:** Vista de Dashboard que muestra el estado general del sistema: tareas por estado, tokens consumidos hoy (suma de todos los proveedores) y workflows en ejecución.
+
+**Archivos tocados:**
+- `apps/panel/views.py`: importación de `Sum` de `django.db.models`, nueva vista `dashboard` con `@login_required` que calcula `tareas_cola`, `tareas_ok`, `tareas_fallo`, `tokens_hoy` y `workflows_activos` y las pasa al contexto.
+- `apps/panel/urls.py`: ruta `path('dashboard/', views.dashboard, name='dashboard')` añadida (se mantiene `''` como `lista_tareas` para no romper flujo existente).
+- `apps/panel/templates/panel/base.html`: enlace "Dashboard" como primer elemento en sección "Operación" del sidebar, con clase `activo` condicional. CSS de grid y tarjetas estilo Apple/SaaS (#FFFFFF, borde #D2D2D7, radius 12px, sombra suave, gap 24px).
+- `apps/panel/templates/panel/dashboard.html` (nuevo): extiende `panel/base.html`, título "Panel de Control", subtítulo "Resumen de actividad y consumo", grid de 4 tarjetas (Tareas en Cola #0071E3, Tareas Completadas #34C759, Tokens Consumidos Hoy #1D1D1F, Workflows Activos #FF9500).
+- `tests/test_panel.py`: prueba `test_dashboard_render` (login, GET a 'dashboard', status 200, presencia de "Tareas en Cola", "Tokens Consumidos Hoy", "Workflows Activos").
+- `docs/plan.md`: esta sección.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "dashboard" -q` → `1 passed`.
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+
+Dashboard de métricas del sistema con 4 tarjetas estilo Apple/SaaS, sin fondos crema ni emojis.

@@ -139,6 +139,16 @@ class TestPanel(TestCase):
         assert '<a href="#">Modelos</a>' not in content
         assert 'Modelos y proveedores' in content
 
+    def test_dashboard_render(self):
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('dashboard')
+        response = self.client.get(url)
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        assert 'Tareas en Cola' in content
+        assert 'Tokens Consumidos Hoy' in content
+        assert 'Workflows Activos' in content
+
     def test_crear_tarea_requiere_login(self):
         response = self.client.get(reverse('crear_tarea'))
         assert response.status_code == 302

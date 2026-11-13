@@ -3,6 +3,7 @@ from apps.panel import views
 
 urlpatterns = [
     path('', views.lista_tareas, name='lista_tareas'),
+    path('dashboard/', views.dashboard, name='dashboard'),
     path('tarea/nueva/', views.crear_tarea, name='crear_tarea'),
     path('tarea/<int:pk>/eliminar/', views.eliminar_tarea, name='eliminar_tarea'),
     path('tarea/<int:pk>/publicar/', views.publicar_tarea, name='publicar_tarea'),

@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django import forms
 from django.db import models
+from django.db.models import Sum
 from django.forms import inlineformset_factory
 from apps.core.models import (
     Tarea, Proveedor, ModeloLLM, Habilidad, Agente, Equipo, Workflow, PasoWorkflow,
@@ -497,3 +498,20 @@ def eliminar_equipo(request, pk):
     equipo.delete()
     messages.success(request, f"Equipo '{nombre}' eliminado.")
     return redirect("lista_equipos")
+
+
+@login_required
+def dashboard(request):
+    """Vista de resumen con métricas generales del sistema."""
+    tareas_cola = Tarea.objects.filter(estado='cola').count()
+    tareas_ok = Tarea.objects.filter(estado='ok').count()
+    tareas_fallo = Tarea.objects.filter(estado='fallo').count()
+    tokens_hoy = Proveedor.objects.aggregate(total=Sum('tokens_consumidos_hoy'))['total'] or 0
+    workflows_activos = Workflow.objects.filter(estado='en_ejecucion').count()
+    return render(request, 'panel/dashboard.html', {
+        'tareas_cola': tareas_cola,
+        'tareas_ok': tareas_ok,
+        'tareas_fallo': tareas_fallo,
+        'tokens_hoy': tokens_hoy,
+        'workflows_activos': workflows_activos,
+    })
