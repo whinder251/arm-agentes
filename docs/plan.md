@@ -2,9 +2,10 @@
 
 
 Estado: 0a, 0b, 1a, 1b, 2, 3a, 3b, 4, 5a, 5b, 6, 9a, 9b, 9c, 9d-1, 9d-2, 9e,
-10a, 10b, 11a, 11b, 12 y 13 completados.
-Pasos 9 (panel propio), 11 (rediseño visual), 12 (creación flexible de tareas) y
-13 (encolado en Huey desde el panel) completos.
+10a, 10b, 11a, 11b, 12, 13 y 14a completados.
+Pasos 9 (panel propio), 11 (rediseño visual), 12 (creación flexible de tareas),
+13 (encolado en Huey desde el panel) y 14a (asignación automática y borrado de
+tareas) completos.
 Última actualización: 2026-11-13.
 
 Regla de cierre: un paso se cierra con tests en verde, este archivo actualizado y
@@ -719,4 +720,36 @@ ok o revisión; los tests mockean el encolado y no ejecutan Huey.
 Objetivo: simplificar la creación de tareas a un diseño tipo chat, asignar agente automáticamente si no se elige, y añadir botón para eliminar tareas.
 Archivos: apps/panel/views.py, apps/panel/urls.py, apps/panel/templates/panel/crear_tarea.html, apps/panel/templates/panel/tareas.html, apps/panel/templates/panel/fila_tarea.html, tests/test_panel.py.
 Criterio: Formulario minimalista tipo chat. Asignación automática de agente con modelo activo. Botón de eliminar tarea (POST) funcional. Tests en verde.
-Estado: pendiente.
+Estado: 14a completado (2026-11-13); 14b pendiente.
+
+14a: backend de asignación automática y eliminación de tareas.
+Evidencia (2026-11-13):
+```
+$ .venv\Scripts\python.exe -m pytest -q
+........................................................................ [ 62%]
+...........................................                              [100%]
+=============================== warnings summary ===============================
+tests/test_panel.py::TestPanel::test_aprobar_cambia_estado
+  C:\Users\Drogo\Downloads\ARM agentes\.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148: RemovedInDjango60Warning: The default scheme will be changed from 'http' to 'https' in Django 6.0. Pass the forms.URLField.assume_scheme argument to silence this warning, or set the FORMS_URLFIELD_ASSUME_HTTPS transitional setting to True to opt into using 'https' as the new default scheme.
+    return form_class(**defaults)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+115 passed, 1 warning in 152.40s (0:02:32)
+
+$ .venv\Scripts\python.exe manage.py check
+System check identified no issues (0 silenced).
+```
+Notas: crear_tarea ya no exige agente_id. Si falta, asigna el primer agente con
+modelo activo mediante
+Agente.objects.filter(modelo__activo=True).select_related("modelo").order_by("pk").first();
+si no hay ninguno muestra "No hay agentes activos disponibles" sin crear fila ni
+encolar. La tarea se sigue encolando con ejecutar_tarea(tarea.pk). eliminar_tarea
+lleva @login_required y @require_POST: el POST borra y redirige a lista_tareas, y
+el GET devuelve 405. La ruta es tarea/<int:pk>/eliminar/ con name='eliminar_tarea'.
+Tests: test_crear_tarea_exitoso ya no envía agente_id y comprueba la asignación
+automática; test_crear_tarea_sin_agente_seleccionado pasó a
+test_crear_tarea_sin_agentes_activos; se añadieron test_eliminar_tarea_exitoso y
+test_eliminar_tarea_get_no_permitido. La advertencia RemovedInDjango60Warning de
+URLField es preexistente.
+Pendiente: 14b (rediseño tipo chat de crear_tarea.html y botón Eliminar en
+tareas.html y fila_tarea.html). No se tocaron plantillas en 14a.

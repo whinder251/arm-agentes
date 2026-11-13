@@ -151,7 +151,6 @@ class TestPanel(TestCase):
 
         with patch('apps.panel.views.ejecutar_tarea') as encolar:
             response = self.client.post(reverse('crear_tarea'), {
-                'agente_id': self.agente.pk,
                 'texto': 'Texto de prueba para reescribir.',
                 'keyword': 'energía solar',
                 'instrucciones': 'Tono cercano',
@@ -168,7 +167,9 @@ class TestPanel(TestCase):
         assert tarea.payload['instrucciones'] == 'Tono cercano'
         encolar.assert_called_once_with(tarea.pk)
 
-    def test_crear_tarea_sin_agente_seleccionado(self):
+    def test_crear_tarea_sin_agentes_activos(self):
+        self.modelo.activo = False
+        self.modelo.save()
         self.client.login(username='testuser', password='testpass123')
 
         with patch('apps.panel.views.ejecutar_tarea') as encolar:
@@ -178,7 +179,7 @@ class TestPanel(TestCase):
             })
 
         assert response.status_code == 200
-        assert 'Debes seleccionar un agente' in response.content.decode('utf-8')
+        assert 'No hay agentes activos disponibles' in response.content.decode('utf-8')
         assert Tarea.objects.count() == 0
         encolar.assert_not_called()
 
@@ -197,3 +198,30 @@ class TestPanel(TestCase):
         assert tarea.payload == {'texto': 'Texto de prueba para reescribir.'}
         assert 'keyword' not in tarea.payload
         encolar.assert_called_once_with(tarea.pk)
+
+    def test_eliminar_tarea_exitoso(self):
+        tarea = Tarea.objects.create(
+            agente=self.agente,
+            habilidad=self.habilidad,
+            estado='cola',
+            payload={'texto': 'tarea a eliminar'}
+        )
+        self.client.login(username='testuser', password='testpass123')
+        response = self.client.post(reverse('eliminar_tarea', args=[tarea.pk]))
+
+        assert response.status_code == 302
+        assert response.url == reverse('lista_tareas')
+        assert not Tarea.objects.filter(pk=tarea.pk).exists()
+
+    def test_eliminar_tarea_get_no_permitido(self):
+        tarea = Tarea.objects.create(
+            agente=self.agente,
+            habilidad=self.habilidad,
+            estado='cola',
+            payload={'texto': 'tarea protegida'}
+        )
+        self.client.login(username='testuser', password='testpass123')
+        response = self.client.get(reverse('eliminar_tarea', args=[tarea.pk]))
+
+        assert response.status_code == 405
+        assert Tarea.objects.filter(pk=tarea.pk).exists()

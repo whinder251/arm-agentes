@@ -23,7 +23,7 @@ def lista_tareas(request):
 
 @login_required
 def crear_tarea(request):
-    """Crea una tarea asignada manualmente al agente seleccionado."""
+    """Crea una tarea con agente manual o asignado automáticamente."""
     error = None
     agentes = Agente.objects.select_related("modelo").order_by("nombre")
     if request.method == "POST":
@@ -33,15 +33,27 @@ def crear_tarea(request):
         agente_id = request.POST.get("agente_id", "").strip()
         if not texto:
             error = "El texto es obligatorio."
-        elif not agente_id:
-            error = "Debes seleccionar un agente"
         else:
-            agente = agentes.filter(pk=agente_id).first() if agente_id.isdigit() else None
-            if agente is None:
-                error = "El agente seleccionado no existe."
-            elif agente.modelo is not None and not agente.modelo.activo:
-                error = "El agente seleccionado no está activo."
+            if agente_id:
+                agente = (
+                    agentes.filter(pk=agente_id).first()
+                    if agente_id.isdigit()
+                    else None
+                )
+                if agente is None:
+                    error = "El agente seleccionado no existe."
             else:
+                agente = (
+                    Agente.objects.filter(modelo__activo=True)
+                    .select_related("modelo")
+                    .order_by("pk")
+                    .first()
+                )
+                if agente is None:
+                    error = "No hay agentes activos disponibles"
+            if error is None and agente.modelo is not None and not agente.modelo.activo:
+                error = "El agente seleccionado no está activo."
+            if error is None:
                 habilidad = Habilidad.objects.filter(slug="reescritura").first()
                 if habilidad is None:
                     error = (
@@ -102,6 +114,13 @@ def aprobar_tarea(request):
             return render(request, 'panel/fila_tarea.html', {'tarea': tarea})
         return redirect('lista_tareas')
     return redirect('lista_tareas')
+
+@login_required
+@require_POST
+def eliminar_tarea(request, pk):
+    tarea = get_object_or_404(Tarea, pk=pk)
+    tarea.delete()
+    return redirect("lista_tareas")
 
 def login_panel(request):
     if request.user.is_authenticated:
