@@ -113,6 +113,21 @@
     .btn-eliminar:hover {
         background-color: #d92b22;
     }
+    .btn-ejecutar {
+        background-color: #34C759;
+        color: #FFFFFF;
+        border: none;
+        border-radius: 8px;
+        padding: 7px 14px;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 0.85rem;
+        font-weight: 500;
+        transition: background-color 0.15s ease;
+    }
+    .btn-ejecutar:hover {
+        background-color: #28a745;
+    }
     .vacio {
         color: #6E6E73;
         text-align: center;
@@ -137,6 +152,7 @@
             <th>Estado</th>
             <th>N&ordm; de Pasos</th>
             <th>Fecha</th>
+            <th>Acciones</th>
         </tr>
     </thead>
     <tbody>
@@ -151,6 +167,14 @@
             </td>
             <td>{{ workflow.pasos.count }}</td>
             <td class="fecha">{{ workflow.fecha_creacion|date:"d/m/Y H:i" }}</td>
+            <td class="acciones">
+                {% if workflow.estado == "borrador" %}
+                <form method="post" action="{% url 'ejecutar_workflow' workflow.pk %}" class="form-ejecutar" style="display:inline;">
+                    {% csrf_token %}
+                    <button class="btn-ejecutar" type="submit">Ejecutar</button>
+                </form>
+                {% endif %}
+            </td>
         </tr>
         {% empty %}
         <tr>

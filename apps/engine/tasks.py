@@ -13,7 +13,16 @@ from django.utils import timezone
 from huey import crontab
 from huey.contrib.djhuey import db_periodic_task, db_task
 
-from apps.core.models import Artefacto, Ejecucion, ModeloLLM, Tarea
+from apps.core.models import (
+    Agente,
+    Artefacto,
+    Ejecucion,
+    ModeloLLM,
+    PasoWorkflow,
+    Proveedor,
+    Tarea,
+    Workflow,
+)
 from apps.providers.router import Router
 
 logger = logging.getLogger(__name__)
@@ -187,10 +196,33 @@ def ejecutar_tarea(tarea_id: int) -> str:
         ejecucion.salida = {"texto": respuesta.texto}
         ejecucion.save()
 
+        # Conteo de tokens reales al proveedor (RB-014). None se trata como 0.
+        try:
+            proveedor = tarea.agente.modelo.proveedor
+            if proveedor is not None:
+                tokens_in = ejecucion.tokens_in or 0
+                tokens_out = ejecucion.tokens_out or 0
+                proveedor.tokens_consumidos_hoy += tokens_in + tokens_out
+                proveedor.save(update_fields=["tokens_consumidos_hoy"])
+        except AttributeError:
+            logger.warning(
+                "Tarea %s no tiene proveedor asociado; no se contabilizan tokens",
+                tarea.pk,
+            )
+
         _guardar_artefacto(tarea, respuesta, ejecucion)
         tarea.transicionar(Tarea.Estado.REVISION)
         tarea.transicionar(Tarea.Estado.OK)
         _marcar_latido(tarea_id)
+        # Orquestación: al terminar un paso en 'ok', encolar el siguiente
+        # paso del workflow automáticamente (RB-011).
+        if (
+            tarea.estado == Tarea.Estado.OK
+            and tarea.paso_workflow_id is not None
+        ):
+            continuar_workflow.delay(
+                tarea.paso_workflow.workflow.pk, tarea.paso_workflow.orden + 1
+            )
         return "ok"
     except Exception as error:  # El worker no debe morir por una tarea.
         logger.exception("Tarea %s falló durante la ejecución", tarea_id)
@@ -222,3 +254,68 @@ def recuperar_huerfanas(ahora=None) -> int:
 def revisar_huerfanas() -> int:
     """Barrido periódico de tareas cuyo worker desapareció."""
     return recuperar_huerfanas()
+
+
+@db_task()
+def continuar_workflow(workflow_id: int, siguiente_orden: int) -> str:
+    """Encola el siguiente paso de un workflow, o lo cierra si ya no hay pasos."""
+    try:
+        workflow = Workflow.objects.get(pk=workflow_id)
+    except Workflow.DoesNotExist:
+        logger.warning(
+            "Workflow %s no existe, se ignora continuación", workflow_id
+        )
+        return "inexistente"
+    if workflow.estado != "en_ejecucion":
+        logger.info(
+            "Workflow %s no está en ejecución (estado=%s)",
+            workflow.pk,
+            workflow.estado,
+        )
+        return "no_en_ejecucion"
+
+    paso = (
+        PasoWorkflow.objects.select_related("habilidad", "agente")
+        .filter(workflow=workflow, orden=siguiente_orden)
+        .first()
+    )
+    if paso is None:
+        workflow.estado = "completado"
+        workflow.save(update_fields=["estado"])
+        return "completado"
+
+    agente = paso.agente
+    if agente is None:
+        agente = (
+            Agente.objects.filter(
+                habilidades=paso.habilidad, modelo__activo=True
+            )
+            .select_related("modelo")
+            .order_by("pk")
+            .first()
+        )
+    if agente is None:
+        logger.warning(
+            "No hay agente disponible para el paso %s del workflow %s",
+            paso.orden,
+            workflow.pk,
+        )
+        return "sin_agente"
+    if agente.modelo is None or not agente.modelo.activo:
+        logger.warning(
+            "El agente %s no tiene modelo activo para el paso %s del workflow %s",
+            agente.nombre,
+            paso.orden,
+            workflow.pk,
+        )
+        return "sin_modelo_activo"
+
+    nueva_tarea = Tarea.objects.create(
+        agente=agente,
+        habilidad=paso.habilidad,
+        estado=Tarea.Estado.COLA,
+        payload={},
+        paso_workflow=paso,
+    )
+    ejecutar_tarea.delay(nueva_tarea.pk)
+    return "encolado"

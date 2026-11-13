@@ -23,6 +23,7 @@ urlpatterns = [
     path('configuracion/agentes/<int:pk>/eliminar/', views.eliminar_agente, name='eliminar_agente'),
     path('workflows/', views.lista_workflows, name='lista_workflows'),
     path('workflows/nuevo/', views.crear_workflow, name='crear_workflow'),
+    path('workflows/<int:pk>/ejecutar/', views.ejecutar_workflow, name='ejecutar_workflow'),
     path('equipos/', views.lista_equipos, name='lista_equipos'),
     path('equipos/nuevo/', views.crear_equipo, name='crear_equipo'),
     path('equipos/<int:pk>/editar/', views.editar_equipo, name='editar_equipo'),

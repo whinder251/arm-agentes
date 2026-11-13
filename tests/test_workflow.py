@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.db.models import ProtectedError
 from django.test import TestCase
 
@@ -8,8 +10,11 @@ from apps.core.models import (
     ModeloLLM,
     PasoWorkflow,
     Proveedor,
+    Tarea,
     Workflow,
 )
+
+from apps.engine.tasks import continuar_workflow
 
 
 class TestWorkflow(TestCase):
@@ -95,3 +100,33 @@ class TestWorkflow(TestCase):
         workflow_db = Workflow.objects.get(pk=workflow.pk)
         self.assertEqual(workflow_db.equipo, equipo)
         self.assertIn(workflow_db, equipo.workflows.all())
+
+    def test_orquestacion_workflow(self):
+        workflow = Workflow.objects.create(
+            nombre="W orquestado", estado="en_ejecucion"
+        )
+        paso1 = PasoWorkflow.objects.create(
+            workflow=workflow,
+            orden=1,
+            habilidad=self.habilidad,
+            agente=self.agente,
+            modo_ejecucion="auto",
+        )
+        paso2 = PasoWorkflow.objects.create(
+            workflow=workflow,
+            orden=2,
+            habilidad=self.habilidad,
+            agente=self.agente,
+            modo_ejecucion="auto",
+        )
+
+        with patch("apps.engine.tasks.ejecutar_tarea") as mock_ejecutar:
+            continuar_workflow.func(workflow.pk, 2)
+
+        tarea2 = Tarea.objects.filter(paso_workflow=paso2).first()
+        self.assertIsNotNone(tarea2, "No se creó la tarea del paso 2")
+        self.assertEqual(tarea2.agente, self.agente)
+        self.assertEqual(tarea2.habilidad, self.habilidad)
+        self.assertEqual(tarea2.estado, Tarea.Estado.COLA)
+        self.assertEqual(tarea2.paso_workflow, paso2)
+        mock_ejecutar.delay.assert_called_once_with(tarea2.pk)

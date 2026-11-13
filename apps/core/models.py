@@ -200,6 +200,14 @@ class Tarea(models.Model):
         Habilidad, on_delete=models.PROTECT, related_name="tareas"
     )
     payload = models.JSONField(default=dict, blank=True)
+    paso_workflow = models.ForeignKey(
+        "PasoWorkflow",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="tareas",
+        help_text="Paso del workflow al que pertenece esta tarea.",
+    )
     depende_de = models.ManyToManyField(
         "self", blank=True, symmetrical=False, related_name="dependientes"
     )

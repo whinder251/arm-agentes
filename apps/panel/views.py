@@ -10,7 +10,7 @@ from django.forms import inlineformset_factory
 from apps.core.models import (
     Tarea, Proveedor, ModeloLLM, Habilidad, Agente, Equipo, Workflow, PasoWorkflow,
 )
-from apps.engine.tasks import ejecutar_tarea
+from apps.engine.tasks import ejecutar_tarea, continuar_workflow
 from apps.providers.wordpress import WordPressProvider
 from apps.panel.forms import (
     AgenteForm,
@@ -373,6 +373,25 @@ def lista_workflows(request):
         .order_by("-fecha_creacion")
     )
     return render(request, "panel/lista_workflows.html", {"workflows": workflows})
+
+
+@login_required
+@require_POST
+def ejecutar_workflow(request, pk):
+    """Pone en ejecución un workflow en borrador y encola su primer paso."""
+    workflow = get_object_or_404(Workflow, pk=pk)
+    if workflow.estado != "borrador":
+        messages.error(
+            request, f"El workflow '{workflow.nombre}' no está en borrador."
+        )
+        return redirect("lista_workflows")
+    workflow.estado = "en_ejecucion"
+    workflow.save(update_fields=["estado"])
+    continuar_workflow.delay(workflow.pk, 1)
+    messages.success(
+        request, f"Workflow '{workflow.nombre}' puesto en ejecución."
+    )
+    return redirect("lista_workflows")
 
 
 @login_required
