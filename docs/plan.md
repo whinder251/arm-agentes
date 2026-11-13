@@ -2,10 +2,11 @@
 
 
 Estado: 0a, 0b, 1a, 1b, 2, 3a, 3b, 4, 5a, 5b, 6, 9a, 9b, 9c, 9d-1, 9d-2, 9e,
-10a, 10b, 11a, 11b, 12, 13, 14 y 15a completados.
+10a, 10b, 11a, 11b, 12, 13, 14, 15a y 15b completados.
 Pasos 9 (panel propio), 11 (rediseño visual), 12 (creación flexible de tareas),
 13 (encolado en Huey desde el panel) y 14 (interfaz tipo chat, asignación
-automática y borrado de tareas) completos.
+automática y borrado de tareas) y 15 (validación de cuota, modo ejecución y
+confirmación de borrado) completos.
 Última actualización: 2026-11-13.
 
 Regla de cierre: un paso se cierra con tests en verde, este archivo actualizado y
@@ -829,12 +830,52 @@ se cifrará en paso posterior. Los tests nuevos verifican default 0 de
 limite_tokens_diario y default 'auto' de modo_ejecucion.
 
 
-## Pasos Futuros (15-20)
+## Paso 15b - Validación de cuota, modo de ejecución y confirmación de borrado.
+Objetivo: aplicar RB-009 (límite de tokens), RB-010 (modo de ejecución) y
+mejorar la UX de borrado con confirmación.
+Archivos: apps/core/models.py, apps/core/migrations/0006_proveedor_tokens_consumidos_hoy.py
+(auto-generada), apps/panel/forms.py, apps/panel/views.py,
+apps/panel/templates/panel/base.html, tests/test_panel.py, docs/plan.md.
+Aceptación: Proveedor tiene tokens_consumidos_hoy (IntegerField, default=0);
+HabilidadForm incluye modo_ejecucion con Select ("Automático" / "Requiere
+aprobación"); crear_tarea valida la cuota del proveedor antes de crear (error
+si limite_tokens_diario > 0 y tokens_consumidos_hoy >= límite, sin crear
+tarea ni encolar); base.html añade script de confirmación para
+.btn-eliminar y .btn-eliminar-tarea; test_crear_tarea_sin_cuota_disponible
+verifica 200 con mensaje de error y tarea no creada.
+Estado: completado (2026-11-13).
+Evidencia (2026-11-13):
+```
+$ .venv\Scripts\python.exe manage.py makemigrations core
+Migrations for 'core':
+  apps\core\migrations\0006_proveedor_tokens_consumidos_hoy.py
+    + Add field tokens_consumidos_hoy to proveedor
+
+$ .venv\Scripts\python.exe manage.py migrate
+Operations to perform:
+  Apply all migrations: admin, auth, contenttypes, core, sessions
+Running migrations:
+  Applying core.0006_proveedor_tokens_consumidos_hoy... OK
+
+$ .venv\Scripts\python.exe -m pytest -q
+........................................................................ [ 60%]
+................................................                         [100%]
+120 passed, 1 warning in 160.48s
+
+$ .venv\Scripts\python.exe manage.py check
+System check identified no issues (0 silenced).
+```
+Notas: el incremento real de tokens_consumidos_hoy se hará en el motor de
+ejecución en un paso posterior; por ahora solo se valida el estado actual.
+La validación maneja agente.modelo None y agente.modelo.proveedor None sin
+lanzar AttributeError.
+
+## Pasos Futuros (16-20)
 
 Ver docs/requirements/roadmap.md para especificación completa.
 
 Resumen:
-- Paso 15: Cifrado de API keys, modo ejecución, límites de tokens, confirmación de borrado
+- Paso 15: completado (validación de cuota, modo ejecución, confirmación de borrado)
 - Paso 16: Modelo Workflow y PasoWorkflow para flujos multi-paso
 - Paso 17: UI de Flujos de Trabajo (crear, editar, ejecutar pipelines)
 - Paso 18: Orquestador de Equipos (asignar workflows a equipos de agentes)

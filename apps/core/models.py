@@ -18,6 +18,9 @@ class Proveedor(models.Model):
     limite_tokens_diario = models.IntegerField(
         default=0, help_text="Tokens por día. 0 = sin límite."
     )
+    tokens_consumidos_hoy = models.IntegerField(
+        default=0, help_text="Tokens consumidos hoy. Se resetea cada día."
+    )
 
     class Meta:
         verbose_name = "proveedor"

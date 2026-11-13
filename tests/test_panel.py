@@ -240,6 +240,35 @@ class TestPanel(TestCase):
         assert 'name="instrucciones"' in content
         assert '<option value="">Asignación automática</option>' in content
 
+    def test_crear_tarea_sin_cuota_disponible(self):
+        proveedor = Proveedor.objects.create(
+            nombre='proveedor cuota',
+            api_key='fake',
+            base_url='http://test.invalid',
+            limite_tokens_diario=100,
+            tokens_consumidos_hoy=100,
+        )
+        modelo = ModeloLLM.objects.create(
+            proveedor=proveedor, model_id='modelo-cuota'
+        )
+        agente = Agente.objects.create(
+            nombre='Agente cuota', modelo=modelo, rol='Rol'
+        )
+        agente.habilidades.add(self.habilidad)
+        self.client.login(username='testuser', password='testpass123')
+
+        with patch('apps.panel.views.ejecutar_tarea') as encolar:
+            response = self.client.post(reverse('crear_tarea'), {
+                'agente_id': agente.pk,
+                'texto': 'Texto de prueba para reescribir.',
+            })
+
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        assert 'El proveedor ha alcanzado su límite diario de tokens.' in content
+        assert Tarea.objects.count() == 0
+        encolar.assert_not_called()
+
     def test_lista_muestra_formulario_eliminar(self):
         tarea = Tarea.objects.create(
             agente=self.agente,

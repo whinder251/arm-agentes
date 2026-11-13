@@ -16,9 +16,16 @@ class ModeloLLMForm(forms.ModelForm):
 
 
 class HabilidadForm(forms.ModelForm):
+    modo_ejecucion = forms.ChoiceField(
+        choices=[("auto", "Automático"), ("manual", "Requiere aprobación")],
+        required=False,
+        initial="auto",
+        widget=forms.Select,
+    )
+
     class Meta:
         model = Habilidad
-        fields = ["nombre", "slug", "plantilla_prompt", "esquema_salida"]
+        fields = ["nombre", "slug", "modo_ejecucion", "plantilla_prompt", "esquema_salida"]
         widgets = {
             "plantilla_prompt": forms.Textarea(attrs={"rows": 6}),
             "esquema_salida": forms.Textarea(attrs={"rows": 4}),

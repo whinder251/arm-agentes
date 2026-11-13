@@ -54,30 +54,35 @@ def crear_tarea(request):
             if error is None and agente.modelo is not None and not agente.modelo.activo:
                 error = "El agente seleccionado no está activo."
             if error is None:
-                habilidad = Habilidad.objects.filter(slug="reescritura").first()
-                if habilidad is None:
-                    error = (
-                        "No existe la habilidad 'reescritura'. Créala antes de "
-                        "encolar una tarea."
-                    )
-                else:
-                    payload = {"texto": texto}
-                    if keyword:
-                        payload["keyword"] = keyword
-                    if instrucciones:
-                        payload["instrucciones"] = instrucciones
-                    tarea = Tarea.objects.create(
-                        agente=agente,
-                        habilidad=habilidad,
-                        estado=Tarea.Estado.COLA,
-                        payload=payload,
-                    )
-                    ejecutar_tarea(tarea.pk)
-                    messages.success(
-                        request,
-                        f"Tarea creada y encolada con el agente {agente.nombre}.",
-                    )
-                    return redirect("lista_tareas")
+                proveedor = agente.modelo.proveedor if agente.modelo else None
+                if proveedor and proveedor.limite_tokens_diario > 0:
+                    if proveedor.tokens_consumidos_hoy >= proveedor.limite_tokens_diario:
+                        error = "El proveedor ha alcanzado su límite diario de tokens."
+                if error is None:
+                    habilidad = Habilidad.objects.filter(slug="reescritura").first()
+                    if habilidad is None:
+                        error = (
+                            "No existe la habilidad 'reescritura'. Créala antes de "
+                            "encolar una tarea."
+                        )
+                    else:
+                        payload = {"texto": texto}
+                        if keyword:
+                            payload["keyword"] = keyword
+                        if instrucciones:
+                            payload["instrucciones"] = instrucciones
+                        tarea = Tarea.objects.create(
+                            agente=agente,
+                            habilidad=habilidad,
+                            estado=Tarea.Estado.COLA,
+                            payload=payload,
+                        )
+                        ejecutar_tarea(tarea.pk)
+                        messages.success(
+                            request,
+                            f"Tarea creada y encolada con el agente {agente.nombre}.",
+                        )
+                        return redirect("lista_tareas")
     return render(
         request,
         "panel/crear_tarea.html",
