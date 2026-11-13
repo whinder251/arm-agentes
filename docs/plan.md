@@ -678,3 +678,10 @@ test_crear_tarea_sin_keyword, que verifica que el payload no contiene esa clave.
 La advertencia RemovedInDjango60Warning de URLField sigue siendo preexistente.
 Pendiente: el formulario sigue sin disparar la ejecución (solo encola); los
 agentes sin modelo o con modelo inactivo no se filtran en el select.
+
+
+## Paso 13 - Encolar tarea en Huey al crearla desde el panel
+Objetivo: que la vista crear_tarea dispare ejecutar_tarea.delay() tras crear la fila, para que el worker la procese.
+Archivos: apps/panel/views.py (añadir import y llamada .delay), tests/test_panel.py (mock de delay).
+Criterio: al crear tarea desde el panel, el worker la ejecuta y cambia el estado; tests verifican la llamada a delay con mock.
+Estado: pendiente.
