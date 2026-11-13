@@ -82,6 +82,19 @@ Antes de entregar cualquier paso, ejecuta:
 - docs/plan.md: estado del proyecto y criterio de aceptación de cada paso.
 - docs/estilo.md: reglas de escritura que aplica apps/checks al contenido generado.
 
+
+## Reglas de Negocio Aprobadas
+- RB-009: Sistema rechaza encolación si excede cuota diaria o RPM del proveedor.
+- RB-010: Si modo_ejecucion de habilidad es 'manual', flujo se pausa y genera tarea en revision.
+- RB-011: Workflow se ejecuta en orden. Paso N no se encola hasta que Paso N-1 esté en ok.
+- RB-013: api_key se cifra antes de guardar en base de datos (usar cryptography).
+- RB-014: Límite de tokens diario por proveedor es obligatorio.
+- RB-017: Endpoint REST requiere autenticación con token.
+
+## Visión de Largo Plazo
+ARM evolucionará de un procesador de tareas simples a un orquestador de flujos de trabajo multi-paso con equipos de agentes, integración con WordPress y API REST para sistemas externos. Ver docs/requirements/roadmap.md.
+
+
 ## Reglas de Diseño UI (estilo Apple / SaaS moderno)
 
 ### Paleta

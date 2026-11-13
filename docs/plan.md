@@ -791,3 +791,18 @@ RemovedInDjango60Warning de URLField sigue siendo preexistente.
 Pendiente: el botón Eliminar no pide confirmación antes de borrar; valorar un
 diálogo de confirmación. Revisar en navegador el responsive de la fila
 keyword/agente.
+
+
+## Pasos Futuros (15-20)
+
+Ver docs/requirements/roadmap.md para especificación completa.
+
+Resumen:
+- Paso 15: Cifrado de API keys, modo ejecución, límites de tokens, confirmación de borrado
+- Paso 16: Modelo Workflow y PasoWorkflow para flujos multi-paso
+- Paso 17: UI de Flujos de Trabajo (crear, editar, ejecutar pipelines)
+- Paso 18: Orquestador de Equipos (asignar workflows a equipos de agentes)
+- Paso 19: API REST para integraciones externas (webhook)
+- Paso 20: Plugin WordPress (consumidor de API ARM)
+
+Dependencias: 15 → 16 → 17/18, 15 → 19 → 20
