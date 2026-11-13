@@ -2,9 +2,9 @@
 
 
 Estado: 0a, 0b, 1a, 1b, 2, 3a, 3b, 4, 5a, 5b, 6, 9a, 9b, 9c, 9d-1, 9d-2, 9e,
-10a, 10b, 11a, 11b y 12 completados.
-Pasos 9 (panel propio), 11 (rediseño visual) y 12 (creación flexible de tareas)
-completos.
+10a, 10b, 11a, 11b, 12 y 13 completados.
+Pasos 9 (panel propio), 11 (rediseño visual), 12 (creación flexible de tareas) y
+13 (encolado en Huey desde el panel) completos.
 Última actualización: 2026-11-13.
 
 Regla de cierre: un paso se cierra con tests en verde, este archivo actualizado y
@@ -676,12 +676,41 @@ test_crear_tarea_exitoso para enviar agente_id, se renombró el caso sin agente 
 test_crear_tarea_sin_agente_seleccionado y se añadió
 test_crear_tarea_sin_keyword, que verifica que el payload no contiene esa clave.
 La advertencia RemovedInDjango60Warning de URLField sigue siendo preexistente.
-Pendiente: el formulario sigue sin disparar la ejecución (solo encola); los
-agentes sin modelo o con modelo inactivo no se filtran en el select.
+Pendiente: los agentes sin modelo o con modelo inactivo no se filtran en el
+select. El encolado en Huey quedó resuelto en el paso 13.
 
 
 ## Paso 13 - Encolar tarea en Huey al crearla desde el panel
-Objetivo: que la vista crear_tarea dispare ejecutar_tarea.delay() tras crear la fila, para que el worker la procese.
-Archivos: apps/panel/views.py (añadir import y llamada .delay), tests/test_panel.py (mock de delay).
-Criterio: al crear tarea desde el panel, el worker la ejecuta y cambia el estado; tests verifican la llamada a delay con mock.
-Estado: pendiente.
+Objetivo: que la vista crear_tarea encole la tarea en Huey tras crear la fila,
+para que el worker la procese.
+Archivos: apps/panel/views.py (import y encolado), tests/test_panel.py (mock de
+la llamada).
+Criterio: el POST válido crea la tarea y encola una vez con su pk; los casos
+inválidos no encolan; tests verifican la llamada con mock.
+Estado: completado (2026-11-13).
+Evidencia (2026-11-13):
+```
+$ .venv\Scripts\python.exe -m pytest -q
+........................................................................ [ 63%]
+.........................................                                [100%]
+=============================== warnings summary ===============================
+tests/test_panel.py::TestPanel::test_aprobar_cambia_estado
+  C:\Users\Drogo\Downloads\ARM agentes\.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148: RemovedInDjango60Warning: The default scheme will be changed from 'http' to 'https' in Django 6.0. Pass the forms.URLField.assume_scheme argument to silence this warning, or set the FORMS_URLFIELD_ASSUME_HTTPS transitional setting to True to opt into using 'https' as the new default scheme.
+    return form_class(**defaults)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+113 passed, 1 warning in 167.74s (0:02:47)
+
+$ .venv\Scripts\python.exe manage.py check
+System check identified no issues (0 silenced).
+```
+Notas: `@db_task()` de Huey devuelve un `huey.api.TaskWrapper`, que no expone
+`.delay`; la forma correcta de encolar es invocar el wrapper con
+`ejecutar_tarea(tarea.pk)`. El import está al inicio de views.py y la llamada va
+justo después del `Tarea.objects.create(...)`. Los tests parchean
+`apps.panel.views.ejecutar_tarea`: el caso exitoso y el de sin keyword usan
+`assert_called_once_with(tarea.pk)`, y el de sin agente usa `assert_not_called()`
+sin crear fila. La advertencia RemovedInDjango60Warning de URLField es
+preexistente.
+Pendiente: validar con el worker real (`run_huey`) que la tarea pasa de cola a
+ok o revisión; los tests mockean el encolado y no ejecutan Huey.

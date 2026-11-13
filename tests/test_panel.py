@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import patch
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
@@ -148,12 +149,13 @@ class TestPanel(TestCase):
         self.agente.habilidades.add(seo)
         self.client.login(username='testuser', password='testpass123')
 
-        response = self.client.post(reverse('crear_tarea'), {
-            'agente_id': self.agente.pk,
-            'texto': 'Texto de prueba para reescribir.',
-            'keyword': 'energía solar',
-            'instrucciones': 'Tono cercano',
-        })
+        with patch('apps.panel.views.ejecutar_tarea') as encolar:
+            response = self.client.post(reverse('crear_tarea'), {
+                'agente_id': self.agente.pk,
+                'texto': 'Texto de prueba para reescribir.',
+                'keyword': 'energía solar',
+                'instrucciones': 'Tono cercano',
+            })
 
         assert response.status_code == 302
         assert response.url == reverse('lista_tareas')
@@ -164,29 +166,34 @@ class TestPanel(TestCase):
         assert tarea.payload['texto'] == 'Texto de prueba para reescribir.'
         assert tarea.payload['keyword'] == 'energía solar'
         assert tarea.payload['instrucciones'] == 'Tono cercano'
+        encolar.assert_called_once_with(tarea.pk)
 
     def test_crear_tarea_sin_agente_seleccionado(self):
         self.client.login(username='testuser', password='testpass123')
 
-        response = self.client.post(reverse('crear_tarea'), {
-            'texto': 'Texto de prueba para reescribir.',
-            'keyword': 'energía solar',
-        })
+        with patch('apps.panel.views.ejecutar_tarea') as encolar:
+            response = self.client.post(reverse('crear_tarea'), {
+                'texto': 'Texto de prueba para reescribir.',
+                'keyword': 'energía solar',
+            })
 
         assert response.status_code == 200
         assert 'Debes seleccionar un agente' in response.content.decode('utf-8')
         assert Tarea.objects.count() == 0
+        encolar.assert_not_called()
 
     def test_crear_tarea_sin_keyword(self):
         self.client.login(username='testuser', password='testpass123')
 
-        response = self.client.post(reverse('crear_tarea'), {
-            'agente_id': self.agente.pk,
-            'texto': 'Texto de prueba para reescribir.',
-        })
+        with patch('apps.panel.views.ejecutar_tarea') as encolar:
+            response = self.client.post(reverse('crear_tarea'), {
+                'agente_id': self.agente.pk,
+                'texto': 'Texto de prueba para reescribir.',
+            })
 
         assert response.status_code == 302
         tarea = Tarea.objects.get()
         assert tarea.agente == self.agente
         assert tarea.payload == {'texto': 'Texto de prueba para reescribir.'}
         assert 'keyword' not in tarea.payload
+        encolar.assert_called_once_with(tarea.pk)

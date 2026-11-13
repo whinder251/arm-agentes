@@ -5,6 +5,7 @@ from django.contrib.auth import authenticate, login as auth_login, logout as aut
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from apps.core.models import Tarea, Proveedor, ModeloLLM, Habilidad, Agente
+from apps.engine.tasks import ejecutar_tarea
 from apps.panel.forms import (
     AgenteForm,
     HabilidadForm,
@@ -53,12 +54,13 @@ def crear_tarea(request):
                         payload["keyword"] = keyword
                     if instrucciones:
                         payload["instrucciones"] = instrucciones
-                    Tarea.objects.create(
+                    tarea = Tarea.objects.create(
                         agente=agente,
                         habilidad=habilidad,
                         estado=Tarea.Estado.COLA,
                         payload=payload,
                     )
+                    ejecutar_tarea(tarea.pk)
                     messages.success(
                         request,
                         f"Tarea creada y encolada con el agente {agente.nombre}.",
