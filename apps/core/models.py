@@ -7,13 +7,16 @@ class Proveedor(models.Model):
 
     nombre = models.CharField(max_length=100, unique=True)
     base_url = models.URLField(max_length=300)
-    # Se guarda en claro en esta etapa; ver pendiente de cifrado en docs/plan.md.
+    # Se guarda en claro en esta etapa; se cifrará en paso 15b (NO cifrar aún).
     api_key = models.TextField(blank=True)
     rpm = models.PositiveIntegerField(
         default=0, help_text="Peticiones por minuto. 0 significa sin límite."
     )
     limite_diario = models.PositiveIntegerField(
         default=0, help_text="Llamadas por día. 0 significa sin límite."
+    )
+    limite_tokens_diario = models.IntegerField(
+        default=0, help_text="Tokens por día. 0 = sin límite."
     )
 
     class Meta:
@@ -82,6 +85,11 @@ class Habilidad(models.Model):
     slug = models.SlugField(max_length=100, unique=True)
     plantilla_prompt = models.TextField()
     esquema_salida = models.JSONField(default=dict)
+    modo_ejecucion = models.CharField(
+        max_length=10,
+        choices=[("auto", "Automático"), ("manual", "Requiere aprobación")],
+        default="auto",
+    )
 
     class Meta:
         verbose_name = "habilidad"

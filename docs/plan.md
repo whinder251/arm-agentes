@@ -2,7 +2,7 @@
 
 
 Estado: 0a, 0b, 1a, 1b, 2, 3a, 3b, 4, 5a, 5b, 6, 9a, 9b, 9c, 9d-1, 9d-2, 9e,
-10a, 10b, 11a, 11b, 12, 13 y 14 completados.
+10a, 10b, 11a, 11b, 12, 13, 14 y 15a completados.
 Pasos 9 (panel propio), 11 (rediseño visual), 12 (creación flexible de tareas),
 13 (encolado en Huey desde el panel) y 14 (interfaz tipo chat, asignación
 automática y borrado de tareas) completos.
@@ -791,6 +791,42 @@ RemovedInDjango60Warning de URLField sigue siendo preexistente.
 Pendiente: el botón Eliminar no pide confirmación antes de borrar; valorar un
 diálogo de confirmación. Revisar en navegador el responsive de la fila
 keyword/agente.
+
+## Paso 15a - Añadir campos al modelo Proveedor y Habilidad.
+Objetivo: preparar el modelo para las reglas de negocio aprobadas (cifrado de
+api_key, modo de ejecución, límite de tokens).
+Archivos: apps/core/models.py, apps/core/migrations/0005_habilidad_modo_ejecucion_and_more.py
+(auto-generada), tests/test_core.py, docs/plan.md.
+Aceptación: Proveedor tiene limite_tokens_diario (IntegerField, default=0);
+api_key con comentario de que se cifrará en 15b (sin cifrar aún); Habilidad tiene
+modo_ejecucion (CharField, max_length=10, choices auto/manual, default='auto');
+sin tocar views.py ni templates; sin borrar campos existentes.
+Estado: completado (2026-11-13).
+Evidencia (2026-11-13):
+```
+$ .venv\Scripts\python.exe manage.py makemigrations core
+Migrations for 'core':
+  apps\core\migrations\0005_habilidad_modo_ejecucion_and_more.py
+    + Add field modo_ejecucion to habilidad
+    + Add field limite_tokens_diario to proveedor
+
+$ .venv\Scripts\python.exe manage.py migrate
+Operations to perform:
+  Apply all migrations: admin, auth, contenttypes, core, sessions
+Running migrations:
+  Applying core.0005_habilidad_modo_ejecucion_and_more... OK
+
+$ .venv\Scripts\python.exe -m pytest -q
+........................................................................ [ 60%]
+...............................................                          [100%]
+119 passed, 1 warning in 171.43s
+
+$ .venv\Scripts\python.exe manage.py check
+System check identified no issues (0 silenced).
+```
+Notas: api_key NO se cifra aún (eso es 15b). Se mantiene el comentario de que
+se cifrará en paso posterior. Los tests nuevos verifican default 0 de
+limite_tokens_diario y default 'auto' de modo_ejecucion.
 
 
 ## Pasos Futuros (15-20)
