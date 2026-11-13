@@ -10,4 +10,6 @@ urlpatterns = [
     path('configuracion/', views.configuracion, name='configuracion'),
     path('configuracion/proveedor/nuevo/', views.crear_proveedor, name='crear_proveedor'),
     path('configuracion/modelo/nuevo/', views.crear_modelo, name='crear_modelo'),
+    path('configuracion/habilidad/nuevo/', views.crear_habilidad, name='crear_habilidad'),
+    path('configuracion/agente/nuevo/', views.crear_agente, name='crear_agente'),
 ]

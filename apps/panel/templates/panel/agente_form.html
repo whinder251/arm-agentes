@@ -1,0 +1,362 @@
+{% extends "panel/base.html" %}
+{% load l10n %}
+
+{% block content %}
+<style>
+    .agente-columnas {
+        display: flex;
+        gap: 28px;
+        align-items: flex-start;
+        margin-top: 16px;
+    }
+    .agente-izquierda {
+        flex: 3 1 0;
+    }
+    .agente-derecha {
+        flex: 2 1 0;
+    }
+    .agente-izquierda h3,
+    .agente-derecha h3 {
+        font-weight: normal;
+        margin: 0 0 12px 0;
+        padding-bottom: 6px;
+        border-bottom: 1px solid #d5ceb9;
+    }
+    .campo {
+        margin-bottom: 16px;
+    }
+    .campo label {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 0.9em;
+    }
+    .campo input[type="text"] {
+        display: block;
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #d5ceb9;
+        background: #fff;
+        box-sizing: border-box;
+        font-size: 0.95em;
+    }
+    .plantillas {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 8px;
+        flex-wrap: wrap;
+    }
+    .btn-plantilla {
+        background: #fff;
+        color: #1a1a1a;
+        border: 1px solid #d5ceb9;
+        padding: 4px 10px;
+        cursor: pointer;
+        font-size: 0.8em;
+        font-family: system-ui, sans-serif;
+    }
+    .btn-plantilla:hover {
+        border-color: #009CFF;
+        color: #009CFF;
+    }
+    .rol-textarea {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+        background: #f4f4f4;
+        color: #1a1a1a;
+        border: 1px solid #d5ceb9;
+        padding: 10px;
+        font-family: Consolas, "Courier New", monospace;
+        font-size: 0.88em;
+        line-height: 1.45;
+        resize: vertical;
+    }
+    .temperatura-fila {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .temperatura-fila input[type="range"] {
+        flex: 1 1 auto;
+        -webkit-appearance: none;
+        appearance: none;
+        height: 6px;
+        background: #009CFF;
+        border: none;
+        outline: none;
+        cursor: pointer;
+    }
+    .temperatura-fila input[type="range"]::-webkit-slider-runnable-track {
+        height: 6px;
+        background: #009CFF;
+    }
+    .temperatura-fila input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 14px;
+        height: 22px;
+        margin-top: -8px;
+        background: #1a1a1a;
+        border: none;
+        cursor: pointer;
+    }
+    .temperatura-fila input[type="range"]::-moz-range-track {
+        height: 6px;
+        background: #009CFF;
+    }
+    .temperatura-fila input[type="range"]::-moz-range-thumb {
+        width: 14px;
+        height: 22px;
+        background: #1a1a1a;
+        border: none;
+        border-radius: 0;
+        cursor: pointer;
+    }
+    .temperatura-valor {
+        min-width: 34px;
+        text-align: right;
+        font-family: Consolas, "Courier New", monospace;
+        font-size: 0.9em;
+    }
+    .modelos-lista {
+        margin-bottom: 22px;
+    }
+    .modelo-card {
+        position: relative;
+        display: block;
+        border: 1px solid #d5ceb9;
+        border-left: 3px solid #d5ceb9;
+        background: #fff;
+        padding: 8px 10px;
+        margin-bottom: 6px;
+        cursor: pointer;
+        font-size: 0.88em;
+    }
+    .modelo-card input[type="radio"] {
+        position: absolute;
+        opacity: 0;
+        width: 1px;
+        height: 1px;
+    }
+    .modelo-card:has(input:checked),
+    .modelo-card.seleccionada {
+        border-left: 4px solid #009CFF;
+        background: #eaf4ff;
+    }
+    .habilidades-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+    .habilidad-card {
+        position: relative;
+        display: block;
+        border: 1px solid #d5ceb9;
+        border-left: 3px solid #d5ceb9;
+        background: #fff;
+        padding: 9px 10px;
+        cursor: pointer;
+    }
+    .habilidad-card input[type="checkbox"] {
+        position: absolute;
+        opacity: 0;
+        width: 1px;
+        height: 1px;
+    }
+    .habilidad-card:has(input:checked),
+    .habilidad-card.seleccionada {
+        border-left: 4px solid #009CFF;
+        background: #eaf4ff;
+    }
+    .habilidad-nombre {
+        display: block;
+        font-size: 0.88em;
+    }
+    .habilidad-slug {
+        display: block;
+        font-family: Consolas, "Courier New", monospace;
+        font-size: 0.75em;
+        color: #5a5a5a;
+        margin-top: 2px;
+    }
+    .nota-vacia {
+        font-size: 0.85em;
+        color: #5a5a5a;
+    }
+    .errores {
+        color: #c1121f;
+        font-size: 0.88em;
+    }
+    .errores ul {
+        color: #c1121f;
+        margin: 0 0 8px 0;
+        padding-left: 18px;
+    }
+    .acciones {
+        margin-top: 20px;
+        padding-top: 14px;
+        border-top: 1px solid #d5ceb9;
+    }
+    .acciones .btn {
+        border: none;
+        cursor: pointer;
+    }
+    .btn-cancelar {
+        background-color: #c1121f;
+        color: #fff;
+        border: none;
+        padding: 8px 16px;
+        margin-left: 8px;
+        font-size: 0.9em;
+        text-decoration: none;
+        display: inline-block;
+    }
+</style>
+
+<h2>Nuevo agente</h2>
+
+<form method="post" action="{% url 'crear_agente' %}">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+    <div class="errores">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="agente-columnas">
+        <div class="agente-izquierda">
+            <h3>Identidad y cerebro</h3>
+
+            <div class="campo">
+                <label for="id_nombre">Nombre</label>
+                <input type="text" id="id_nombre" name="nombre" required
+                       value="{{ form.nombre.value|default_if_none:'' }}">
+                <div class="errores">{{ form.nombre.errors }}</div>
+            </div>
+
+            <div class="campo">
+                <label for="id_rol">Rol (system prompt)</label>
+                <div class="plantillas">
+                    <button type="button" class="btn-plantilla"
+                            data-plantilla="redactor">Redactor SEO</button>
+                    <button type="button" class="btn-plantilla"
+                            data-plantilla="analista">Analista</button>
+                    <button type="button" class="btn-plantilla"
+                            data-plantilla="asistente">Asistente</button>
+                </div>
+                <textarea id="id_rol" name="rol" class="rol-textarea"
+                          rows="14" required>{{ form.rol.value|default_if_none:'' }}</textarea>
+                <div class="errores">{{ form.rol.errors }}</div>
+            </div>
+
+            <div class="campo">
+                <label for="id_temperatura">Temperatura</label>
+                <div class="temperatura-fila">
+                    <input type="range" id="id_temperatura" name="temperatura"
+                           min="0" max="2" step="0.1"
+                           value="{{ form.temperatura.value|default:'0.7'|unlocalize }}">
+                    <output class="temperatura-valor"
+                            for="id_temperatura">{{ form.temperatura.value|default:'0.7'|unlocalize }}</output>
+                </div>
+                <div class="errores">{{ form.temperatura.errors }}</div>
+            </div>
+        </div>
+
+        <div class="agente-derecha">
+            <h3>Herramientas</h3>
+
+            <div class="campo">
+                <label>Modelo</label>
+                <div class="modelos-lista">
+                    {% for radio in form.modelo %}
+                    <label class="modelo-card">
+                        {{ radio.tag }}
+                        <span>{{ radio.choice_label }}</span>
+                    </label>
+                    {% empty %}
+                    <p class="nota-vacia">No hay modelos activos. Crea uno en Configuraci&oacute;n.</p>
+                    {% endfor %}
+                </div>
+                <div class="errores">{{ form.modelo.errors }}</div>
+            </div>
+
+            <div class="campo">
+                <label>Habilidades</label>
+                <div class="habilidades-grid">
+                    {% for habilidad in habilidades %}
+                    <label class="habilidad-card">
+                        <input type="checkbox" name="habilidades"
+                               value="{{ habilidad.id }}"
+                               {% if habilidad.id|stringformat:"s" in habilidades_seleccionadas %}checked{% endif %}>
+                        <span class="habilidad-nombre">{{ habilidad.nombre }}</span>
+                        <span class="habilidad-slug">{{ habilidad.slug }}</span>
+                    </label>
+                    {% empty %}
+                    <p class="nota-vacia">No hay habilidades registradas.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="acciones">
+        <button type="submit" class="btn">Guardar agente</button>
+        <a class="btn-cancelar" href="{% url 'configuracion' %}">Cancelar</a>
+    </div>
+</form>
+
+<script>
+    var plantillas = {
+        redactor: "Eres redactor SEO senior. Escribes en espa\u00f1ol claro y directo, sin relleno. " +
+            "Antes de redactar identificas la intenci\u00f3n de b\u00fasqueda y la keyword principal. " +
+            "Estructuras el texto con un solo H1, subt\u00edtulos H2 \u00fatiles y p\u00e1rrafos de menos " +
+            "de 70 palabras. No inventas datos, cifras ni nombres: si falta informaci\u00f3n, la marcas " +
+            "como pendiente. Evitas las palabras y frases vetadas de docs/estilo.md. Entregas un t\u00edtulo " +
+            "de hasta 60 caracteres, una meta de 140 a 155 y un slug en min\u00fasculas.",
+        analista: "Eres analista de contenido. Descompones el encargo en hechos verificables y supuestos. " +
+            "Distingues con claridad lo que afirma la fuente de lo que infieres. Solo devuelves cifras que " +
+            "aparezcan en el material original; si no est\u00e1n, lo indicas. Priorizas claridad sobre adornos " +
+            "y cierras con decisiones accionables, no con res\u00famenes gen\u00e9ricos.",
+        asistente: "Eres un asistente editorial preciso. Respondes en espa\u00f1ol, con frases cortas y sin " +
+            "muletillas. Si la petici\u00f3n es ambigua, haces una sola pregunta antes de continuar. No inventas " +
+            "datos ni fuentes. Cuando no sabes algo, lo dices. Mantienes el formato solicitado y no a\u00f1ades " +
+            "secciones que nadie ha pedido."
+    };
+
+    document.querySelectorAll('.btn-plantilla').forEach(function (boton) {
+        boton.addEventListener('click', function () {
+            var texto = plantillas[boton.dataset.plantilla];
+            var area = document.getElementById('id_rol');
+            if (!texto || !area) return;
+            if (area.value.trim() && !window.confirm('\u00bfSustituir el rol actual por esta plantilla?')) {
+                return;
+            }
+            area.value = texto;
+            area.focus();
+        });
+    });
+
+    var rango = document.getElementById('id_temperatura');
+    var salida = document.querySelector('.temperatura-valor');
+    if (rango && salida) {
+        rango.addEventListener('input', function () {
+            salida.textContent = rango.value;
+        });
+    }
+
+    function marcarTarjeta(input) {
+        var tarjeta = input.closest('label');
+        if (tarjeta) {
+            tarjeta.classList.toggle('seleccionada', input.checked);
+        }
+    }
+    document.querySelectorAll('.habilidad-card input, .modelo-card input').forEach(function (input) {
+        marcarTarjeta(input);
+        input.addEventListener('change', function () {
+            if (input.type === 'radio') {
+                document.querySelectorAll('.modelo-card input').forEach(marcarTarjeta);
+            } else {
+                marcarTarjeta(input);
+            }
+        });
+    });
+</script>
+{% endblock %}

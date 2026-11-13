@@ -1,7 +1,7 @@
 # Plan de construcción
 
 
-Estado: 0a, 0b, 1a, 1b, 2, 3a, 3b, 4, 5a, 5b y 6 completados.
+Estado: 0a, 0b, 1a, 1b, 2, 3a, 3b, 4, 5a, 5b, 6, 9a, 9b y 9c completados.
 Última actualización: 2026-11-12.
 
 Regla de cierre: un paso se cierra con tests en verde, este archivo actualizado y
@@ -364,4 +364,39 @@ $ .venv\Scripts\python.exe manage.py check
 System check identified no issues (0 silenced).
 ```
 Notas: la advertencia es RemovedInDjango60Warning de URLField (preexistente, no es error de check). Se añadieron apps/panel/forms.py, apps/panel/views.py (vistas configuracion, crear_proveedor, crear_modelo con @login_required), apps/panel/templates/panel/configuracion.html (layout 60/40, tarjetas y fichas, paleta estricta, formularios en bloques condicionales), apps/panel/urls.py (rutas nuevas, autorizado como 5º archivo) y tests/test_panel_config.py (sin login 302, crear proveedor 302+DB, crear modelo 302+DB).
-9c: Formularios de Habilidad y Agente. PENDIENTE. 
+9c: Formularios de Habilidad y Agente. COMPLETADO (2026-11-12).
+Evidencia (2026-11-12):
+```
+$ .venv\Scripts\python.exe -m pytest -q
+........................................................................ [ 76%]
+......................                                                   [100%]
+=============================== warnings summary ===============================
+tests/test_panel.py::TestPanel::test_aprobar_cambia_estado
+  C:\Users\Drogo\Downloads\ARM agentes\.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148: RemovedInDjango60Warning: The default scheme will be changed from 'http' to 'https' in Django 6.0. Pass the forms.URLField.assume_scheme argument to silence this warning, or set the FORMS_URLFIELD_ASSUME_HTTPS transitional setting to True to opt into using 'https' as the new default scheme.
+    return form_class(**defaults)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+94 passed, 1 warning in 100.84s (0:01:40)
+
+$ .venv\Scripts\python.exe manage.py check
+System check identified no issues (0 silenced).
+```
+Notas: se añadieron HabilidadForm y AgenteForm en apps/panel/forms.py;
+crear_habilidad y crear_agente en apps/panel/views.py con @login_required;
+agente_form.html con layout 60/40, plantillas de personalidad (Redactor SEO,
+Analista, Asistente), textarea monoespaciado, slider de temperatura 0-2 con
+track #009CFF, tarjetas de modelo con radio oculto y grilla de habilidades con
+checkbox oculto y borde izquierdo de 4px #009CFF al marcar (selector :has con
+respaldo por clase `.seleccionada`); tests/test_panel_agente.py con 4 casos
+(los 3 del encargo más una comprobación de que el formulario renderiza).
+crear_agente lee request.POST.getlist('habilidades') y aplica
+agente.habilidades.set(ids); solo lista modelos activos. Se registraron las
+rutas en apps/panel/urls.py (5º archivo) y se añadieron los botones "Añadir
+Habilidad" y "Añadir Agente" en configuracion.html (6º archivo).
+Desviación informada: para que el botón "Añadir Habilidad" no quedara muerto se
+añadió en configuracion.html un bloque condicional con {{ form_habilidad.as_p }},
+además de los botones autorizados; retirar si se prefiere otra ubicación.
+La advertencia RemovedInDjango60Warning de URLField es preexistente.
+Pendiente: listado de habilidades y agentes en el panel, enlaces del sidebar
+(ahora apuntan a "#"), edición y borrado, y validar que el JSON de
+esquema_salida sea un objeto. 

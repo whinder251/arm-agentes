@@ -2,8 +2,13 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.utils import timezone
-from apps.core.models import Tarea, Proveedor, ModeloLLM
-from apps.panel.forms import ProveedorForm, ModeloLLMForm
+from apps.core.models import Tarea, Proveedor, ModeloLLM, Habilidad
+from apps.panel.forms import (
+    AgenteForm,
+    HabilidadForm,
+    ModeloLLMForm,
+    ProveedorForm,
+)
 
 @login_required
 def lista_tareas(request):
@@ -107,4 +112,46 @@ def crear_modelo(request):
     return render(request, "panel/configuracion.html", {
         "form_modelo": form,
         "mostrar_form_modelo": True,
+    })
+
+
+@login_required
+def crear_habilidad(request):
+    if request.method == "POST":
+        form = HabilidadForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect("configuracion")
+    else:
+        form = HabilidadForm()
+    return render(request, "panel/configuracion.html", {
+        "form_proveedor": ProveedorForm(),
+        "form_modelo": ModeloLLMForm(),
+        "form_habilidad": form,
+        "mostrar_form_habilidad": True,
+        "proveedores": Proveedor.objects.all().order_by("nombre"),
+    })
+
+
+@login_required
+def crear_agente(request):
+    habilidades = Habilidad.objects.all().order_by("nombre")
+    modelos = (
+        ModeloLLM.objects.filter(activo=True)
+        .select_related("proveedor")
+        .order_by("prioridad", "id")
+    )
+    if request.method == "POST":
+        form = AgenteForm(request.POST)
+        if form.is_valid():
+            agente = form.save()
+            agente.habilidades.set(request.POST.getlist("habilidades"))
+            return redirect("configuracion")
+    else:
+        form = AgenteForm()
+    return render(request, "panel/agente_form.html", {
+        "form": form,
+        "habilidades": habilidades,
+        "modelos": modelos,
+        "habilidades_seleccionadas": request.POST.getlist("habilidades"),
     })

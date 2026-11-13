@@ -93,9 +93,38 @@
         padding-left: 18px;
         font-size: 0.9em;
     }
+    .barra-acciones {
+        display: flex;
+        gap: 8px;
+        margin: 12px 0;
+    }
+    .enlace-accion {
+        display: inline-block;
+        text-decoration: none;
+    }
 </style>
 
 <h2>Configuraci&oacute;n</h2>
+
+<div class="barra-acciones">
+    <a class="btn-acento enlace-accion"
+       href="{% url 'crear_habilidad' %}">A&ntilde;adir Habilidad</a>
+    <a class="btn-acento enlace-accion"
+       href="{% url 'crear_agente' %}">A&ntilde;adir Agente</a>
+</div>
+
+{% if mostrar_form_habilidad %}
+<div class="form-seccion">
+    <h4>Nueva habilidad</h4>
+    <form method="post" action="{% url 'crear_habilidad' %}">
+        {% csrf_token %}
+        {{ form_habilidad.as_p }}
+        <button type="submit" class="btn-acento">Guardar habilidad</button>
+        <a class="btn-cancelar enlace-accion"
+           href="{% url 'configuracion' %}">Cancelar</a>
+    </form>
+</div>
+{% endif %}
 
 <div class="config-container">
     <div class="config-proveedores">
