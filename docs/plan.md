@@ -2,9 +2,9 @@
 
 
 Estado: 0a, 0b, 1a, 1b, 2, 3a, 3b, 4, 5a, 5b, 6, 9a, 9b, 9c, 9d-1, 9d-2, 9e,
-10a, 10b y 11a completados.
-Paso 9 (panel propio) completo.
-Última actualización: 2026-11-12.
+10a, 10b, 11a y 11b completados.
+Pasos 9 (panel propio) y 11 (rediseño visual) completos.
+Última actualización: 2026-11-13.
 
 Regla de cierre: un paso se cierra con tests en verde, este archivo actualizado y
 un commit. Prohibido avanzar con tests rojos.
@@ -326,8 +326,8 @@ Notas: se han cubierto los casos de éxito y fallo de WordPress (usando respx) y
   UPDATE condicional con reintentos ante "database is locked".
 
 ## Pendientes y dudas
-- Panel propio (paso 9) cerrado; 11b pendiente de definir para listas,
-  configuración y formularios.
+- Panel propio (paso 9) y rediseño visual (paso 11) cerrados. Queda revisar el
+  resultado en navegador y el comportamiento responsive de las columnas.
 - Validar que el JSON de esquema_salida sea un objeto antes de guardarlo desde
   HabilidadForm.
 - Formalizar la transición ok -> revision en Tarea.TRANSICIONES; ahora el
@@ -600,4 +600,43 @@ hover con sombra) vive en tareas.html y el <tr id="task-N"> se mantiene intacto
 para HTMX. Los 112 tests y el check pasan; la advertencia de URLField es
 preexistente.
 
-11b: Listas, configuración y formularios. PENDIENTE.
+11b: Listas, configuración y formularios. COMPLETADO (2026-11-13).
+Paso 11 completo.
+Evidencia (2026-11-13):
+```
+$ .venv\Scripts\python.exe -m pytest -q
+........................................................................ [ 64%]
+........................................                                 [100%]
+=============================== warnings summary ===============================
+tests/test_panel.py::TestPanel::test_aprobar_cambia_estado
+  C:\Users\Drogo\Downloads\ARM agentes\.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148: RemovedInDjango60Warning: The default scheme will be changed from 'http' to 'https' in Django 6.0. Pass the forms.URLField.assume_scheme argument to silence this warning, or set the FORMS_URLFIELD_ASSUME_HTTPS transitional setting to True to opt into using 'https' as the new default scheme.
+    return form_class(**defaults)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+112 passed, 1 warning in 143.53s (0:02:23)
+
+$ .venv\Scripts\python.exe manage.py check
+System check identified no issues (0 silenced).
+```
+Notas: lista_habilidades.html y lista_agentes.html migran sus tablas a
+border-collapse separate con fondo #FFFFFF, borde #D2D2D7, radio 12px, sombra
+suave y overflow hidden; el header usa #F5F5F7, texto #6E6E73, weight 600 y
+mayúsculas, y las filas solo llevan línea inferior #D2D2D7. Los botones pasan a
+#0071E3 (hover #0062c4) y los de eliminar a #FF3B30, ambos con radio 8px. Los
+formularios de edición son tarjetas blancas de radio 12px y sus inputs y
+textareas usan borde #D2D2D7, radio 8px y foco #0071E3 sin outline.
+configuracion.html aplica el mismo sistema a tarjetas, fichas, secciones de
+formulario y barra de acciones; los estados activo/inactivo pasan de estilos
+inline a badges de radio 12px, padding 4px 10px y 0.75rem; los botones Cancelar
+quedan como secundarios con borde #D2D2D7 (solo Eliminar es destructivo) y se
+eliminan los style inline. agente_form.html actualiza las tarjetas de modelo y
+habilidad: borde izquierdo #0071E3 y fondo #F5F5F7 al seleccionar, radio 12px;
+el textarea pasa a fondo blanco, el slider a track #0071E3 con thumb circular
+blanco y el botón Cancelar a secundario. No se tocaron views.py ni urls.py y toda
+la lógica de plantillas (csrf, bucles, condicionales y forms) queda intacta. No
+se añadieron tests: el cambio es solo CSS y las pruebas de render existentes
+cubren las cuatro vistas; se verificó por búsqueda que no quedan #faf5e5,
+#d5ceb9, #5a5a5a, #009CFF, #c1121f ni estilos inline en estos archivos. La
+advertencia RemovedInDjango60Warning de URLField sigue siendo preexistente.
+Pendiente: revisar el resultado en navegador y el responsive de las columnas
+60/40 y 3/2 en pantallas estrechas.

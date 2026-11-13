@@ -6,6 +6,7 @@
         display: flex;
         gap: 24px;
         margin-top: 16px;
+        align-items: flex-start;
     }
     .config-proveedores {
         flex: 0 0 60%;
@@ -14,93 +15,174 @@
         flex: 0 0 40%;
     }
     h2, h3, h4 {
-        font-weight: normal;
+        font-weight: 600;
+        letter-spacing: -0.02em;
         margin-top: 0;
     }
+    h2 {
+        font-size: 1.9rem;
+        margin-bottom: 24px;
+    }
+    h3 {
+        font-size: 1.15rem;
+        margin-bottom: 16px;
+    }
+    h4 {
+        font-size: 1rem;
+        margin-bottom: 12px;
+    }
     .tarjeta {
-        border: 1px solid #d5ceb9;
-        padding: 14px;
-        margin-bottom: 14px;
-        background: #fff;
+        border: 1px solid #D2D2D7;
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 16px;
+        background: #FFFFFF;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
     }
     .ficha {
-        border: 1px solid #d5ceb9;
-        padding: 8px 12px;
+        border: 1px solid #D2D2D7;
+        border-radius: 8px;
+        padding: 10px 14px;
         margin-bottom: 8px;
-        background: #fff;
-        font-size: 0.9em;
+        background: #F5F5F7;
+        font-size: 0.9rem;
     }
     .form-seccion {
-        border: 1px solid #d5ceb9;
-        padding: 14px;
-        margin-top: 14px;
-        background: #fff;
+        border: 1px solid #D2D2D7;
+        border-radius: 12px;
+        padding: 24px;
+        margin-top: 16px;
+        margin-bottom: 16px;
+        background: #FFFFFF;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
         display: block;
+    }
+    .form-seccion p {
+        margin: 0 0 12px 0;
     }
     .form-oculto {
         display: none;
     }
     .btn-acento {
-        background-color: #009CFF;
-        color: #fff;
+        background-color: #0071E3;
+        color: #FFFFFF;
         border: none;
-        padding: 8px 16px;
+        border-radius: 8px;
+        padding: 10px 18px;
         cursor: pointer;
-        font-size: 0.9em;
+        font-family: inherit;
+        font-size: 0.9rem;
+        font-weight: 500;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+        transition: background-color 0.15s ease, box-shadow 0.15s ease;
     }
     .btn-acento:hover {
-        opacity: 0.9;
+        background-color: #0062c4;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .btn-pequeno {
+        padding: 8px 14px;
+        font-size: 0.85rem;
     }
     .btn-cancelar {
-        background-color: #c1121f;
-        color: #fff;
-        border: none;
-        padding: 8px 16px;
+        background-color: transparent;
+        color: #1D1D1F;
+        border: 1px solid #D2D2D7;
+        border-radius: 8px;
+        padding: 10px 18px;
         cursor: pointer;
-        font-size: 0.9em;
+        font-family: inherit;
+        font-size: 0.9rem;
+        font-weight: 500;
         margin-left: 8px;
+        text-decoration: none;
+        display: inline-block;
+        transition: border-color 0.15s ease, color 0.15s ease;
     }
     .btn-cancelar:hover {
-        opacity: 0.9;
+        border-color: #0071E3;
+        color: #0071E3;
     }
     label {
         display: block;
-        margin-bottom: 4px;
-        font-size: 0.9em;
+        margin-bottom: 6px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: #1D1D1F;
     }
     input[type="text"],
     input[type="url"],
     input[type="password"],
     input[type="number"],
-    select {
+    select,
+    textarea {
         display: block;
         width: 100%;
-        padding: 7px;
-        margin-bottom: 10px;
-        border: 1px solid #d5ceb9;
-        background: #fff;
+        padding: 10px 12px;
+        margin-bottom: 12px;
+        border: 1px solid #D2D2D7;
+        border-radius: 8px;
+        background: #FFFFFF;
+        color: #1D1D1F;
         box-sizing: border-box;
-        font-size: 0.9em;
+        font-size: 0.9rem;
+        font-family: inherit;
+    }
+    input[type="text"]:focus,
+    input[type="url"]:focus,
+    input[type="password"]:focus,
+    input[type="number"]:focus,
+    select:focus,
+    textarea:focus {
+        border-color: #0071E3;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(0,113,227,0.15);
     }
     .error {
-        color: #c1121f;
-        margin-bottom: 10px;
-        font-size: 0.9em;
+        color: #FF3B30;
+        margin-bottom: 12px;
+        font-size: 0.9rem;
     }
     ul.errorlist {
-        color: #c1121f;
-        margin: 0 0 10px 0;
+        color: #FF3B30;
+        margin: 0 0 12px 0;
         padding-left: 18px;
-        font-size: 0.9em;
+        font-size: 0.9rem;
+    }
+    .helptext {
+        display: block;
+        color: #6E6E73;
+        font-size: 0.8rem;
+        margin: -8px 0 12px 0;
     }
     .barra-acciones {
         display: flex;
-        gap: 8px;
-        margin: 12px 0;
+        gap: 12px;
+        margin: 0 0 24px 0;
     }
     .enlace-accion {
         display: inline-block;
         text-decoration: none;
+    }
+    .badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    .badge-activo {
+        color: #34C759;
+        background: rgba(52,199,89,0.1);
+    }
+    .badge-inactivo {
+        color: #FF3B30;
+        background: rgba(255,59,48,0.1);
+    }
+    .texto-vacio {
+        color: #6E6E73;
+        font-size: 0.85rem;
+        margin: 8px 0;
     }
 </style>
 
@@ -156,19 +238,18 @@
                     {{ modelo.model_id }}
                     (prioridad {{ modelo.prioridad }})
                     {% if modelo.activo %}
-                    <span style="color:#009CFF"> &bull; activo</span>
+                    <span class="badge badge-activo">activo</span>
                     {% else %}
-                    <span style="color:#c1121f"> &bull; inactivo</span>
+                    <span class="badge badge-inactivo">inactivo</span>
                     {% endif %}
                 </div>
                 {% empty %}
-                <p style="font-size:0.85em;color:#5a5a5a">Sin modelos.</p>
+                <p class="texto-vacio">Sin modelos.</p>
                 {% endfor %}
             </div>
             <p>
-                <button class="btn-acento"
-                        onclick="toggleForm('form-modelo-{{ proveedor.id }}')"
-                        style="font-size:0.85em">A&ntilde;adir Modelo</button>
+                <button class="btn-acento btn-pequeno"
+                        onclick="toggleForm('form-modelo-{{ proveedor.id }}')">A&ntilde;adir Modelo</button>
             </p>
             <div id="form-modelo-{{ proveedor.id }}"
                  class="form-seccion form-oculto">
@@ -183,7 +264,7 @@
             </div>
         </div>
         {% empty %}
-        <p style="font-size:0.9em;color:#5a5a5a">No hay proveedores registrados.</p>
+        <p class="texto-vacio">No hay proveedores registrados.</p>
         {% endfor %}
     </div>
 
@@ -210,14 +291,14 @@
                     {{ modelo.model_id }}
                     (prioridad {{ modelo.prioridad }})
                     {% if modelo.activo %}
-                    <span style="color:#009CFF"> &bull; activo</span>
+                    <span class="badge badge-activo">activo</span>
                     {% else %}
-                    <span style="color:#c1121f"> &bull; inactivo</span>
+                    <span class="badge badge-inactivo">inactivo</span>
                     {% endif %}
                 </div>
                 {% endfor %}
             {% empty %}
-            <p style="font-size:0.85em;color:#5a5a5a">No hay modelos registrados.</p>
+            <p class="texto-vacio">No hay modelos registrados.</p>
             {% endfor %}
         </div>
     </div>
