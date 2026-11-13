@@ -90,3 +90,15 @@ Dashboard de métricas del sistema con 4 tarjetas estilo Apple/SaaS, sin fondos 
 - `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
 
 Panel de integraciones con ARM_API_KEY visible y botón copiar; fallo definitivo de tarea en workflow propaga estado 'fallido' al workflow padre; sin fondos crema ni emojis.
+
+## Paso 24 - Documentación profesional — COMPLETADO
+
+**Objetivo:** Dejar el proyecto listo para ser instalado y entendido por un desarrollador externo, y corregir la inconsistencia entre docs/plan.md y docs/requirements/roadmap.md.
+
+**Archivos tocados:**
+- `README.md` (nuevo): título, subtítulo, características, requisitos, instalación, variables de entorno obligatorias, ejecución, arquitectura, licencia MIT.
+- `.env.example` (nuevo): `ARM_ENCRYPTION_KEY`, `ARM_API_KEY` y `DEBUG` con comentarios explicativos.
+- `docs/requirements/roadmap.md` (reemplazo completo): estado actual (2026-11-14), pasos 0-23 completados, próximos pasos fuera del núcleo Django, dependencias técnicas.
+- `docs/plan.md`: esta sección.
+
+**Criterio de aceptación:** Documentación limpia y profesional; roadmap sincronizado con el estado real del proyecto. Sin ejecución de tests (solo documentación).
