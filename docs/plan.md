@@ -714,3 +714,9 @@ sin crear fila. La advertencia RemovedInDjango60Warning de URLField es
 preexistente.
 Pendiente: validar con el worker real (`run_huey`) que la tarea pasa de cola a
 ok o revisión; los tests mockean el encolado y no ejecutan Huey.
+
+## Paso 14 - Interfaz tipo Chat, asignación inteligente y eliminación de tareas
+Objetivo: simplificar la creación de tareas a un diseño tipo chat, asignar agente automáticamente si no se elige, y añadir botón para eliminar tareas.
+Archivos: apps/panel/views.py, apps/panel/urls.py, apps/panel/templates/panel/crear_tarea.html, apps/panel/templates/panel/tareas.html, apps/panel/templates/panel/fila_tarea.html, tests/test_panel.py.
+Criterio: Formulario minimalista tipo chat. Asignación automática de agente con modelo activo. Botón de eliminar tarea (POST) funcional. Tests en verde.
+Estado: pendiente.
