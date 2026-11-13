@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel ARM - Tareas</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background: #f9f9f9; color: #333; }
+        h1, h2, h3 { color: #111; }
+        table { width: 100%; border-collapse: collapse; background: #fff; margin-top: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        th, td { padding: 12px; border-bottom: 1px solid #ddd; text-align: left; }
+        th { background: #f4f4f4; }
+        .badge { padding: 4px 8px; border-radius: 4px; color: #fff; font-size: 0.85em; font-weight: bold; }
+        .badge-cola { background: #6c757d; }
+        .badge-curso { background: #007bff; }
+        .badge-revision { background: #fd7e14; }
+        .badge-ok { background: #28a745; }
+        .badge-fallo { background: #dc3545; }
+        a { color: #007bff; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .card { background: #fff; padding: 20px; margin-top: 20px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        pre { background: #f1f1f1; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        .btn { background: #28a745; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+        .btn:hover { background: #218838; }
+        .nav { margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <a href="{% url 'lista_tareas' %}">&larr; Volver al Listado</a>
+    </div>
+
+    {% if single_row %}
+        <tr id="task-{{ tarea.pk }}">
+            <td><a href="{% url 'detalle_tarea' tarea.pk %}">{{ tarea.pk }}</a></td>
+            <td>
+                <span class="badge badge-{{ tarea.estado }}">{{ tarea.estado }}</span>
+            </td>
+            <td>{{ tarea.agente }}</td>
+            <td>{{ tarea.habilidad }}</td>
+            <td>{{ tarea.actualizado_en|date:"Y-m-d H:i:s" }}</td>
+            <td>
+                {% if tarea.estado == 'revision' %}
+                    <button class="btn" hx-post="{% url 'aprobar_tarea' %}" hx-vals='{"task_id": {{ tarea.pk }}}' hx-target="closest tr" hx-swap="outerHTML">Aprobar</button>
+                {% endif %}
+            </td>
+        </tr>
+    {% elif tarea %}
+        <h1>Detalle de Tarea #{{ tarea.pk }}</h1>
+        <div class="card">
+            <p><strong>Estado:</strong> <span class="badge badge-{{ tarea.estado }}">{{ tarea.estado }}</span></p>
+            <p><strong>Agente:</strong> {{ tarea.agente }}</p>
+            <p><strong>Habilidad:</strong> {{ tarea.habilidad }}</p>
+            <p><strong>Actualizado en:</strong> {{ tarea.actualizado_en }}</p>
+            <h3>Payload</h3>
+            <pre>{{ tarea.payload }}</pre>
+        </div>
+
+        <div class="card">
+            <h2>Último Artefacto</h2>
+            {% if ultimo_artefacto %}
+                <p><strong>Versión:</strong> {{ ultimo_artefacto.version }}</p>
+                <p><strong>Metadata:</strong></p>
+                <pre>{{ ultimo_artefacto.metadata }}</pre>
+                <p><strong>Contenido:</strong></p>
+                <pre>{{ ultimo_artefacto.contenido }}</pre>
+            {% else %}
+                <p>No hay artefactos registrados.</p>
+            {% endif %}
+        </div>
+
+        <div class="card">
+            <h2>Última Ejecución</h2>
+            {% if ultima_ejecucion %}
+                <p><strong>Modelo usado:</strong> {{ ultima_ejecucion.modelo_usado }}</p>
+                <p><strong>Tokens In:</strong> {{ ultima_ejecucion.tokens_in }}</p>
+                <p><strong>Tokens Out:</strong> {{ ultima_ejecucion.tokens_out }}</p>
+                <p><strong>Duración (ms):</strong> {{ ultima_ejecucion.ms }}</p>
+            {% else %}
+                <p>No hay ejecuciones registradas.</p>
+            {% endif %}
+        </div>
+    {% else %}
+        <h1>Listado de Tareas</h1>
+        <div style="margin-bottom: 15px;">
+            Filtrar estado: 
+            <a href="{% url 'lista_tareas' %}">Todos</a> |
+            <a href="?estado=cola">Cola</a> |
+            <a href="?estado=curso">Curso</a> |
+            <a href="?estado=revision">Revisión</a> |
+            <a href="?estado=ok">OK</a> |
+            <a href="?estado=fallo">Fallo</a>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Estado</th>
+                    <th>Agente</th>
+                    <th>Habilidad</th>
+                    <th>Actualizado en</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in tareas %}
+                    <tr id="task-{{ t.pk }}">
+                        <td><a href="{% url 'detalle_tarea' t.pk %}">{{ t.pk }}</a></td>
+                        <td>
+                            <span class="badge badge-{{ t.estado }}">{{ t.estado }}</span>
+                        </td>
+                        <td>{{ t.agente }}</td>
+                        <td>{{ t.habilidad }}</td>
+                        <td>{{ t.actualizado_en|date:"Y-m-d H:i:s" }}</td>
+                        <td>
+                            {% if t.estado == 'revision' %}
+                                <button class="btn" hx-post="{% url 'aprobar_tarea' %}" hx-vals='{"task_id": {{ t.pk }}}' hx-target="closest tr" hx-swap="outerHTML">Aprobar</button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="6">No hay tareas encontradas.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+</body>
+</html>
