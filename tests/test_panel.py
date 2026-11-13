@@ -149,6 +149,7 @@ class TestPanel(TestCase):
         self.client.login(username='testuser', password='testpass123')
 
         response = self.client.post(reverse('crear_tarea'), {
+            'agente_id': self.agente.pk,
             'texto': 'Texto de prueba para reescribir.',
             'keyword': 'energía solar',
             'instrucciones': 'Tono cercano',
@@ -164,14 +165,7 @@ class TestPanel(TestCase):
         assert tarea.payload['keyword'] == 'energía solar'
         assert tarea.payload['instrucciones'] == 'Tono cercano'
 
-    def test_crear_tarea_sin_agente_disponible(self):
-        # El agente solo tiene "reescritura"; "seo" existe pero no está asignada.
-        Habilidad.objects.create(
-            nombre='SEO',
-            slug='seo',
-            plantilla_prompt='test seo',
-            esquema_salida={}
-        )
+    def test_crear_tarea_sin_agente_seleccionado(self):
         self.client.login(username='testuser', password='testpass123')
 
         response = self.client.post(reverse('crear_tarea'), {
@@ -180,5 +174,19 @@ class TestPanel(TestCase):
         })
 
         assert response.status_code == 200
-        assert 'No hay ningún agente' in response.content.decode('utf-8')
+        assert 'Debes seleccionar un agente' in response.content.decode('utf-8')
         assert Tarea.objects.count() == 0
+
+    def test_crear_tarea_sin_keyword(self):
+        self.client.login(username='testuser', password='testpass123')
+
+        response = self.client.post(reverse('crear_tarea'), {
+            'agente_id': self.agente.pk,
+            'texto': 'Texto de prueba para reescribir.',
+        })
+
+        assert response.status_code == 302
+        tarea = Tarea.objects.get()
+        assert tarea.agente == self.agente
+        assert tarea.payload == {'texto': 'Texto de prueba para reescribir.'}
+        assert 'keyword' not in tarea.payload

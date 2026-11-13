@@ -2,8 +2,9 @@
 
 
 Estado: 0a, 0b, 1a, 1b, 2, 3a, 3b, 4, 5a, 5b, 6, 9a, 9b, 9c, 9d-1, 9d-2, 9e,
-10a, 10b, 11a y 11b completados.
-Pasos 9 (panel propio) y 11 (rediseño visual) completos.
+10a, 10b, 11a, 11b y 12 completados.
+Pasos 9 (panel propio), 11 (rediseño visual) y 12 (creación flexible de tareas)
+completos.
 Última actualización: 2026-11-13.
 
 Regla de cierre: un paso se cierra con tests en verde, este archivo actualizado y
@@ -646,4 +647,34 @@ Pendiente: revisar el resultado en navegador y el responsive de las columnas
 Objetivo: permitir selección manual de agente y hacer la keyword opcional.
 12a: Modificar vista crear_tarea para aceptar agente_id y keyword opcional.
 12b: Actualizar formulario con selector de agentes y ajustar tests.
-Estado: pendiente.
+Estado: completado (2026-11-13).
+Evidencia (2026-11-13):
+```
+$ .venv\Scripts\python.exe -m pytest -q
+........................................................................ [ 63%]
+.........................................                                [100%]
+=============================== warnings summary ===============================
+tests/test_panel.py::TestPanel::test_aprobar_cambia_estado
+  C:\Users\Drogo\Downloads\ARM agentes\.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148: RemovedInDjango60Warning: The default scheme will be changed from 'http' to 'https' in Django 6.0. Pass the forms.URLField.assume_scheme argument to silence this warning, or set the FORMS_URLFIELD_ASSUME_HTTPS transitional setting to True to opt into using 'https' as the new default scheme.
+    return form_class(**defaults)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+113 passed, 1 warning in 151.45s (0:02:31)
+
+$ .venv\Scripts\python.exe manage.py check
+System check identified no issues (0 silenced).
+```
+Notas: crear_tarea ya no busca agentes por habilidades. El POST exige agente_id,
+lo valida contra Agente y renderiza "Debes seleccionar un agente" si falta; si
+el agente tiene modelo inactivo devuelve "El agente seleccionado no está activo".
+Agente no tiene campo activo propio, así que la actividad se comprueba en su
+ModeloLLM. La keyword es opcional: si viene vacía no se añade al payload. Se
+mantiene la FK obligatoria Tarea.habilidad con el slug "reescritura". El
+formulario incorpora un select con todos los agentes ("Nombre (Modelo:
+model_id)") con borde #D2D2D7, radio 8px y foco #0071E3. Tests: se ajustó
+test_crear_tarea_exitoso para enviar agente_id, se renombró el caso sin agente a
+test_crear_tarea_sin_agente_seleccionado y se añadió
+test_crear_tarea_sin_keyword, que verifica que el payload no contiene esa clave.
+La advertencia RemovedInDjango60Warning de URLField sigue siendo preexistente.
+Pendiente: el formulario sigue sin disparar la ejecución (solo encola); los
+agentes sin modelo o con modelo inactivo no se filtran en el select.

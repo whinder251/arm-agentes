@@ -70,7 +70,8 @@
         line-height: 1.5;
     }
     .pagina-crear textarea,
-    .pagina-crear input[type="text"] {
+    .pagina-crear input[type="text"],
+    .pagina-crear select {
         background: #FFFFFF;
         border: 1px solid #D2D2D7;
         border-radius: 8px;
@@ -85,7 +86,8 @@
     }
     .pagina-crear textarea { resize: vertical; }
     .pagina-crear textarea:focus,
-    .pagina-crear input[type="text"]:focus {
+    .pagina-crear input[type="text"]:focus,
+    .pagina-crear select:focus {
         border-color: #0071E3;
         outline: none;
     }
@@ -113,8 +115,7 @@
     <div class="tarjeta-formulario">
         <h1>Nueva tarea</h1>
         <p class="subtitulo">
-            La tarea se encola y se asigna automáticamente al primer agente que
-            tenga las habilidades de reescritura y SEO.
+            La tarea se encola y se asigna al agente que selecciones.
         </p>
 
         {% if error %}
@@ -125,14 +126,27 @@
             {% csrf_token %}
 
             <div class="campo">
+                <label for="agente_id">Agente</label>
+                <select id="agente_id" name="agente_id" required>
+                    <option value="">Selecciona un agente</option>
+                    {% for agente in agentes %}
+                        <option value="{{ agente.pk }}"{% if request.POST.agente_id == agente.pk|stringformat:"s" %} selected{% endif %}>
+                            {{ agente.nombre }} (Modelo: {{ agente.modelo.model_id|default:"sin modelo" }})
+                        </option>
+                    {% endfor %}
+                </select>
+                <span class="ayuda">El agente que ejecutará la tarea.</span>
+            </div>
+
+            <div class="campo">
                 <label for="texto">Texto</label>
                 <textarea id="texto" name="texto" rows="10" required>{{ request.POST.texto|default:"" }}</textarea>
                 <span class="ayuda">Pega aquí el artículo que quieres reescribir.</span>
             </div>
 
             <div class="campo">
-                <label for="keyword">Keyword principal</label>
-                <input type="text" id="keyword" name="keyword" value="{{ request.POST.keyword|default:"" }}" required>
+                <label for="keyword">Keyword principal (opcional)</label>
+                <input type="text" id="keyword" name="keyword" value="{{ request.POST.keyword|default:"" }}">
                 <span class="ayuda">Término sobre el que debe posicionar el artículo.</span>
             </div>
 
