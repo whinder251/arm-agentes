@@ -5,6 +5,7 @@ from django.contrib.auth import authenticate, login as auth_login, logout as aut
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django import forms
+from django.conf import settings
 from django.db import models
 from django.db.models import Sum
 from django.forms import inlineformset_factory
@@ -514,4 +515,12 @@ def dashboard(request):
         'tareas_fallo': tareas_fallo,
         'tokens_hoy': tokens_hoy,
         'workflows_activos': workflows_activos,
+    })
+
+
+@login_required
+def integraciones(request):
+    """Muestra la clave API de ARM para conectar con sistemas externos."""
+    return render(request, "panel/integraciones.html", {
+        "arm_api_key": settings.ARM_API_KEY,
     })

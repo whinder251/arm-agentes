@@ -231,6 +231,12 @@ def ejecutar_tarea(tarea_id: int) -> str:
         ejecucion.save(update_fields=["error", "ms"])
         tarea.refresh_from_db(fields=["estado", "intentos"])
         _registrar_fallo(tarea)
+        # Propagación de fallo: si la tarea pertenece a un paso de workflow,
+        # marcar el workflow padre como 'fallido'.
+        if tarea.paso_workflow_id is not None:
+            paso = tarea.paso_workflow
+            paso.workflow.estado = "fallido"
+            paso.workflow.save(update_fields=["estado"])
         return "fallo"
 
 

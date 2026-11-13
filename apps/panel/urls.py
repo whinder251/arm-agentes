@@ -29,4 +29,5 @@ urlpatterns = [
     path('equipos/nuevo/', views.crear_equipo, name='crear_equipo'),
     path('equipos/<int:pk>/editar/', views.editar_equipo, name='editar_equipo'),
     path('equipos/<int:pk>/eliminar/', views.eliminar_equipo, name='eliminar_equipo'),
+    path('integraciones/', views.integraciones, name='integraciones'),
 ]

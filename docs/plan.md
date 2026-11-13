@@ -67,3 +67,26 @@ Sidebar reorganizado por secciones sin tocar vistas; paleta, radios, tipografía
 - `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
 
 Dashboard de métricas del sistema con 4 tarjetas estilo Apple/SaaS, sin fondos crema ni emojis.
+
+## Paso 23 - Gestión de Integraciones y Propagación de Fallos en Workflows — COMPLETADO
+
+**Objetivo:**
+1) Mostrar la ARM_API_KEY en el panel para facilitar la conexión con sistemas externos.
+2) Asegurar que si una tarea de un Workflow falla definitivamente, el Workflow padre cambie su estado a 'fallido'.
+
+**Archivos tocados:**
+- `apps/engine/tasks.py`: en el bloque `except Exception` de `ejecutar_tarea`, tras `_registrar_fallo(tarea)`, se verifica si `tarea.paso_workflow_id` existe; si es así, `tarea.paso_workflow.workflow.estado = 'fallido'` y se guarda con `update_fields=['estado']`.
+- `apps/panel/views.py`: importación de `settings` de `django.conf`, nueva vista `integraciones` con `@login_required` que obtiene `settings.ARM_API_KEY` y la pasa al contexto.
+- `apps/panel/urls.py`: ruta `path('integraciones/', views.integraciones, name='integraciones')` añadida.
+- `apps/panel/templates/panel/base.html`: enlace "Integraciones" al final de la sección "Configuración" del sidebar, con clase `activo` condicional.
+- `apps/panel/templates/panel/integraciones.html` (nuevo): extiende `panel/base.html`, título "Integraciones y API", tarjeta estilo Apple/SaaS que muestra la `ARM_API_KEY`, botón "Copiar al portapapeles" con JavaScript y nota de advertencia en rojo.
+- `tests/test_panel.py`: prueba `test_integraciones_render` (login, GET a 'integraciones', status 200, presencia de "Integraciones y API" y "ARM_API_KEY").
+- `docs/plan.md`: esta sección.
+- `AGENTS.md`: sección de estado actualizada con el paso 23.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "integraciones" -q` → `1 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -q` → `22 passed`.
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+
+Panel de integraciones con ARM_API_KEY visible y botón copiar; fallo definitivo de tarea en workflow propaga estado 'fallido' al workflow padre; sin fondos crema ni emojis.

@@ -143,3 +143,10 @@ ARM evolucionará de un procesador de tareas simples a un orquestador de flujos 
 - Gradientes púrpura/azul genéricos de IA
 - Emojis como iconos de UI
 - Layouts de 3 tarjetas de precios simétricas sin propósito
+
+
+## Actualización de Estado (2026-11-14)
+- Pasos 0-22b completados. Ver `docs/plan.md` para detalles.
+- Paso 23 completado: Integraciones y Propagación de Fallos en Workflows.
+- Regla añadida: El agente NO debe ejecutar `git push`. El usuario lo hace manualmente.
+- Regla añadida: Se autorizan hasta 6 archivos para el Paso 21 combinado (excepción a la regla de 4).

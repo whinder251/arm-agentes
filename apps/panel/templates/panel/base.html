@@ -167,6 +167,7 @@
                 <a href="{% url 'lista_agentes' %}" {% if request.resolver_match.url_name == 'lista_agentes' %}class="activo"{% endif %}>Agentes</a>
                 <a href="{% url 'lista_habilidades' %}" {% if request.resolver_match.url_name == 'lista_habilidades' %}class="activo"{% endif %}>Habilidades</a>
                 <a href="{% url 'configuracion' %}" {% if request.resolver_match.url_name == 'configuracion' %}class="activo"{% endif %}>Modelos y proveedores</a>
+                <a href="{% url 'integraciones' %}" {% if request.resolver_match.url_name == 'integraciones' %}class="activo"{% endif %}>Integraciones</a>
             </nav>
         </div>
         <div>

@@ -149,6 +149,15 @@ class TestPanel(TestCase):
         assert 'Tokens Consumidos Hoy' in content
         assert 'Workflows Activos' in content
 
+    def test_integraciones_render(self):
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('integraciones')
+        response = self.client.get(url)
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        assert 'Integraciones y API' in content
+        assert 'ARM_API_KEY' in content
+
     def test_crear_tarea_requiere_login(self):
         response = self.client.get(reverse('crear_tarea'))
         assert response.status_code == 302
