@@ -121,3 +121,18 @@ Panel de integraciones con ARM_API_KEY visible y botón copiar; fallo definitivo
 - `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
 
 Historial de ejecuciones listo para auditoría de tokens y errores, sin fondos crema ni emojis.
+
+## Paso B.1 - Sistema de diseño ARM Flow + centralización CSS — COMPLETADO
+
+**Objetivo:** Crear un archivo CSS centralizado con el sistema de diseño ARM Flow y actualizar base.html para usarlo, eliminando el CSS embebido del sidebar y header. Esto aplica el nuevo look a todas las páginas que extienden base.html.
+
+**Archivos tocados:**
+- `static/css/app.css` (nuevo): tokens CSS (:root) con paleta, tipografía, espaciado, radios, sombras y transiciones ARM Flow; reset básico; layout base; sidebar oscuro; header de contenido; componentes base (btn-primary, btn-secondary, btn-danger, badges, tarjeta, tabla, input, form-group); tipografía (h1, h2, p).
+- `apps/panel/templates/panel/base.html`: añadido `{% load static %}` al inicio y `<link rel="stylesheet" href="{% static 'css/app.css' %}">` en `<head>`; eliminado TODO el bloque `<style>...</style>` con CSS embebido (aprox. líneas 10-150); estructura HTML del sidebar, header, nav y bloque `{% block content %}` sin cambios.
+- `docs/plan.md`: esta sección.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- Navegador en http://127.0.0.1:8000/panel/ → sidebar oscuro, enlaces en gris, activo en índigo, estructura base con look ARM Flow.
+
+Sidebar oscuro, enlaces en gris, activo en índigo; CSS centralizado en static/css/app.css; sin fondos crema, sin emojis, sin gradientes.
