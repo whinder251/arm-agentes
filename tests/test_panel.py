@@ -465,3 +465,10 @@ class TestPanel(TestCase):
         self.client.login(username='testuser', password='testpass123')
         response = self.client.get(reverse('lista_habilidades'))
         assert response.status_code == 200
+
+    def test_configuracion_form_oculto(self):
+        self.client.login(username='testuser', password='testpass123')
+        response = self.client.get(reverse('configuracion'))
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        assert 'form-oculto' in content

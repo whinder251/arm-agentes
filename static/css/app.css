@@ -463,3 +463,49 @@ p {
 .integraciones .subtitulo { color: var(--text-secondary); font-size: var(--text-base); margin: 0 0 var(--space-lg) 0; }
 .api-key-fila { display:flex; gap: var(--space-sm); align-items:center; margin-bottom: var(--space-sm); }
 .api-key-fila code, code#api-key { background: var(--bg-surface-hover); border:1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 10px 12px; font-family: var(--font-mono); font-size: var(--text-sm); color: var(--text-primary); flex-grow:1; word-break: break-all; }
+
+/* ============================================================
+   Paso B.9: clases de configuracion + fix underline botones
+   ============================================================ */
+.btn, .btn-primary, .btn-secondary, .btn-danger, .btn-danger-sm, .btn-logout, .btn-plantilla, .btn-aprobar, .btn-cancelar, .btn-acento, .enlace-accion { text-decoration: none; }
+
+.config-container { display:flex; gap: var(--space-lg); margin-top: var(--space-md); align-items:flex-start; flex-wrap:wrap; }
+.config-proveedores { flex: 1 1 60%; min-width: 0; }
+.config-modelos { flex: 1 1 35%; min-width: 0; }
+@media (max-width: 900px){ .config-container { flex-direction: column; } .config-proveedores, .config-modelos { flex: 1 1 100%; } }
+
+.barra-acciones { display:flex; gap: var(--space-md); margin: 0 0 var(--space-lg) 0; flex-wrap:wrap; }
+.enlace-accion { display:inline-block; }
+
+.ficha { border:1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 10px 14px; margin-bottom: var(--space-sm); background: var(--bg-surface-hover); font-size: var(--text-sm); }
+.texto-vacio { color: var(--text-secondary); font-size: var(--text-sm); margin: var(--space-sm) 0; }
+.modelo { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--text-secondary); }
+.modelos-grid { display:flex; flex-direction:column; gap: var(--space-xs); margin-bottom: var(--space-sm); }
+
+.form-seccion { border:1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-lg); margin-top: var(--space-md); margin-bottom: var(--space-md); background: var(--bg-surface); box-shadow: var(--shadow-sm); display:block; }
+.form-oculto { display:none; }
+
+.form-seccion input[type="text"], .form-seccion input[type="url"], .form-seccion input[type="password"], .form-seccion input[type="number"], .form-seccion select, .form-seccion textarea,
+.config-container input[type="text"], .config-container input[type="url"], .config-container input[type="password"], .config-container input[type="number"], .config-container select, .config-container textarea {
+  display:block; width:100%; padding: var(--space-sm) var(--space-md); margin-bottom: var(--space-md); border:1px solid var(--border-subtle); border-radius: var(--radius-md); background: var(--bg-surface); color: var(--text-primary); box-sizing:border-box; font-size: var(--text-sm); font-family: inherit;
+}
+.form-seccion textarea, .config-container textarea { resize: vertical; min-height: 80px; }
+.form-seccion input:focus, .form-seccion select:focus, .form-seccion textarea:focus,
+.config-container input:focus, .config-container select:focus, .config-container textarea:focus {
+  border-color: var(--accent-primary); outline:none; box-shadow: 0 0 0 3px var(--accent-primary-subtle);
+}
+.form-seccion label, .config-container label { display:block; margin-bottom: var(--space-xs); font-size: var(--text-sm); font-weight: var(--font-weight-medium); color: var(--text-primary); }
+
+.form-edicion { max-width: 680px; background: var(--bg-surface); border:1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-lg); box-shadow: var(--shadow-sm); }
+.form-edicion label { display:block; margin-bottom: var(--space-xs); font-size: var(--text-sm); font-weight: var(--font-weight-medium); color: var(--text-primary); }
+.form-edicion input[type="text"], .form-edicion input[type="number"], .form-edicion textarea, .form-edicion select { display:block; width:100%; padding: var(--space-sm) var(--space-md); margin-bottom: var(--space-md); border:1px solid var(--border-subtle); border-radius: var(--radius-md); background: var(--bg-surface); color: var(--text-primary); box-sizing:border-box; font-size: var(--text-sm); font-family: inherit; }
+.form-edicion textarea { resize: vertical; }
+.form-edicion input:focus, .form-edicion textarea:focus, .form-edicion select:focus { border-color: var(--accent-primary); outline:none; box-shadow: 0 0 0 3px var(--accent-primary-subtle); }
+
+.habilidades-edicion { margin-bottom: var(--space-md); border:1px solid var(--border-subtle); border-radius: var(--radius-md); padding: var(--space-sm) var(--space-md); background: var(--bg-surface); }
+.habilidades-edicion label { display:block; padding: var(--space-sm) 0; border-bottom:1px solid var(--border-subtle); font-weight: var(--font-weight-normal); }
+.habilidades-edicion label:last-child { border-bottom:none; }
+.habilidades-edicion input[type="checkbox"] { accent-color: var(--accent-primary); margin-right: var(--space-sm); }
+
+h3 { font-size: var(--text-lg); font-weight: var(--font-weight-semibold); margin: 0 0 var(--space-md) 0; }
+h4 { font-size: var(--text-base); font-weight: var(--font-weight-semibold); margin: 0 0 var(--space-sm) 0; }

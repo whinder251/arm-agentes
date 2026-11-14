@@ -285,3 +285,24 @@ Clases transversales definidas y estilos inline migrados a clases del sistema AR
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "configuracion or lista_agentes or lista_habilidades or sidebar or dashboard or integraciones or ejecuciones" -q` → `8 passed`.
 
 Cero CSS embebido, cero clases huérfanas en el panel; Bloque B al 100%.
+
+**Nota de corrección:** las clases de configuracion (.config-container, .config-proveedores, .config-modelos, .form-seccion, .form-oculto, .form-edicion, .habilidades-edicion y relacionadas) no quedaron cubiertas en el Paso B.7; se definen en el Paso B.9.
+
+## Paso B.9 - Clases de configuracion y fix underline botones-enlace — COMPLETADO
+
+**Objetivo:** Arreglar el colapso de configuracion.html (layout 60/40 perdido, formularios ocultos visibles, inputs sin estilo) y el subrayado de los botones que son enlaces. El HTML ya usaba las clases correctas; solo faltaban definirlas en app.css.
+
+**Archivos tocados:**
+- `static/css/app.css`: añadido al FINAL el bloque de clases de configuracion (.config-container, .config-proveedores, .config-modelos, .form-seccion, .form-oculto, .form-edicion, .habilidades-edicion, labels, inputs, h3, h4) y `text-decoration: none` para todos los botones-enlace (.btn, .btn-primary, .btn-secondary, .btn-danger, .btn-danger-sm, .btn-logout, .btn-plantilla, .btn-aprobar, .btn-cancelar, .btn-acento, .enlace-accion). No se reescribió lo existente.
+- `tests/test_panel.py`: nueva prueba `test_configuracion_form_oculto` (login, GET a 'configuracion', status 200, HTML contiene 'form-oculto').
+- `docs/plan.md`: esta sección y corrección de la nota de B.8.
+
+**Reglas respetadas:**
+- No se modificó configuracion.html, lista_agentes.html, lista_habilidades.html ni ningún template HTML.
+- No se modificó views.py, urls.py, forms.py ni ningún archivo Python excepto tests/test_panel.py.
+- app.css solo se AMPLIO al final; no se reescribió lo existente.
+- No se ejecutó git push.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "configuracion" -q` → tests en verde.
