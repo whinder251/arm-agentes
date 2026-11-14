@@ -306,3 +306,25 @@ Cero CSS embebido, cero clases huérfanas en el panel; Bloque B al 100%.
 **Evidencia de aceptación (ejecutado en esta sesión):**
 - `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "configuracion" -q` → tests en verde.
+
+## Paso B.10 - Definicion de .filtros — COMPLETADO
+
+**Objetivo:** Arreglar que el menu de filtros (nav.filtros) en tareas.html se monte sobre la cabecera de la tabla. El HTML ya usa class="filtros"; falta la definicion en app.css, perdida al borrar el <style> de tareas.html en B.2.
+
+**Archivos tocados:**
+- `static/css/app.css`: añadido al FINAL el bloque `.filtros` (display:flex, flex-wrap:wrap, gap, margin-bottom, font-size), sin tocar lo existente.
+- `docs/plan.md`: esta sección.
+
+**Reglas respetadas:**
+- No se modificó tareas.html ni ningún otro template. El markup ya es correcto.
+- No se modificó views.py, urls.py, forms.py ni ningún .py.
+- app.css solo se AMPLIO al final; no se reescribió lo existente.
+- No se ejecutó git push.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "tareas or lista" -q` → tests en verde.
+
+**Nota de corrección de matriz B.6:** `.filtros` (nav contenedor) no quedó cubierta en B.7; se define aquí en el Paso B.10.
+
+El menu de filtros de tareas ahora tiene contenedor propio en app.css sin solaparse sobre la cabecera de la tabla; sin fondos crema ni emojis.

@@ -509,3 +509,14 @@ p {
 
 h3 { font-size: var(--text-lg); font-weight: var(--font-weight-semibold); margin: 0 0 var(--space-md) 0; }
 h4 { font-size: var(--text-base); font-weight: var(--font-weight-semibold); margin: 0 0 var(--space-sm) 0; }
+
+/* ============================================================
+   Paso B.10: contenedor de filtros de lista (nav.filtros)
+   ============================================================ */
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+  font-size: var(--text-sm);
+}
