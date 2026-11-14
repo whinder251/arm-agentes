@@ -155,8 +155,8 @@ class TestPanel(TestCase):
         response = self.client.get(url)
         assert response.status_code == 200
         content = response.content.decode('utf-8')
-        assert 'Integraciones y API' in content
-        assert 'ARM_API_KEY' in content
+        assert 'Integraciones del Sistema' in content
+        assert 'Rotar Clave API' in content
 
     def test_lista_ejecuciones_render(self):
         tarea = Tarea.objects.create(

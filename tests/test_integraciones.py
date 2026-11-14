@@ -93,3 +93,43 @@ def test_credencial_no_esta_en_texto_plano():
     registro = IntegracionConfig.objects.get(tipo="arm_api")
     assert registro.credenciales != "clave-secreta"
     assert registro.credenciales == _hash("clave-secreta")
+
+
+@pytest.mark.django_db
+def test_rotar_clave_arm():
+    clave_anterior = "clave-anterior-123"
+    IntegracionConfig.objects.create(
+        nombre="ARM API",
+        tipo="arm_api",
+        credenciales=_hash(clave_anterior),
+        activa=True,
+    )
+    # Un solo registro activo de tipo arm_api
+    assert IntegracionConfig.objects.filter(tipo="arm_api", activa=True).count() == 1
+
+    nuevo_token = IntegracionConfig.rotar_clave_arm()
+    assert nuevo_token  # cadena no vacía
+    assert nuevo_token != clave_anterior
+
+    # El hash en BD cambió y el token nunca se guarda en texto plano
+    registro = IntegracionConfig.objects.get(tipo="arm_api", activa=True)
+    assert registro.credenciales == _hash(nuevo_token)
+    assert registro.credenciales != nuevo_token
+
+    # La clave anterior ya no autentica (401)
+    cliente = Client()
+    respuesta = cliente.get(
+        "/api/v1/tarea/1/",
+        HTTP_X_ARM_API_KEY=clave_anterior,
+    )
+    assert respuesta.status_code == 401
+
+    # La nueva clave autentica (la tarea no existe -> 404, no 401)
+    respuesta = cliente.get(
+        "/api/v1/tarea/1/",
+        HTTP_X_ARM_API_KEY=nuevo_token,
+    )
+    assert respuesta.status_code == 404
+
+    # Se actualizó el registro existente (no se creó uno nuevo)
+    assert IntegracionConfig.objects.filter(tipo="arm_api", activa=True).count() == 1

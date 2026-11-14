@@ -1,8 +1,10 @@
 import os
+import hashlib
+import secrets
 
 from cryptography.fernet import Fernet, InvalidToken
 from django.core.validators import MaxValueValidator, MinValueValidator
-from django.db import models
+from django.db import models, transaction
 
 
 # Clave de cifrado para api_key de Proveedor (RB-013).
@@ -404,3 +406,33 @@ class IntegracionConfig(models.Model):
                     "Ya existe una integración ARM API activa. "
                     "Solo puede haber una a la vez."
                 )
+
+    @classmethod
+    def rotar_clave_arm(cls):
+        """Rota la clave ARM API guardando solo su hash SHA-256.
+
+        Genera un nuevo token seguro, lo hashea y lo persiste en el registro
+        activo de tipo ``arm_api``. Retorna el token en texto plano para que
+        la vista lo muestre una sola vez (nunca se guarda sin cifrar en BD).
+        """
+        token = secrets.token_urlsafe(32)
+        token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+        with transaction.atomic():
+            registro = (
+                cls.objects.filter(tipo=cls.Tipo.ARM_API, activa=True)
+                .select_for_update()
+                .first()
+            )
+            if registro is None:
+                registro = cls(
+                    nombre="ARM API",
+                    tipo=cls.Tipo.ARM_API,
+                    credenciales=token_hash,
+                    activa=True,
+                )
+            else:
+                registro.credenciales = token_hash
+            registro.save(update_fields=["credenciales", "actualizado_en"])
+
+        return token

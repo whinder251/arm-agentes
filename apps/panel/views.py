@@ -11,7 +11,7 @@ from django.db.models import Sum, ProtectedError
 from django.forms import inlineformset_factory
 from apps.core.models import (
     Tarea, Proveedor, ModeloLLM, Habilidad, Agente, Equipo, Workflow, PasoWorkflow,
-    Ejecucion,
+    Ejecucion, IntegracionConfig,
 )
 from apps.engine.tasks import ejecutar_tarea, continuar_workflow
 from apps.providers.wordpress import WordPressProvider
@@ -535,9 +535,18 @@ def dashboard(request):
 
 @login_required
 def integraciones(request):
-    """Muestra la clave API de ARM para conectar con sistemas externos."""
+    """Gestiona las integraciones externas y permite rotar la clave ARM API."""
+    integraciones_list = (
+        IntegracionConfig.objects.all().order_by("nombre")
+    )
+    nueva_clave_arm = None
+
+    if request.method == "POST" and request.POST.get("rotar_arm_api"):
+        nueva_clave_arm = IntegracionConfig.rotar_clave_arm()
+
     return render(request, "panel/integraciones.html", {
-        "arm_api_key": settings.ARM_API_KEY,
+        "integraciones": integraciones_list,
+        "nueva_clave_arm": nueva_clave_arm,
     })
 
 

@@ -462,3 +462,61 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 - `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "proveedor" -q` → `4 passed`.
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -q` → `33 passed`.
+
+## Paso C.5a - Base de datos para integraciones y autenticación por hash — COMPLETADO
+
+**Objetivo:**
+1) Crear modelo `IntegracionConfig` para gestionar credenciales externas.
+2) Migrar la autenticación de la API REST de `settings.ARM_API_KEY` a un hash SHA-256 almacenado en la BD.
+3) Crear comando de gestión idempotente para migrar la clave actual sin romper consumidores existentes.
+
+**Archivos tocados:**
+- `apps/core/models.py`: nuevo modelo `IntegracionConfig` (`nombre` único, `tipo` con choices arm_api/wordpress/slack, `credenciales` TextField con hash SHA-256, `activa`, `proyecto_id = IntegerField(null=True, blank=True, db_index=True)`, `fecha_creacion`, `actualizado_en`); `clean()` valida que solo exista un `tipo='arm_api'` activo a la vez.
+- `apps/api/views.py`: `_autenticado` lee header `X-ARM-API-KEY`, calcula SHA-256, busca `IntegracionConfig` activa `tipo='arm_api'` y compara con `hmac.compare_digest`; fallback temporal a `settings.ARM_API_KEY` con comentario TODO C.5b. Retorna 401 si falta/no coincide.
+- `apps/core/management/commands/migrar_integraciones.py` (nuevo): comando idempotente que lee `ARM_API_KEY` del entorno/settings, no genera clave, no imprime secreto, crea el registro si no existe.
+- `tests/test_integraciones.py` (nuevo): clave válida/inválida/sin clave, idempotencia del comando, credencial no en texto plano.
+- Migración generada y aplicada: `apps/core/migrations/0011_integracionconfig.py`.
+
+**Reglas respetadas:**
+- No se modificó `models.py` de otras apps ni se rompió la autenticación actual.
+- No se ejecutó `git push`.
+- Seguridad: hash SHA-256 (no reversible), `hmac.compare_digest`, credencial no en texto plano, no se generó clave nueva, comando idempotente.
+- Estilo ARM Flow estricto.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py makemigrations core` → `0011_integracionconfig` creada.
+- `.venv\Scripts\python.exe manage.py migrate` → `Applying core.0011_integracionconfig... OK`.
+- `.venv\Scripts\python.exe manage.py migrar_integraciones` → `IntegracionConfig arm_api creada a partir de ARM_API_KEY del entorno.`
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe -m pytest tests/test_integraciones.py -q` → `6 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_api.py -q` → `3 passed` (autenticación existente no se rompe; fallback a settings mientras no exista registro migrado).
+
+## Paso C.5b - Panel de integraciones, rotación de clave ARM y limpieza de código — COMPLETADO
+
+**Objetivo:**
+1) Limpiar imports en `models.py` (verificar que no haya duplicados; añadir `hashlib` y `secrets`).
+2) Crear vista y template para gestionar integraciones visualmente (ARM Flow, cero CSS embebido).
+3) Implementar rotación segura de la clave ARM API: mostrar nueva clave una sola vez, guardar solo su hash SHA-256 en BD.
+
+**Archivos tocados:**
+- `apps/core/models.py`: añadido `import hashlib`, `import secrets` y `from django.db import models, transaction`; nuevo método de clase `IntegracionConfig.rotar_clave_arm()` que genera `secrets.token_urlsafe(32)`, calcula su hash SHA-256, actualiza el registro activo `tipo='arm_api'` (con `select_for_update` y `transaction.atomic`) y retorna el token en texto plano. No había import duplicado de `ImproperlyConfigured`.
+- `apps/panel/views.py`: importada `IntegracionConfig`; vista `integraciones` reescrita con `@login_required`: lista `IntegracionConfig` ordenada por `nombre`; en POST `rotar_arm_api` llama a `rotar_clave_arm()` y pasa `nueva_clave_arm` al contexto.
+- `apps/panel/templates/panel/integraciones.html`: reescrito con clases de `app.css` (cero `<style>` ni estilos inline): `.tarjeta` "Integraciones del Sistema", `.tabla` (Nombre, Tipo, Estado `.badge-success`/`.badge-error`, Fecha), sección "ARM API Key" con form POST y botón `.btn-danger` "Rotar Clave API", bloque `{% if nueva_clave_arm %}` con `.input` readonly + botón copiar (script nativo `navigator.clipboard`) y advertencia `.alerta-error` ("Copia esta clave ahora. No se volverá a mostrar.").
+- `tests/test_integraciones.py`: nueva prueba `test_rotar_clave_arm` (token no vacío; hash en BD cambió; clave anterior → 401; nueva clave → 404; valor no guardado en texto plano; unicidad activa mantenida).
+- `tests/test_panel.py`: actualización de `test_integraciones_render` al nuevo contrato de la vista (título "Integraciones del Sistema" y botón "Rotar Clave API").
+- `docs/plan.md`: esta sección.
+
+**Reglas respetadas:**
+- No se modificó `models.py` de otras apps, ni `urls.py`, ni la lógica de fallback de C.5a (permanece temporalmente; retirada pendiente).
+- No se usaron estilos inline ni bloques `<style>`; exclusivamente clases de `app.css`.
+- La clave nueva nunca se guarda en texto plano; solo viaja en el contexto de la respuesta HTTP una vez.
+- No se ejecutó `git push`.
+- Seguridad: hash SHA-256 no reversible, secreto de un solo uso con advertencia explícita, comparación en tiempo constante en `_autenticado`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe -m pytest tests/test_integraciones.py -q` → `7 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "integraciones or sidebar" -q` → `3 passed`.
+
+**Pendiente:** Retirar el fallback temporal a `settings.ARM_API_KEY` en `apps/api/views.py` (`_autenticado`, TODO C.5b) una vez confirmada la migración de credenciales en producción.
