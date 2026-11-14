@@ -241,3 +241,25 @@ Deuda técnica de B.3 resuelta y sidebar con iconos SVG profesionales para compl
 **Evidencia de aceptación (ejecutado en esta sesión):**
 - `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "sidebar or eliminar or aprobar" -q` → tests en verde.
+
+## Paso B.7 - Sistema de diseño ARM Flow completo — COMPLETADO
+
+**Objetivo:** Cerrar el Bloque B definiendo en app.css TODAS las clases transversales huérfanas (usadas en HTML pero sin definición) y migrando los estilos inline de dashboard.html y base.html a clases del sistema. No se tocaron aún las 3 vistas con bloque <style> embebido (configuracion, lista_agentes, lista_habilidades); esas se migran en B.8.
+
+**Archivos tocados:**
+- `static/css/app.css`: añadido al FINAL el bloque de clases transversales del Paso B.7 (cabecera-lista, vacio, acciones, enlace-editar, form-eliminar, form-ejecutar, volver, ayuda, subtitulo, subtexto, cantidad, fecha, slug, mono, errores, errorlist, alerta-error, mensaje-exito, detalle, bloque, pagina-crear, fila-campos, acciones-formulario, modelos-lista, habilidades-grid, modelo-card, habilidad-card, seleccionada, habilidad-nombre, habilidad-slug, nota-vacia, btn-plantilla, temperatura-fila, btn-aprobar, btn, btn-logout, dashboard .grid/tarjeta/h3/valor/valor--*, integraciones .subtitulo, api-key-fila). No se reescribió lo existente.
+- `apps/panel/templates/panel/dashboard.html`: divs .valor con style inline migrados a clases modificadoras (cola→valor valor--info, completadas→valor valor--success, tokens→valor, workflows→valor valor--warning); subtexto ya usa class="subtexto". Sin tocar estructura ni {{ }}.
+- `apps/panel/templates/panel/base.html`: botón Logout class="btn" + style="background-color:#FF3B30..." → class="btn-logout", se quitó el inline rojo. Bloque de login: botón usa class="btn" y inputs usan class="input". Sin tocar sidebar, enlaces SVG ni lógica de autenticación.
+- `docs/plan.md`: esta sección.
+
+**Reglas respetadas:**
+- No se modificó configuracion.html, lista_agentes.html ni lista_habilidades.html (son B.8).
+- No se modificó views.py, urls.py, forms.py ni ningún .py.
+- app.css solo se amplió al final; no se reescribió lo existente.
+- No se ejecutó git push.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "sidebar or dashboard or integraciones" -q` → tests en verde.
+
+Clases transversales definidas y estilos inline migrados a clases del sistema ARM Flow; pendiente B.8 (migración de las 3 vistas con <style> embebido).

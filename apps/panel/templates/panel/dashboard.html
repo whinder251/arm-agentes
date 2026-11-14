@@ -8,20 +8,20 @@
     <div class="grid">
         <div class="tarjeta">
             <h3>Tareas en Cola</h3>
-            <div class="valor" style="color: #0071E3;">{{ tareas_cola }}</div>
+            <div class="valor valor--info">{{ tareas_cola }}</div>
         </div>
         <div class="tarjeta">
             <h3>Tareas Completadas</h3>
-            <div class="valor" style="color: #34C759;">{{ tareas_ok }}</div>
+            <div class="valor valor--success">{{ tareas_ok }}</div>
         </div>
         <div class="tarjeta">
             <h3>Tokens Consumidos Hoy</h3>
-            <div class="valor" style="color: #1D1D1F;">{{ tokens_hoy }}</div>
+            <div class="valor">{{ tokens_hoy }}</div>
             <p class="subtexto">Suma de todos los proveedores</p>
         </div>
         <div class="tarjeta">
             <h3>Workflows Activos</h3>
-            <div class="valor" style="color: #FF9500;">{{ workflows_activos }}</div>
+            <div class="valor valor--warning">{{ workflows_activos }}</div>
         </div>
     </div>
 </div>

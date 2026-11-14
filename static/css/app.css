@@ -403,3 +403,63 @@ p {
   background: var(--error);
   color: #fff;
 }
+
+/* ============================================================
+   Paso B.7: clases transversales del sistema ARM Flow
+   ============================================================ */
+.cabecera-lista { display:flex; justify-content:space-between; align-items:center; gap:16px; border-bottom:1px solid var(--border-subtle); padding-bottom:16px; margin-bottom:24px; flex-wrap:wrap; }
+.cabecera-lista h2 { margin:0; }
+.vacio { color: var(--text-secondary); text-align:center; padding: var(--space-xl) var(--space-md); font-size: var(--text-sm); }
+.acciones { white-space:nowrap; }
+.enlace-editar { color: var(--accent-primary); text-decoration:none; font-weight: var(--font-weight-medium); margin-right: var(--space-md); }
+.enlace-editar:hover { text-decoration:underline; }
+.form-eliminar, .form-ejecutar { display:inline; margin:0; }
+.volver { display:inline-block; margin-bottom:16px; color: var(--accent-primary); text-decoration:none; font-size: var(--text-sm); }
+.volver:hover { text-decoration:underline; }
+.ayuda { color: var(--text-secondary); font-size: var(--text-xs); margin: -4px 0 12px 0; }
+.subtitulo { color: var(--text-secondary); font-size: var(--text-base); margin: 0 0 var(--space-lg) 0; }
+.subtexto { color: var(--text-tertiary); font-size: var(--text-xs); margin: 0; }
+.cantidad, .fecha, .slug { font-size: var(--text-xs); color: var(--text-secondary); }
+.mono { font-family: var(--font-mono); font-size: var(--text-xs); }
+.errores, .errorlist { color: var(--error); font-size: var(--text-sm); margin: 0 0 8px 0; }
+.errores ul, ul.errorlist { color: var(--error); margin: 0 0 8px 0; padding-left:18px; font-size: var(--text-sm); }
+.alerta-error { background: var(--error-subtle); border:1px solid var(--error); border-radius: var(--radius-md); color: var(--error); font-size: var(--text-sm); line-height:1.5; margin-bottom: var(--space-md); padding: 12px 16px; }
+.mensaje-exito { background: var(--success-subtle); border:1px solid var(--success); border-left:4px solid var(--success); border-radius: var(--radius-lg); color: var(--text-primary); font-size: var(--text-sm); margin-bottom: var(--space-md); padding: 12px 16px; }
+.detalle { margin-top: var(--space-md); }
+.bloque { background: var(--bg-surface); border:1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-lg); margin-top: var(--space-md); box-shadow: var(--shadow-sm); }
+.bloque h2 { margin-top:0; font-size: var(--text-lg); }
+.bloque pre { background: var(--bg-surface-hover); border:1px solid var(--border-subtle); border-radius: var(--radius-md); padding:12px; overflow-x:auto; white-space:pre-wrap; word-break:break-word; font-family: var(--font-mono); font-size: var(--text-xs); }
+.pagina-crear { max-width:760px; margin:0 auto; }
+.fila-campos { display:flex; gap: var(--space-md); }
+.fila-campos .form-group { flex:1 1 0; min-width:0; }
+@media (max-width:640px){ .fila-campos { flex-direction:column; gap:0; } }
+.acciones-formulario { display:flex; justify-content:flex-end; gap: var(--space-sm); margin-top: var(--space-md); }
+.modelos-lista { display:flex; flex-direction:column; gap: var(--space-sm); margin-bottom: var(--space-lg); }
+.habilidades-grid { display:grid; grid-template-columns:1fr 1fr; gap: var(--space-md); }
+.modelo-card, .habilidad-card { display:block; position:relative; border:1px solid var(--border-subtle); border-left:3px solid var(--border-subtle); border-radius: var(--radius-lg); background: var(--bg-surface); padding: 12px 16px; cursor:pointer; font-size: var(--text-sm); color: var(--text-primary); box-sizing:border-box; transition: border-color var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast); }
+.modelo-card input[type="radio"], .habilidad-card input[type="checkbox"] { position:absolute; opacity:0; width:1px; height:1px; }
+.seleccionada { border-color: var(--accent-primary); border-left:4px solid var(--accent-primary); background: var(--bg-surface-hover); box-shadow: var(--shadow-sm); }
+.habilidad-nombre { display:block; font-size: var(--text-sm); font-weight: var(--font-weight-medium); color: var(--text-primary); }
+.habilidad-slug { display:block; font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-secondary); margin-top:2px; }
+.nota-vacia { font-size: var(--text-xs); color: var(--text-secondary); }
+.btn-plantilla { background: var(--bg-surface); color: var(--text-primary); border:1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 6px 12px; cursor:pointer; font-size: var(--text-xs); font-family: inherit; transition: border-color var(--transition-fast), color var(--transition-fast); }
+.btn-plantilla:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+.temperatura-fila { display:flex; align-items:center; gap: var(--space-md); }
+.temperatura-valor { min-width:34px; text-align:right; font-family: var(--font-mono); font-size: var(--text-sm); color: var(--text-secondary); }
+.btn-aprobar { background: var(--accent-primary); color:#fff; border:none; border-radius: var(--radius-md); padding: 7px 14px; cursor:pointer; font-family: inherit; font-size: var(--text-xs); font-weight: var(--font-weight-medium); transition: background var(--transition-fast); }
+.btn-aprobar:hover { background: var(--accent-primary-hover); }
+.btn { background: var(--accent-primary); color:#fff; border:none; border-radius: var(--radius-md); padding: 10px 18px; font-family: inherit; font-size: var(--text-sm); font-weight: var(--font-weight-medium); cursor:pointer; box-shadow: var(--shadow-sm); transition: background var(--transition-fast); }
+.btn:hover { background: var(--accent-primary-hover); }
+.btn-logout { background: transparent; border:1px solid var(--border-subtle); color: var(--text-tertiary); border-radius: var(--radius-md); padding: 9px 12px; font-family: inherit; font-size: var(--text-sm); font-weight: var(--font-weight-medium); cursor:pointer; width:100%; transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast); }
+.btn-logout:hover { border-color: var(--error); color: var(--error); background: var(--error-subtle); }
+.dashboard .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: var(--space-lg); }
+.dashboard .tarjeta { background: var(--bg-surface); border:1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-lg); box-shadow: var(--shadow-sm); }
+.dashboard .tarjeta h3 { margin: 0 0 12px 0; font-size: var(--text-xs); font-weight: var(--font-weight-semibold); letter-spacing: var(--letter-spacing-wide); color: var(--text-secondary); text-transform: uppercase; }
+.dashboard .valor { font-size: 2.25rem; font-weight: var(--font-weight-bold); color: var(--text-primary); margin: 0 0 8px 0; }
+.dashboard .valor--info { color: var(--accent-primary); }
+.dashboard .valor--success { color: var(--success); }
+.dashboard .valor--warning { color: var(--warning); }
+.dashboard .valor--error { color: var(--error); }
+.integraciones .subtitulo { color: var(--text-secondary); font-size: var(--text-base); margin: 0 0 var(--space-lg) 0; }
+.api-key-fila { display:flex; gap: var(--space-sm); align-items:center; margin-bottom: var(--space-sm); }
+.api-key-fila code, code#api-key { background: var(--bg-surface-hover); border:1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 10px 12px; font-family: var(--font-mono); font-size: var(--text-sm); color: var(--text-primary); flex-grow:1; word-break: break-all; }
