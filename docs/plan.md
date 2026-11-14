@@ -550,3 +550,78 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 - `.venv\Scripts\python.exe -m pytest tests/test_integraciones.py -q` → `10 passed`.
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "integraciones" -q` → `2 passed`.
 - Nota: `tests/test_panel.py` completo tiene un cuelgue preexistente de entorno (documentado en pasos C.2/C.3a/C.4), no relacionado con este cambio.
+
+## Paso C.7a - Edición y eliminación segura de Destinos de Publicación — COMPLETADO
+
+**Objetivo:** Añadir funcionalidad de editar y eliminar registros de `DestinoPublicacion` en el panel, reutilizando el patrón seguro de credenciales (enmascaramiento y checkbox `cambiar_credenciales`) y la protección `ProtectedError` al eliminar.
+
+**Archivos tocados:**
+- `apps/panel/views.py`: vista `editar_destino` (`@login_required`, `get_object_or_404`, `DestinoPublicacionForm`; si `cambiar_credenciales` NO está marcado, restaura `form.instance.credenciales = destino.credenciales` antes de `save()`) y vista `eliminar_destino` (`@login_required`, `@require_POST`, `destino.delete()` envuelto en `try/except ProtectedError` con `messages.error`/`messages.success` y redirect a `integraciones`).
+- `apps/panel/urls.py`: rutas `destinos/<int:pk>/editar/` (`editar_destino`) y `destinos/<int:pk>/eliminar/` (`eliminar_destino`).
+- `apps/panel/templates/panel/integraciones.html`: columna "Acciones" en la tabla de destinos (enlace `.enlace-editar` a `editar_destino` y form POST `.btn-danger-sm` a `eliminar_destino` con `{% csrf_token %}`); bloque `{% if destino_editar %}` con formulario de edición (`form_destino`, `cambiar_credenciales`, ayuda, acciones-formulario).
+- `tests/test_panel.py`: pruebas `test_editar_destino_preserva_credenciales` (credencial original mantenida al editar sin marcar `cambiar_credenciales`) y `test_eliminar_destino` (eliminación correcta y redirect a `integraciones`).
+
+**Reglas respetadas:**
+- No se modificó `models.py` (la lógica de `cambiar_credenciales` y cifrado ya está en `DestinoPublicacionForm`).
+- Las credenciales nunca se guardan en texto plano: `EncryptedTextField` con Fernet (RB-013); enmascaramiento `****XXXX` y widget `readonly` en el form.
+- Estilo ARM Flow estricto: `.tarjeta`, `.tabla`, `.enlace-editar`, `.btn-danger-sm`, `.form-group`, `.input`, `.ayuda`, `.acciones-formulario`. Cero estilos inline ni bloques `<style>`.
+- Todas las vistas requieren `@login_required`; eliminación usa `@require_POST` y CSRF.
+- No se ejecutó `git push`.
+- Commit: "Paso C.7a: Edición y eliminación segura de Destinos de Publicación".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "destino" -q` → `4 passed` (`test_editar_destino_preserva_credenciales`, `test_eliminar_destino`, `test_integraciones_render_muestra_destinos`, `test_crear_destino_publicacion`).
+
+**Pendiente:** Ninguno para este paso.
+
+## Paso C.5c - Unificación visual de la ARM API Key en la tabla de integraciones — COMPLETADO
+
+**Objetivo:** Eliminar la duplicación visual en la vista de integraciones. La ARM API Key se gestiona desde una columna "Acciones" en la tabla principal de integraciones, manteniendo el modelo de seguridad actual (hash SHA-256, sin botón "Ver", solo "Rotar"). La sección de destinos de publicación se mantiene limpia y bien separada.
+
+**Archivos tocados:**
+- `apps/panel/templates/panel/integraciones.html`: añadida columna "Acciones" a la tabla "Integraciones configuradas"; en la fila `tipo == 'arm_api'` se renderiza el formulario POST con botón "Rotar Clave API" (`.btn-danger`, dentro de `.form-eliminar`); las demás filas muestran un guion discreto en la celda de acciones. Eliminada por completo la tarjeta separada "ARM API Key". El bloque `{% if nueva_clave_arm %}` se conservó en la parte superior (justo debajo del título) con input readonly, botón copiar y advertencia `.alerta-error`. La sección "Destinos de Publicación" conserva su propia `.tarjeta` separada con tabla y formulario de alta. Cero estilos inline, cero bloques `<style>`; solo clases de `app.css` (`.tabla`, `.tarjeta`, `.btn-danger`, `.form-eliminar`, `.acciones`, `.alerta-error`, `.api-key-fila`, `.input`).
+- `tests/test_panel.py`: `test_integraciones_render` verifica 'Rotar Clave API' presente y 'ARM API Key' ausente (tarjeta eliminada); `test_integraciones_render_muestra_destinos` verifica ambos bloques en la misma página. Se creó una `IntegracionConfig` tipo `arm_api` en `setUp` para que el botón se renderice. Se añadió `IntegracionConfig` a los imports de `apps.core.models`.
+- `docs/plan.md`: esta sección.
+
+**Reglas respetadas:**
+- No se modificó `models.py`. El modelo de seguridad (hash SHA-256) se mantiene intacto. No se añadió campo de "hint" ni cifrado reversible.
+- No se añadió botón "Ver" ni "Mostrar clave". La clave ARM es de un solo uso visible por diseño.
+- No se tocó la lógica de `rotar_clave_arm()` ni la autenticación de la API.
+- `views.py` no se modificó: el contexto ya estaba limpio (`integraciones`, `destinos`, `form_destino`, `nueva_clave_arm`) sin `arm_api_key`.
+- El import `Workflow, PasoWorkflow` se dejó intacto (se usa en líneas 406-409 de tests).
+- Estilo ARM Flow estricto.
+- No se ejecutó `git push`.
+- Commit: "Paso C.5c: Unificacion visual de la ARM API Key en la tabla de integraciones".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "integraciones" -q` → `2 passed`.
+
+## Paso C.7b - Desacoplar credenciales de WordPress del Proveedor LLM en la publicación — COMPLETADO
+
+**Objetivo:** Modificar el flujo de publicación para que utilice las credenciales de `DestinoPublicacion` en lugar de las del `Proveedor` (LLM), completando la separación arquitectónica iniciada en C.6 y C.7a.
+
+**Archivos tocados:**
+- `apps/panel/views.py`: `detalle_tarea` pasa `destinos` (filtrado `activa=True`, ordenado por nombre) al contexto de `tareas.html`; `publicar_tarea` lee `destino_id` de `request.POST` y, si existe, instancia `WordPressProvider` con `api_key=f"{destino.usuario}:{destino.credenciales}"` y `base_url=destino.url` (credenciales cifradas descifradas en memoria vía `EncryptedTextField`); si no hay `destino_id`, aplica fallback temporal al Proveedor LLM con `# TODO C.8` documentado (seguridad.md §3: no confundir credenciales LLM con integraciones); mensaje de error genérico sin exponer detalles ni credenciales.
+- `apps/panel/templates/panel/tareas.html`: el formulario de publicar (solo si `tarea.estado == 'ok'`) incluye `<select name="destino_id">` con los destinos activos pasados desde la vista; opción por defecto usa el proveedor LLM de la tarea.
+- `tests/test_panel.py`: `test_publicar_tarea_con_destino_publicacion` (verifica que se usa `api_key`/`base_url` del `DestinoPublicacion`, no del proveedor LLM, y que la api_key del proveedor no persiste en `tarea.payload`); `test_publicar_tarea_sin_destino_no_expone_api_key_proveedor` (verifica fallback al proveedor LLM y que su `api_key` no aparece en payload ni en el cuerpo de la respuesta).
+- `docs/plan.md`: esta sección.
+
+**Reglas respetadas:**
+- No se modificó `models.py` ni se creó migración (Opción B: ID del destino como argumento POST).
+- No se tocó `apps/providers/wordpress.py` (el adaptador ya acepta `"usuario:contraseña"` y hace split interno).
+- Fallback temporal con TODO referenciado a paso C.8; no expone credenciales del proveedor LLM en logs, payload ni mensajes.
+- SSRF ya validado en `DestinoPublicacion.url` por `validar_url_segura` (C.6).
+- `@login_required` y `@require_POST` intactos; CSRF mantenido en el template.
+- Pruebas sin HTTP real, usando `unittest.mock.patch('apps.panel.views.WordPressProvider')`.
+- Estilo ARM Flow estricto: clases `.input`, `.btn-primary`.
+- No se ejecutó `git push`.
+- Commit pendiente: "Paso C.7b: Publicación desacoplada del Proveedor LLM mediante DestinoPublicacion".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "publicar" -q` → `3 passed` (incluye `test_publicar_tarea_exitoso`, `test_publicar_tarea_con_destino_publicacion`, `test_publicar_tarea_sin_destino_no_expone_api_key_proveedor`).
+
+**Estado general:** Pasos 0 a 25 y Bloque B (B.1 a B.10) completados. Bloque C: C.1a, C.1b, C.2, C.3a, C.3b, C.4, C.5a, C.5b, C.5c, C.6, C.7a y C.7b completados. Pendiente C.8 (retirar fallback temporal de proveedor LLM en publicación).

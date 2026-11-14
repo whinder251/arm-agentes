@@ -113,10 +113,12 @@ def detalle_tarea(request, pk):
     tarea = get_object_or_404(Tarea, pk=pk)
     ultimo_artefacto = tarea.artefactos.order_by('-id').first()
     ultima_ejecucion = tarea.ejecuciones.order_by('-id').first()
+    destinos = DestinoPublicacion.objects.filter(activa=True).order_by('nombre')
     return render(request, 'panel/tareas.html', {
         'tarea': tarea,
         'ultimo_artefacto': ultimo_artefacto,
         'ultima_ejecucion': ultima_ejecucion,
+        'destinos': destinos,
     })
 
 @login_required
@@ -150,7 +152,14 @@ def eliminar_tarea(request, pk):
 @login_required
 @require_POST
 def publicar_tarea(request, pk):
-    """Envía el último artefacto de una tarea aprobada a WordPress como borrador."""
+    """Envía el último artefacto de una tarea aprobada a WordPress como borrador.
+
+    Usa credenciales de DestinoPublicacion cuando se pasa destino_id (POST).
+    Si no se especifica destino, aplica fallback temporal al Proveedor LLM
+    (TODO C.8: retirar este fallback una vez todos los flujos de publicación
+    usen DestinoPublicacion. No confundir credenciales de proveedores LLM con
+    credenciales de integraciones, docs/estandares/seguridad.md §3).
+    """
     tarea = get_object_or_404(Tarea, pk=pk)
     if tarea.estado != 'ok':
         messages.error(request, "Solo se puede publicar una tarea en estado 'ok'.")
@@ -161,20 +170,42 @@ def publicar_tarea(request, pk):
         messages.error(request, "La tarea no tiene un artefacto para publicar.")
         return redirect('detalle_tarea', pk=tarea.pk)
 
+    destino_id = request.POST.get('destino_id')
     proveedor = None
-    if tarea.agente and tarea.agente.modelo:
-        proveedor = tarea.agente.modelo.proveedor
-    if not proveedor:
-        messages.error(request, "La tarea no tiene un proveedor configurado.")
-        return redirect('detalle_tarea', pk=tarea.pk)
+    destino = None
+
+    if destino_id:
+        try:
+            destino = DestinoPublicacion.objects.get(pk=destino_id, activa=True)
+        except DestinoPublicacion.DoesNotExist:
+            messages.error(request, "El destino de publicación seleccionado no existe o está inactivo.")
+            return redirect('detalle_tarea', pk=tarea.pk)
+    else:
+        # TODO C.8: retirar este fallback una vez todos los flujos de
+        # publicación usen DestinoPublicacion. No confundir credenciales de
+        # proveedores LLM con credenciales de integraciones
+        # (docs/estandares/seguridad.md §3).
+        if tarea.agente and tarea.agente.modelo:
+            proveedor = tarea.agente.modelo.proveedor
+        if not proveedor:
+            messages.error(request, "La tarea no tiene un proveedor configurado ni se especificó un destino de publicación.")
+            return redirect('detalle_tarea', pk=tarea.pk)
 
     try:
-        wp = WordPressProvider(api_key=proveedor.api_key, base_url=proveedor.base_url)
+        if destino is not None:
+            # Credenciales del destino de publicación (cifradas en BD,
+            # descifradas en memoria mediante EncryptedTextField).
+            api_key = f"{destino.usuario}:{destino.credenciales}"
+            base_url = destino.url
+        else:
+            api_key = proveedor.api_key
+            base_url = proveedor.base_url
+        wp = WordPressProvider(api_key=api_key, base_url=base_url)
         titulo = (tarea.payload or {}).get('titulo', f"Tarea #{tarea.pk}")
         link = wp.crear_borrador(titulo=titulo, contenido=ultimo_artefacto.contenido)
         wp.close()
-    except Exception as exc:
-        messages.error(request, f"Error al enviar a WordPress: {exc}")
+    except Exception:
+        messages.error(request, "Error al enviar a WordPress.")
         return redirect('detalle_tarea', pk=tarea.pk)
 
     meta = tarea.payload or {}

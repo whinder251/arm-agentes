@@ -317,6 +317,109 @@ class TestPanel(TestCase):
         assert tarea.payload.get('wordpress_link') == 'http://wp.test.invalid/123'
         assert tarea.payload.get('enviado_a_wordpress') is True
 
+    def test_publicar_tarea_con_destino_publicacion(self):
+        """Publicar usa credenciales del DestinoPublicacion, no del Proveedor LLM."""
+        proveedor_wp = Proveedor.objects.create(
+            nombre='wordpress-llm',
+            api_key='usuario-llm:contraseña-llm',
+            base_url='http://wp-llm.test.invalid',
+        )
+        modelo_wp = ModeloLLM.objects.create(
+            proveedor=proveedor_wp, model_id='wp-modelo-llm'
+        )
+        agente_wp = Agente.objects.create(
+            nombre='Agente WP LLM', modelo=modelo_wp, rol='Publicador'
+        )
+        agente_wp.habilidades.add(self.habilidad)
+        tarea = Tarea.objects.create(
+            agente=agente_wp,
+            habilidad=self.habilidad,
+            estado='ok',
+            payload={'texto': 'Contenido de prueba'},
+        )
+        Artefacto.objects.create(
+            tarea=tarea, version=1,
+            contenido='Contenido del artículo para publicar en WordPress.',
+            metadata={},
+        )
+        destino = DestinoPublicacion.objects.create(
+            nombre='Blog Principal',
+            tipo='wordpress',
+            url='https://blog.ejemplo.com',
+            usuario='usuario-blog',
+            credenciales='contraseña-blog-secreta',
+            activa=True,
+        )
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('publicar_tarea', args=[tarea.pk])
+
+        with patch('apps.panel.views.WordPressProvider') as mock_wp:
+            instance = mock_wp.return_value
+            instance.crear_borrador.return_value = 'https://blog.ejemplo.com/123'
+            response = self.client.post(url, {'destino_id': str(destino.pk)})
+
+        assert response.status_code == 302
+        assert response.url == reverse('detalle_tarea', args=[tarea.pk])
+        # Se instanciaron con las credenciales del DestinoPublicacion, no del proveedor LLM
+        mock_wp.assert_called_once_with(
+            api_key='usuario-blog:contraseña-blog-secreta',
+            base_url='https://blog.ejemplo.com',
+        )
+        tarea.refresh_from_db()
+        assert tarea.payload.get('wordpress_link') == 'https://blog.ejemplo.com/123'
+        assert tarea.payload.get('enviado_a_wordpress') is True
+        # El api_key del proveedor LLM no debe persistirse en el payload
+        assert 'usuario-llm:contraseña-llm' not in str(tarea.payload)
+        assert 'contraseña-llm' not in str(tarea.payload)
+
+    def test_publicar_tarea_sin_destino_no_expone_api_key_proveedor(self):
+        """Fallback al Proveedor LLM sin exponer su api_key en payload ni mensajes."""
+        proveedor_wp = Proveedor.objects.create(
+            nombre='wordpress-fallback',
+            api_key='usuario-fallback:secreto-fallback-12345',
+            base_url='http://wp-fallback.test.invalid',
+        )
+        modelo_wp = ModeloLLM.objects.create(
+            proveedor=proveedor_wp, model_id='wp-modelo-fallback'
+        )
+        agente_wp = Agente.objects.create(
+            nombre='Agente WP Fallback', modelo=modelo_wp, rol='Publicador'
+        )
+        agente_wp.habilidades.add(self.habilidad)
+        tarea = Tarea.objects.create(
+            agente=agente_wp,
+            habilidad=self.habilidad,
+            estado='ok',
+            payload={'texto': 'Contenido de prueba'},
+        )
+        Artefacto.objects.create(
+            tarea=tarea, version=1,
+            contenido='Contenido del artículo para publicar en WordPress.',
+            metadata={},
+        )
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('publicar_tarea', args=[tarea.pk])
+
+        with patch('apps.panel.views.WordPressProvider') as mock_wp:
+            instance = mock_wp.return_value
+            instance.crear_borrador.return_value = 'http://wp-fallback.test.invalid/456'
+            response = self.client.post(url)  # sin destino_id
+
+        assert response.status_code == 302
+        assert response.url == reverse('detalle_tarea', args=[tarea.pk])
+        # Usa el proveedor LLM como fallback
+        mock_wp.assert_called_once_with(
+            api_key='usuario-fallback:secreto-fallback-12345',
+            base_url='http://wp-fallback.test.invalid',
+        )
+        tarea.refresh_from_db()
+        assert tarea.payload.get('wordpress_link') == 'http://wp-fallback.test.invalid/456'
+        assert tarea.payload.get('enviado_a_wordpress') is True
+        # El api_key del proveedor LLM no debe persistirse en el payload
+        assert 'secreto-fallback-12345' not in str(tarea.payload)
+        # Tampoco en el cuerpo de la respuesta
+        assert 'secreto-fallback-12345' not in response.content.decode('utf-8', errors='ignore')
+
     def test_crear_tarea_formulario_chat(self):
         self.client.login(username='testuser', password='testpass123')
         response = self.client.get(reverse('crear_tarea'))
