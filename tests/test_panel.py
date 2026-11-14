@@ -133,11 +133,11 @@ class TestPanel(TestCase):
         self.client.login(username='testuser', password='testpass123')
         response = self.client.get(reverse('lista_tareas'))
         content = response.content.decode('utf-8')
-        enlace = f'href="{reverse("configuracion")}"'
-        assert content.count(enlace) == 1
-        assert '<a href="#">Proveedores</a>' not in content
-        assert '<a href="#">Modelos</a>' not in content
-        assert 'Modelos y proveedores' in content
+        assert f'href="{reverse("lista_proveedores")}"' in content
+        assert f'href="{reverse("lista_modelos")}"' in content
+        assert 'Proveedores' in content
+        assert 'Modelos' in content
+        assert 'Modelos y proveedores' not in content
 
     def test_dashboard_render(self):
         self.client.login(username='testuser', password='testpass123')

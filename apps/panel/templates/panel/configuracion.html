@@ -9,6 +9,10 @@
        href="{% url 'crear_habilidad' %}">A&ntilde;adir Habilidad</a>
     <a class="btn-primary enlace-accion"
        href="{% url 'crear_agente' %}">A&ntilde;adir Agente</a>
+    <a class="btn-primary enlace-accion"
+       href="{% url 'crear_proveedor' %}">A&ntilde;adir Proveedor</a>
+    <a class="btn-primary enlace-accion"
+       href="{% url 'crear_modelo' %}">A&ntilde;adir Modelo</a>
 </div>
 
 {% if mostrar_form_habilidad %}
@@ -24,101 +28,31 @@
 </div>
 {% endif %}
 
-<div class="config-container">
-    <div class="config-proveedores">
-        <h3>Proveedores</h3>
-        <p>
-            <button class="btn-primary"
-                    onclick="toggleForm('form-proveedor')">A&ntilde;adir Proveedor</button>
-        </p>
-
-        <div id="form-proveedor" class="form-seccion form-oculto">
-            <form method="post" action="{% url 'crear_proveedor' %}">
-                {% csrf_token %}
-                {{ form_proveedor.as_p }}
-                <button type="submit" class="btn-primary">Guardar proveedor</button>
-                <button type="button" class="btn-secondary"
-                        onclick="toggleForm('form-proveedor')">Cancelar</button>
-            </form>
-        </div>
-
-        {% for proveedor in proveedores %}
-        <div class="tarjeta">
-            <h4>{{ proveedor.nombre }}</h4>
-            <p><strong>Base URL:</strong> {{ proveedor.base_url }}</p>
-            <p><strong>RPM:</strong> {{ proveedor.rpm }}
-               | <strong>L&iacute;mite diario:</strong> {{ proveedor.limite_diario }}</p>
-            <div class="modelos-lista">
-                {% for modelo in proveedor.modelos.all %}
-                <div class="ficha">
-                    {{ modelo.model_id }}
-                    (prioridad {{ modelo.prioridad }})
-                    {% if modelo.activo %}
-                    <span class="badge badge-success">activo</span>
-                    {% else %}
-                    <span class="badge badge-error">inactivo</span>
-                    {% endif %}
-                </div>
-                {% empty %}
-                <p class="texto-vacio">Sin modelos.</p>
-                {% endfor %}
-            </div>
-            <p>
-                <button class="btn-primary btn-pequeno"
-                        onclick="toggleForm('form-modelo-{{ proveedor.id }}')">A&ntilde;adir Modelo</button>
-            </p>
-            <div id="form-modelo-{{ proveedor.id }}"
-                 class="form-seccion form-oculto">
-                <form method="post" action="{% url 'crear_modelo' %}">
-                    {% csrf_token %}
-                    <input type="hidden" name="proveedor" value="{{ proveedor.id }}">
-                    {{ form_modelo.as_p }}
-                    <button type="submit" class="btn-primary">Guardar modelo</button>
-                    <button type="button" class="btn-secondary"
-                            onclick="toggleForm('form-modelo-{{ proveedor.id }}')">Cancelar</button>
-                </form>
-            </div>
-        </div>
-        {% empty %}
-        <p class="texto-vacio">No hay proveedores registrados.</p>
-        {% endfor %}
-    </div>
-
-    <div class="config-modelos">
-        <h3>Modelos</h3>
-        <p>
-            <button class="btn-primary"
-                    onclick="toggleForm('form-modelo-general')">A&ntilde;adir Modelo</button>
-        </p>
-        <div id="form-modelo-general" class="form-seccion form-oculto">
-            <form method="post" action="{% url 'crear_modelo' %}">
-                {% csrf_token %}
-                {{ form_modelo.as_p }}
-                <button type="submit" class="btn-primary">Guardar modelo</button>
-                <button type="button" class="btn-secondary"
-                        onclick="toggleForm('form-modelo-general')">Cancelar</button>
-            </form>
-        </div>
-        <div class="modelos-grid">
-            {% for proveedor in proveedores %}
-                {% for modelo in proveedor.modelos.all %}
-                <div class="ficha">
-                    <strong>{{ proveedor.nombre }}</strong> /
-                    {{ modelo.model_id }}
-                    (prioridad {{ modelo.prioridad }})
-                    {% if modelo.activo %}
-                    <span class="badge badge-success">activo</span>
-                    {% else %}
-                    <span class="badge badge-error">inactivo</span>
-                    {% endif %}
-                </div>
-                {% endfor %}
-            {% empty %}
-            <p class="texto-vacio">No hay modelos registrados.</p>
-            {% endfor %}
-        </div>
-    </div>
+{% if mostrar_form_proveedor %}
+<div class="form-seccion">
+    <h4>Nuevo proveedor</h4>
+    <form method="post" action="{% url 'crear_proveedor' %}">
+        {% csrf_token %}
+        {{ form_proveedor.as_p }}
+        <button type="submit" class="btn-primary">Guardar proveedor</button>
+        <button type="button" class="btn-secondary"
+                onclick="toggleForm('form-proveedor')">Cancelar</button>
+    </form>
 </div>
+{% endif %}
+
+{% if mostrar_form_modelo %}
+<div class="form-seccion">
+    <h4>Nuevo modelo</h4>
+    <form method="post" action="{% url 'crear_modelo' %}">
+        {% csrf_token %}
+        {{ form_modelo.as_p }}
+        <button type="submit" class="btn-primary">Guardar modelo</button>
+        <button type="button" class="btn-secondary"
+                onclick="toggleForm('form-modelo')">Cancelar</button>
+    </form>
+</div>
+{% endif %}
 
 <script>
     function toggleForm(id) {

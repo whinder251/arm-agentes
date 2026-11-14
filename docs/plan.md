@@ -421,3 +421,24 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -q` → cuelgue preexistente de entorno en test posterior (no relacionado con este cambio), igual que en C.2.
 
 **Pendiente:** Paso C.3b (sidebar: enlace a proveedores/modelos).
+
+## Paso C.3b - Reorganización del sidebar y limpieza de configuracion — COMPLETADO
+
+**Objetivo:** Eliminar la duplicación entre configuracion.html y las nuevas vistas dedicadas (lista_proveedores, lista_modelos). Reorganizar el sidebar para que cada enlace apunte a una vista única.
+
+**Archivos tocados:**
+- `apps/panel/templates/panel/base.html`: sección "Configuración" del sidebar, reemplazo del enlace "Modelos y proveedores" (que apuntaba a 'configuracion') por dos enlaces separados: "Proveedores" (`{% url 'lista_proveedores' %}`, icono SVG servidor/base de datos) y "Modelos" (`{% url 'lista_modelos' %}`, icono SVG chip/cpu). Clase `activo` por `request.resolver_match.url_name` ('lista_proveedores' / 'lista_modelos'). Mantenidos enlaces de Agentes, Habilidades e Integraciones.
+- `apps/panel/templates/panel/configuracion.html`: eliminados los bloques de listas de lectura de proveedores y modelos (ya viven en lista_proveedores.html y lista_modelos.html). Conservados SOLO los formularios de creación (Añadir Habilidad, Añadir Agente, Añadir Proveedor, Añadir Modelo) con su lógica de toggleForm. Se añadieron enlaces directos a crear_proveedor y crear_modelo en la barra de acciones.
+- `tests/test_panel.py`: actualización de `test_sidebar_enlaza_configuracion` para verificar enlaces a 'lista_proveedores' y 'lista_modelos' y textos "Proveedores"/"Modelos", y que ya no exista "Modelos y proveedores".
+- `docs/plan.md`: esta sección.
+
+**Reglas respetadas:**
+- No se modificó forms.py, models.py ni la lógica de borrado.
+- La vista `configuracion` NO se eliminó: aún es usada por los redirects de crear_proveedor/crear_modelo/crear_habilidad/crear_agente y por tests (test_configuracion_render, test_configuracion_form_oculto, test_panel_config.py). Se mantiene simplificada.
+- No se modificó views.py ni urls.py.
+- Estilo ARM Flow estricto en el sidebar (iconos SVG 20x20, stroke-width 1.5, currentColor).
+- No se ejecutó git push.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "sidebar or proveedor or modelo" -q` → `4 passed`.
