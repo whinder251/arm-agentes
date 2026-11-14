@@ -7,11 +7,11 @@
 
     <div class="tarjeta">
         <h3>ARM_API_KEY</h3>
-        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
-            <code id="api-key" style="background: #F5F5F7; border: 1px solid #D2D2D7; border-radius: 8px; padding: 10px 12px; font-size: 0.9rem; color: #1D1D1F; flex-grow: 1; word-break: break-all;">{{ arm_api_key }}</code>
-            <button type="button" class="btn" style="background-color: #0071E3; padding: 6px 12px; font-size: 0.85rem;" onclick="copiarClave()">Copiar</button>
+        <div class="api-key-fila">
+            <code id="api-key">{{ arm_api_key }}</code>
+            <button type="button" class="btn-primary" onclick="copiarClave()">Copiar</button>
         </div>
-        <p class="subtexto" style="color: #FF3B30;">Mantén esta clave segura. Es requerida para autenticar peticiones a la API REST de ARM.</p>
+        <p class="subtexto">Mantén esta clave segura. Es requerida para autenticar peticiones a la API REST de ARM.</p>
     </div>
 </div>
 {% endblock %}

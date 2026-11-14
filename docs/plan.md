@@ -173,3 +173,28 @@ Nota: `pytest -q` completo se cuelga en un test preexistente de entorno (no rela
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -q` → tests relevantes en verde (sidebar, listados, crear/aprobar/eliminar tareas).
 
 Templates de listado limpiados de CSS embebido; clases centralizadas en `static/css/app.css`; sin fondos crema ni emojis.
+
+## Paso B.3 - Limpieza de CSS en formularios y vistas de detalle — COMPLETADO
+
+**Objetivo:** Eliminar los bloques `<style>` duplicados de los templates de formularios y detalle, adaptando sus clases al sistema ARM Flow centralizado en `static/css/app.css`.
+
+**Archivos tocados:**
+- `apps/panel/templates/panel/crear_tarea.html`: eliminado TODO el bloque `<style>`. `.tarjeta-chat` → `.tarjeta`; textarea/inputs/select usan `.input`; botón ya usaba `.btn-primary`.
+- `apps/panel/templates/panel/agente_form.html`: eliminado TODO el bloque `<style>`. Contenedor usa `.tarjeta`; campos usan `.form-group` y `.input`; `.btn` → `.btn-primary` (Guardar agente), `.btn-cancelar` → `.btn-secondary` (Cancelar). Radios/checkboxes ocultos se mantienen con lógica JS intacta.
+- `apps/panel/templates/panel/formulario_workflow.html`: eliminado TODO el bloque `<style>`. `<form class="tarjeta">`; campos de Django envueltos en `.form-group`; `.btn-secundario` → `.btn-secondary`, `.btn-acento` → `.btn-primary`.
+- `apps/panel/templates/panel/formulario_equipo.html`: eliminado TODO el bloque `<style>`. `form .form-edicion` → `.tarjeta`; campos envueltos en `.form-group` con `.input`; `.btn-acento` → `.btn-primary`, `.btn-secundario` → `.btn-secondary`.
+- `apps/panel/templates/panel/integraciones.html`: estilo inline del botón "Copiar" → `.btn-primary`; eliminado estilos inline del `<code>` y del párrafo de advertencia; contenedor ya usaba `.tarjeta`.
+- `docs/plan.md`: esta sección.
+
+**Reglas respetadas:**
+- No se modificó `views.py`, `urls.py` ni ningún archivo `.py`.
+- No se modificó la lógica de los formularios (nombres de campos, csrf, bucles de formset, script de plantillas y temperatura).
+
+**Deuda técnica reportada para Paso B.4:**
+- `agente_form.html`: al eliminar el CSS embebido se pierde el layout de dos columnas (`.agente-columnas`) y los estados visuales `.seleccionada`/`:has(input:checked)` de `.modelo-card` y `.habilidad-card`. Se requiere añadir `.agente-columnas` y `.seleccionada` a `app.css`.
+- `formulario_workflow.html`: `{{ field }}` de Django no recibe la clase `.input` sin tocar `forms.py` (prohibido en este paso). Los campos heredan espaciado de `.form-group` pero no el estilo de input centralizado.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -q` → tests en verde.
+- Verificación: cero bloques `<style>` en los 5 templates modificados.

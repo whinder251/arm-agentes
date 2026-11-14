@@ -2,352 +2,87 @@
 {% load l10n %}
 
 {% block content %}
-<style>
-    .agente-columnas {
-        display: flex;
-        gap: 24px;
-        align-items: flex-start;
-        margin-top: 16px;
-    }
-    .agente-izquierda {
-        flex: 3 1 0;
-    }
-    .agente-derecha {
-        flex: 2 1 0;
-    }
-    .agente-izquierda h3,
-    .agente-derecha h3 {
-        font-weight: 600;
-        letter-spacing: -0.02em;
-        margin: 0 0 16px 0;
-        padding-bottom: 8px;
-        border-bottom: 1px solid #D2D2D7;
-    }
-    .campo {
-        margin-bottom: 20px;
-    }
-    .campo label {
-        display: block;
-        margin-bottom: 6px;
-        font-size: 0.9rem;
-        font-weight: 500;
-        color: #1D1D1F;
-    }
-    .campo input[type="text"] {
-        display: block;
-        width: 100%;
-        padding: 10px 12px;
-        border: 1px solid #D2D2D7;
-        border-radius: 8px;
-        background: #FFFFFF;
-        color: #1D1D1F;
-        box-sizing: border-box;
-        font-size: 0.95rem;
-        font-family: inherit;
-    }
-    .campo input[type="text"]:focus,
-    .rol-textarea:focus {
-        border-color: #0071E3;
-        outline: none;
-        box-shadow: 0 0 0 3px rgba(0,113,227,0.15);
-    }
-    .plantillas {
-        display: flex;
-        gap: 8px;
-        margin-bottom: 10px;
-        flex-wrap: wrap;
-    }
-    .btn-plantilla {
-        background: #FFFFFF;
-        color: #1D1D1F;
-        border: 1px solid #D2D2D7;
-        border-radius: 8px;
-        padding: 6px 12px;
-        cursor: pointer;
-        font-size: 0.8rem;
-        font-family: inherit;
-        transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
-    }
-    .btn-plantilla:hover {
-        border-color: #0071E3;
-        color: #0071E3;
-        background: rgba(0,113,227,0.06);
-    }
-    .rol-textarea {
-        display: block;
-        width: 100%;
-        box-sizing: border-box;
-        background: #FFFFFF;
-        color: #1D1D1F;
-        border: 1px solid #D2D2D7;
-        border-radius: 8px;
-        padding: 12px;
-        font-family: Consolas, "Courier New", monospace;
-        font-size: 0.88rem;
-        line-height: 1.45;
-        resize: vertical;
-    }
-    .temperatura-fila {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-    .temperatura-fila input[type="range"] {
-        flex: 1 1 auto;
-        -webkit-appearance: none;
-        appearance: none;
-        height: 6px;
-        background: #0071E3;
-        border: none;
-        border-radius: 3px;
-        outline: none;
-        cursor: pointer;
-    }
-    .temperatura-fila input[type="range"]::-webkit-slider-runnable-track {
-        height: 6px;
-        background: #0071E3;
-        border-radius: 3px;
-    }
-    .temperatura-fila input[type="range"]::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        appearance: none;
-        width: 18px;
-        height: 18px;
-        margin-top: -6px;
-        background: #FFFFFF;
-        border: 2px solid #0071E3;
-        border-radius: 50%;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.15);
-        cursor: pointer;
-    }
-    .temperatura-fila input[type="range"]::-moz-range-track {
-        height: 6px;
-        background: #0071E3;
-        border-radius: 3px;
-    }
-    .temperatura-fila input[type="range"]::-moz-range-thumb {
-        width: 18px;
-        height: 18px;
-        background: #FFFFFF;
-        border: 2px solid #0071E3;
-        border-radius: 50%;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.15);
-        cursor: pointer;
-    }
-    .temperatura-valor {
-        min-width: 34px;
-        text-align: right;
-        font-family: Consolas, "Courier New", monospace;
-        font-size: 0.9rem;
-        color: #6E6E73;
-    }
-    .modelos-lista {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        margin-bottom: 22px;
-    }
-    .modelo-card {
-        position: relative;
-        display: block;
-        border: 1px solid #D2D2D7;
-        border-left: 3px solid #D2D2D7;
-        border-radius: 12px;
-        background: #FFFFFF;
-        padding: 12px 16px;
-        cursor: pointer;
-        font-size: 0.9rem;
-        color: #1D1D1F;
-        box-sizing: border-box;
-        transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
-    }
-    .modelo-card input[type="radio"] {
-        position: absolute;
-        opacity: 0;
-        width: 1px;
-        height: 1px;
-    }
-    .modelo-card:has(input:checked),
-    .modelo-card.seleccionada {
-        border-color: #0071E3;
-        border-left: 4px solid #0071E3;
-        background: #F5F5F7;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
-    }
-    .habilidades-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-    }
-    .habilidad-card {
-        position: relative;
-        display: block;
-        border: 1px solid #D2D2D7;
-        border-left: 3px solid #D2D2D7;
-        border-radius: 12px;
-        background: #FFFFFF;
-        padding: 12px 14px;
-        cursor: pointer;
-        box-sizing: border-box;
-        transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
-    }
-    .habilidad-card input[type="checkbox"] {
-        position: absolute;
-        opacity: 0;
-        width: 1px;
-        height: 1px;
-    }
-    .habilidad-card:has(input:checked),
-    .habilidad-card.seleccionada {
-        border-color: #0071E3;
-        border-left: 4px solid #0071E3;
-        background: #F5F5F7;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
-    }
-    .habilidad-nombre {
-        display: block;
-        font-size: 0.9rem;
-        font-weight: 500;
-        color: #1D1D1F;
-    }
-    .habilidad-slug {
-        display: block;
-        font-family: Consolas, "Courier New", monospace;
-        font-size: 0.75rem;
-        color: #6E6E73;
-        margin-top: 2px;
-    }
-    .nota-vacia {
-        font-size: 0.85rem;
-        color: #6E6E73;
-    }
-    .errores {
-        color: #FF3B30;
-        font-size: 0.88rem;
-    }
-    .errores ul {
-        color: #FF3B30;
-        margin: 0 0 8px 0;
-        padding-left: 18px;
-    }
-    .acciones {
-        margin-top: 24px;
-        padding-top: 20px;
-        border-top: 1px solid #D2D2D7;
-    }
-    .acciones .btn {
-        border: none;
-        cursor: pointer;
-    }
-    .btn-cancelar {
-        background-color: transparent;
-        color: #1D1D1F;
-        border: 1px solid #D2D2D7;
-        border-radius: 8px;
-        padding: 10px 18px;
-        margin-left: 8px;
-        font-size: 0.9rem;
-        font-weight: 500;
-        font-family: inherit;
-        text-decoration: none;
-        display: inline-block;
-        transition: border-color 0.15s ease, color 0.15s ease;
-    }
-    .btn-cancelar:hover {
-        border-color: #0071E3;
-        color: #0071E3;
-    }
-</style>
+<div class="tarjeta">
+    <h2>Nuevo agente</h2>
 
-<h2>Nuevo agente</h2>
+    <form method="post" action="{% url 'crear_agente' %}">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+        <div class="errores">{{ form.non_field_errors }}</div>
+        {% endif %}
 
-<form method="post" action="{% url 'crear_agente' %}">
-    {% csrf_token %}
-    {% if form.non_field_errors %}
-    <div class="errores">{{ form.non_field_errors }}</div>
-    {% endif %}
+        <div class="form-group">
+            <label for="id_nombre">Nombre</label>
+            <input type="text" id="id_nombre" name="nombre" required class="input"
+                   value="{{ form.nombre.value|default_if_none:'' }}">
+            <div class="errores">{{ form.nombre.errors }}</div>
+        </div>
 
-    <div class="agente-columnas">
-        <div class="agente-izquierda">
-            <h3>Identidad y cerebro</h3>
-
-            <div class="campo">
-                <label for="id_nombre">Nombre</label>
-                <input type="text" id="id_nombre" name="nombre" required
-                       value="{{ form.nombre.value|default_if_none:'' }}">
-                <div class="errores">{{ form.nombre.errors }}</div>
+        <div class="form-group">
+            <label for="id_rol">Rol (system prompt)</label>
+            <div class="plantillas">
+                <button type="button" class="btn-plantilla"
+                        data-plantilla="redactor">Redactor SEO</button>
+                <button type="button" class="btn-plantilla"
+                        data-plantilla="analista">Analista</button>
+                <button type="button" class="btn-plantilla"
+                        data-plantilla="asistente">Asistente</button>
             </div>
+            <textarea id="id_rol" name="rol" class="input"
+                      rows="14" required>{{ form.rol.value|default_if_none:'' }}</textarea>
+            <div class="errores">{{ form.rol.errors }}</div>
+        </div>
 
-            <div class="campo">
-                <label for="id_rol">Rol (system prompt)</label>
-                <div class="plantillas">
-                    <button type="button" class="btn-plantilla"
-                            data-plantilla="redactor">Redactor SEO</button>
-                    <button type="button" class="btn-plantilla"
-                            data-plantilla="analista">Analista</button>
-                    <button type="button" class="btn-plantilla"
-                            data-plantilla="asistente">Asistente</button>
-                </div>
-                <textarea id="id_rol" name="rol" class="rol-textarea"
-                          rows="14" required>{{ form.rol.value|default_if_none:'' }}</textarea>
-                <div class="errores">{{ form.rol.errors }}</div>
+        <div class="form-group">
+            <label for="id_temperatura">Temperatura</label>
+            <div class="temperatura-fila">
+                <input type="range" id="id_temperatura" name="temperatura"
+                       min="0" max="2" step="0.1"
+                       value="{{ form.temperatura.value|default:'0.7'|unlocalize }}">
+                <output class="temperatura-valor"
+                        for="id_temperatura">{{ form.temperatura.value|default:'0.7'|unlocalize }}</output>
             </div>
+            <div class="errores">{{ form.temperatura.errors }}</div>
+        </div>
 
-            <div class="campo">
-                <label for="id_temperatura">Temperatura</label>
-                <div class="temperatura-fila">
-                    <input type="range" id="id_temperatura" name="temperatura"
-                           min="0" max="2" step="0.1"
-                           value="{{ form.temperatura.value|default:'0.7'|unlocalize }}">
-                    <output class="temperatura-valor"
-                            for="id_temperatura">{{ form.temperatura.value|default:'0.7'|unlocalize }}</output>
-                </div>
-                <div class="errores">{{ form.temperatura.errors }}</div>
+        <div class="form-group">
+            <label>Modelo</label>
+            <div class="modelos-lista">
+                {% for radio in form.modelo %}
+                <label class="modelo-card">
+                    {{ radio.tag }}
+                    <span>{{ radio.choice_label }}</span>
+                </label>
+                {% empty %}
+                <p class="nota-vacia">No hay modelos activos. Crea uno en Configuraci&oacute;n.</p>
+                {% endfor %}
+            </div>
+            <div class="errores">{{ form.modelo.errors }}</div>
+        </div>
+
+        <div class="form-group">
+            <label>Habilidades</label>
+            <div class="habilidades-grid">
+                {% for habilidad in habilidades %}
+                <label class="habilidad-card">
+                    <input type="checkbox" name="habilidades"
+                           value="{{ habilidad.id }}"
+                           {% if habilidad.id|stringformat:"s" in habilidades_seleccionadas %}checked{% endif %}>
+                    <span class="habilidad-nombre">{{ habilidad.nombre }}</span>
+                    <span class="habilidad-slug">{{ habilidad.slug }}</span>
+                </label>
+                {% empty %}
+                <p class="nota-vacia">No hay habilidades registradas.</p>
+                {% endfor %}
             </div>
         </div>
 
-        <div class="agente-derecha">
-            <h3>Herramientas</h3>
-
-            <div class="campo">
-                <label>Modelo</label>
-                <div class="modelos-lista">
-                    {% for radio in form.modelo %}
-                    <label class="modelo-card">
-                        {{ radio.tag }}
-                        <span>{{ radio.choice_label }}</span>
-                    </label>
-                    {% empty %}
-                    <p class="nota-vacia">No hay modelos activos. Crea uno en Configuraci&oacute;n.</p>
-                    {% endfor %}
-                </div>
-                <div class="errores">{{ form.modelo.errors }}</div>
-            </div>
-
-            <div class="campo">
-                <label>Habilidades</label>
-                <div class="habilidades-grid">
-                    {% for habilidad in habilidades %}
-                    <label class="habilidad-card">
-                        <input type="checkbox" name="habilidades"
-                               value="{{ habilidad.id }}"
-                               {% if habilidad.id|stringformat:"s" in habilidades_seleccionadas %}checked{% endif %}>
-                        <span class="habilidad-nombre">{{ habilidad.nombre }}</span>
-                        <span class="habilidad-slug">{{ habilidad.slug }}</span>
-                    </label>
-                    {% empty %}
-                    <p class="nota-vacia">No hay habilidades registradas.</p>
-                    {% endfor %}
-                </div>
-            </div>
+        <div class="acciones">
+            <button type="submit" class="btn-primary">Guardar agente</button>
+            <a class="btn-secondary" href="{% url 'configuracion' %}">Cancelar</a>
         </div>
-    </div>
-
-    <div class="acciones">
-        <button type="submit" class="btn">Guardar agente</button>
-        <a class="btn-cancelar" href="{% url 'configuracion' %}">Cancelar</a>
-    </div>
-</form>
+    </form>
+</div>
 
 <script>
     var plantillas = {
