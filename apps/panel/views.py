@@ -436,7 +436,7 @@ def ejecutar_workflow(request, pk):
         return redirect("lista_workflows")
     workflow.estado = "en_ejecucion"
     workflow.save(update_fields=["estado"])
-    continuar_workflow.delay(workflow.pk, 1)
+    continuar_workflow(workflow.pk, 1)
     messages.success(
         request, f"Workflow '{workflow.nombre}' puesto en ejecución."
     )
