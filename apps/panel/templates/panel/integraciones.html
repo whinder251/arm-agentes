@@ -6,6 +6,16 @@
     <p class="subtitulo">Credenciales de conexión con servicios externos.</p>
 </div>
 
+{% if nueva_clave_arm %}
+<div class="alerta-error">
+    <strong>Copia esta clave ahora. No se volverá a mostrar.</strong>
+</div>
+<div class="api-key-fila">
+    <input type="text" class="input" value="{{ nueva_clave_arm }}" readonly>
+    <button type="button" class="btn-secondary" onclick="copiarClave(this)">Copiar</button>
+</div>
+{% endif %}
+
 <div class="tarjeta">
     <h3>Integraciones configuradas</h3>
     {% if integraciones %}
@@ -16,6 +26,7 @@
                 <th>Tipo</th>
                 <th>Estado</th>
                 <th>Actualizado</th>
+                <th class="acciones">Acciones</th>
             </tr>
         </thead>
         <tbody>
@@ -31,32 +42,22 @@
                     {% endif %}
                 </td>
                 <td class="fecha">{{ integracion.actualizado_en|date:"d/m/Y H:i" }}</td>
+                <td class="acciones">
+                    {% if integracion.tipo == 'arm_api' %}
+                    <form method="post" action="{% url 'integraciones' %}" class="form-eliminar">
+                        {% csrf_token %}
+                        <button type="submit" name="rotar_arm_api" value="1" class="btn-danger">Rotar Clave API</button>
+                    </form>
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
     {% else %}
     <p class="vacio">No hay integraciones configuradas.</p>
-    {% endif %}
-</div>
-
-<div class="tarjeta">
-    <h3>ARM API Key</h3>
-    <p class="subtexto">Clave para autenticar peticiones a la API REST de ARM. La rotación invalida la clave anterior inmediatamente.</p>
-
-    <form method="post" action="{% url 'integraciones' %}">
-        {% csrf_token %}
-        <button type="submit" name="rotar_arm_api" value="1" class="btn-danger">Rotar Clave API</button>
-    </form>
-
-    {% if nueva_clave_arm %}
-    <div class="alerta-error">
-        <strong>Copia esta clave ahora. No se volverá a mostrar.</strong>
-    </div>
-    <div class="api-key-fila">
-        <input type="text" class="input" value="{{ nueva_clave_arm }}" readonly>
-        <button type="button" class="btn-secondary" onclick="copiarClave(this)">Copiar</button>
-    </div>
     {% endif %}
 </div>
 

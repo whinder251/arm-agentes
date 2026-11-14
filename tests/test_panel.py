@@ -5,7 +5,7 @@ from django.test import TestCase
 from django.urls import reverse
 from apps.core.models import (
     Proveedor, ModeloLLM, Habilidad, Agente, Equipo, Tarea, Artefacto, Ejecucion,
-    Workflow, PasoWorkflow, DestinoPublicacion,
+    Workflow, PasoWorkflow, DestinoPublicacion, IntegracionConfig,
 )
 
 @pytest.mark.django_db
@@ -33,6 +33,11 @@ class TestPanel(TestCase):
             rol='Eres un editor experto.'
         )
         self.agente.habilidades.add(self.habilidad)
+        IntegracionConfig.objects.create(
+            nombre='ARM API',
+            tipo='arm_api',
+            activa=True,
+        )
 
     def test_lista_requiere_login(self):
         url = reverse('lista_tareas')
@@ -157,6 +162,7 @@ class TestPanel(TestCase):
         content = response.content.decode('utf-8')
         assert 'Integraciones del Sistema' in content
         assert 'Rotar Clave API' in content
+        assert 'ARM API Key' not in content
 
     def test_lista_ejecuciones_render(self):
         tarea = Tarea.objects.create(
@@ -545,6 +551,8 @@ class TestPanel(TestCase):
         response = self.client.get(url)
         assert response.status_code == 200
         content = response.content.decode('utf-8')
+        assert 'Integraciones del Sistema' in content
+        assert 'Rotar Clave API' in content
         assert 'Destinos de Publicación' in content
         assert 'Añadir Destino' in content
 
