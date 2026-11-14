@@ -355,3 +355,51 @@ p {
   line-height: 1.5;
   margin: 0 0 var(--space-md) 0;
 }
+
+/* ============================================================
+   Paso B.5: Corrección de errores de UI/UX
+   ============================================================ */
+
+/* Cabecera de página reutilizable */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.page-header h1 {
+  margin: 0;
+}
+
+.page-header .cuenta {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.page-header .acciones-encabezado {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Botón eliminar compacto destructivo (filas de tabla) */
+.btn-danger-sm {
+  background: transparent;
+  border: 1px solid var(--error);
+  color: var(--error);
+  border-radius: var(--radius-md);
+  padding: 4px 10px;
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+  font-family: inherit;
+}
+
+.btn-danger-sm:hover {
+  background: var(--error);
+  color: #fff;
+}

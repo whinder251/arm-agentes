@@ -220,3 +220,24 @@ Templates de listado limpiados de CSS embebido; clases centralizadas en `static/
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -q` → tests relevantes en verde.
 
 Deuda técnica de B.3 resuelta y sidebar con iconos SVG profesionales para completar el look ARM Flow.
+
+## Paso B.5 - Corrección de errores de UI/UX — COMPLETADO
+
+**Objetivo:** Arreglar el botón "Nueva tarea" superpuesto, el botón "Eliminar" sin estilo destructivo y los badges de estado planos en la tabla de tareas, heredando todo del sistema ARM Flow centralizado.
+
+**Archivos tocados:**
+- `static/css/app.css`: añadido `.page-header`, `.page-header h1`, `.page-header .cuenta`, `.page-header .acciones-encabezado` y `.btn-danger-sm` con su `:hover` al final del archivo.
+- `apps/panel/templates/panel/tareas.html`: clase del contenedor de encabezado `encabezado-tareas` → `page-header`; el div interior ya usaba `acciones-encabezado` y coincide con la regla centralizada.
+- `apps/panel/templates/panel/fila_tarea.html`: botón eliminar `btn-eliminar-tarea` → `btn-danger-sm`; badge de estado mapeado a clases centrales (ok→badge-success, fallo→badge-error, revision→badge-warning, cola/curso→badge-info) mediante condicional.
+- `docs/plan.md`: esta sección.
+
+**Reglas respetadas:**
+- No se modificó views.py, urls.py, forms.py ni ningún archivo Python.
+- No se tocó la lógica HTMX de fila_tarea.html (atributos hx-*, id, formularios); solo nombres de clases CSS.
+- No se tocó base.html.
+
+**Nota:** Estos defectos surgieron porque los tests de Django no validan layout CSS; la verificación visual requiere navegador.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "sidebar or eliminar or aprobar" -q` → tests en verde.
