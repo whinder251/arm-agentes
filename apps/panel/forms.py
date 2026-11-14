@@ -4,9 +4,22 @@ from apps.core.models import Agente, Habilidad, Proveedor, ModeloLLM
 
 
 class ProveedorForm(forms.ModelForm):
+    cambiar_api_key = forms.BooleanField(required=False, label='Cambiar API key')
+
     class Meta:
         model = Proveedor
         fields = ["nombre", "base_url", "api_key", "rpm", "limite_diario"]
+        widgets = {
+            "api_key": forms.TextInput,
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name, field in self.fields.items():
+            field.widget.attrs.update({'class': 'input'})
+        if self.instance and self.instance.pk and self.instance.api_key:
+            self.initial['api_key'] = f"****{self.instance.api_key[-4:]}"
+            self.fields['api_key'].widget.attrs.update({'readonly': 'readonly'})
 
 
 class ModeloLLMForm(forms.ModelForm):

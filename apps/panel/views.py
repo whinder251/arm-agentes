@@ -557,10 +557,17 @@ def lista_proveedores(request):
 def editar_proveedor(request, pk):
     """Edita un proveedor existente, reutilizando ProveedorForm."""
     proveedor = get_object_or_404(Proveedor, pk=pk)
+    clave_original = proveedor.api_key
     if request.method == "POST":
         form = ProveedorForm(request.POST, instance=proveedor)
         if form.is_valid():
-            form.save()
+            proveedor_obj = form.save(commit=False)
+            if not form.cleaned_data.get('cambiar_api_key'):
+                proveedor_obj.api_key = clave_original
+            else:
+                nueva_key = form.cleaned_data.get('nueva_api_key') or request.POST.get('nueva_api_key')
+                proveedor_obj.api_key = nueva_key if nueva_key else clave_original
+            proveedor_obj.save()
             return redirect("lista_proveedores")
     else:
         form = ProveedorForm(instance=proveedor)

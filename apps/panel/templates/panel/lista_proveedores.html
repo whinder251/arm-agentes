@@ -56,14 +56,53 @@
 {% endif %}
 
 {% if form and proveedor_editar %}
-<div class="tarjeta">
+<div class="tarjeta" style="margin-top: 24px;">
     <h3>Editar proveedor: {{ proveedor_editar.nombre }}</h3>
-    <form method="post" action="{% url 'editar_proveedor' proveedor_editar.pk %}">
+    <form method="post">
         {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit" class="btn-primary">Guardar cambios</button>
-        <a href="{% url 'lista_proveedores' %}" class="btn-secondary">Cancelar</a>
+        <div class="form-group">
+            <label for="id_nombre">Nombre</label>
+            {{ form.nombre }}
+        </div>
+        <div class="form-group">
+            <label for="id_base_url">Base URL</label>
+            {{ form.base_url }}
+        </div>
+        <div class="form-group">
+            <label for="id_api_key">API Key</label>
+            {{ form.api_key }}
+            <p class="ayuda">La clave está enmascarada por seguridad. Marca "Cambiar API key" para ingresar una nueva.</p>
+        </div>
+        <div class="form-group">
+            <label>
+                <input type="checkbox" name="cambiar_api_key" id="id_cambiar_api_key">
+                Cambiar API key
+            </label>
+        </div>
+        <div class="form-group" id="nueva_api_key_group" style="display: none;">
+            <label for="id_nueva_api_key">Nueva API Key</label>
+            <textarea id="id_nueva_api_key" name="nueva_api_key" class="input" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+            <label for="id_rpm">RPM</label>
+            {{ form.rpm }}
+            <p class="ayuda">Peticiones por minuto. 0 significa sin límite.</p>
+        </div>
+        <div class="form-group">
+            <label for="id_limite_diario">Límite diario</label>
+            {{ form.limite_diario }}
+            <p class="ayuda">Llamadas por día. 0 significa sin límite.</p>
+        </div>
+        <div class="acciones-formulario">
+            <button type="submit" class="btn-primary">Guardar cambios</button>
+            <a href="{% url 'lista_proveedores' %}" class="btn-secondary">Cancelar</a>
+        </div>
     </form>
 </div>
+<script>
+    document.getElementById('id_cambiar_api_key').addEventListener('change', function() {
+        document.getElementById('nueva_api_key_group').style.display = this.checked ? 'block' : 'none';
+    });
+</script>
 {% endif %}
 {% endblock %}

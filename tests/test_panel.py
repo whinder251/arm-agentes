@@ -494,3 +494,47 @@ class TestPanel(TestCase):
         assert 'Gestión de modelos de IA por proveedor' in content
         assert self.modelo.model_id in content
         assert self.proveedor.nombre in content
+
+    def test_editar_proveedor_render(self):
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('editar_proveedor', args=[self.proveedor.pk])
+        response = self.client.get(url)
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        assert 'Editar proveedor' in content
+        assert self.proveedor.nombre in content
+        assert '****' in content
+        assert 'Cambiar API key' in content
+
+    def test_editar_proveedor_no_cambiar_api_key_conserva_clave(self):
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('editar_proveedor', args=[self.proveedor.pk])
+        clave_original = self.proveedor.api_key
+        response = self.client.post(url, {
+            'nombre': 'gemini-editado',
+            'base_url': 'http://editado.invalid',
+            'api_key': '****fake',
+            'rpm': '100',
+            'limite_diario': '1000',
+        })
+        assert response.status_code == 302
+        assert response.url == reverse('lista_proveedores')
+        self.proveedor.refresh_from_db()
+        assert self.proveedor.api_key == clave_original
+
+    def test_editar_proveedor_cambiar_api_key_actualiza_clave(self):
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('editar_proveedor', args=[self.proveedor.pk])
+        nueva_clave = 'sk-nueva-clave-secreta-1234'
+        response = self.client.post(url, {
+            'nombre': 'gemini-editado',
+            'base_url': 'http://editado.invalid',
+            'cambiar_api_key': 'on',
+            'nueva_api_key': nueva_clave,
+            'rpm': '100',
+            'limite_diario': '1000',
+        })
+        assert response.status_code == 302
+        assert response.url == reverse('lista_proveedores')
+        self.proveedor.refresh_from_db()
+        assert self.proveedor.api_key == nueva_clave

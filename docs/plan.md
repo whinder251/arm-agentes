@@ -442,3 +442,23 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 **Evidencia de aceptación (ejecutado en esta sesión):**
 - `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "sidebar or proveedor or modelo" -q` → `4 passed`.
+
+## Paso C.4 - Mejora visual del editor de proveedores y ocultamiento de API keys — COMPLETADO
+
+**Objetivo:** (1) Aplicar clases ARM Flow al formulario de edición de proveedor. (2) Enmascarar la API key mostrando solo los últimos 4 caracteres, con checkbox "Cambiar API key" que revela un textarea vacío para ingresar una nueva clave.
+
+**Archivos tocados:**
+- `apps/panel/forms.py`: `ProveedorForm` con `.input` en todos los campos, `api_key` como `TextInput` readonly enmascarado (`****XXXX`) cuando hay instancia, campo `cambiar_api_key` BooleanField.
+- `apps/panel/views.py`: `editar_proveedor` captura `clave_original` antes del form; si no `cambiar_api_key` restaura la clave existente; si está marcado, usa `nueva_api_key` de `request.POST`.
+- `apps/panel/templates/panel/lista_proveedores.html`: formulario de edición reestructurado con `.tarjeta`, `.form-group`, `.input`, `.btn-primary`, `.btn-secondary`, `.ayuda`, checkbox toggle y script show/hide del textarea nueva clave.
+- `tests/test_panel.py`: 3 pruebas nuevas (`test_editar_proveedor_render`, `test_editar_proveedor_no_cambiar_api_key_conserva_clave`, `test_editar_proveedor_cambiar_api_key_actualiza_clave`).
+
+**Reglas respetadas:**
+- No se modificó models.py, urls.py ni la lógica de cifrado (EncryptedTextField).
+- Estilo ARM Flow estricto: .tarjeta, .form-group, .input, .btn-primary, .btn-secondary, .ayuda.
+- No se ejecutó git push.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "proveedor" -q` → `4 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -q` → `33 passed`.
