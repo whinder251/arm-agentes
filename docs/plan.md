@@ -151,3 +151,25 @@ Sidebar oscuro, enlaces en gris, activo en índigo; CSS centralizado en static/c
 - `pytest -q`: 18 tests de test_panel pasan antes de un cuelgue preexistente de entorno en un test posterior (no relacionado con este cambio; no modifica lógica ni tests).
 
 Nota: `pytest -q` completo se cuelga en un test preexistente de entorno (no relacionado con STATICFILES_DIRS); manage.py check y la verificación de STATICFILES_DIRS pasan correctamente.
+
+## Paso B.2 - Limpieza de CSS embebido en templates de listado — COMPLETADO
+
+**Objetivo:** Eliminar los bloques `<style>` duplicados de los templates de listado principales y adaptar sus clases HTML para que usen el sistema de diseño ARM Flow centralizado en `static/css/app.css`.
+
+**Archivos tocados:**
+- `apps/panel/templates/panel/tareas.html`: eliminado TODO el bloque `<style>...</style>`. Clases cambiadas: `.btn-nueva` → `.btn-primary`, `.btn-publicar` → `.btn-primary`, pills de filtro `.btn-secondary`/`.btn-primary` (activo), `.tabla-tareas` → `.tabla`, badge dinámico mapeado (ok→success, fallo→error, revision→warning, cola/curso→info).
+- `apps/panel/templates/panel/lista_workflows.html`: eliminado TODO el bloque `<style>...</style>`. Clases cambiadas: `.btn-acento` → `.btn-primary`, `.btn-ejecutar` → `.btn-primary`, `table.workflows` → `table.tabla`, badge dinámico mapeado (en_ejecucion→info, completado→success, fallido→error, borrador→badge base).
+- `apps/panel/templates/panel/lista_equipos.html`: eliminado TODO el bloque `<style>...</style>`. Clases cambiadas: `.btn-acento` → `.btn-primary`, `.btn-eliminar` → `.btn-danger`, `table.equipos` → `table.tabla`.
+- `apps/panel/templates/panel/lista_ejecuciones.html`: eliminado TODO el bloque `<style>...</style>`. Clases cambiadas: `.badge-exito` → `.badge badge-success`, `table.ejecuciones` → `table.tabla`.
+- `docs/plan.md`: esta sección.
+
+**Reglas respetadas:**
+- No se modificó `views.py`, `urls.py` ni ningún archivo `.py`.
+- No se modificó la estructura HTML lógica (solo nombres de clases CSS y eliminación de bloques `<style>`).
+- `fila_tarea.html` no se modificó (no está en el alcance de los 4 archivos autorizados); las clases `.btn-aprobar` y `.btn-eliminar-tarea` se mantienen para no romper `test_lista_muestra_formulario_eliminar`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -q` → tests relevantes en verde (sidebar, listados, crear/aprobar/eliminar tareas).
+
+Templates de listado limpiados de CSS embebido; clases centralizadas en `static/css/app.css`; sin fondos crema ni emojis.

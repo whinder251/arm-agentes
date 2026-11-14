@@ -1,89 +1,13 @@
 {% extends "panel/base.html" %}
 
 {% block content %}
-<style>
-    .cabecera-lista {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 16px;
-        border-bottom: 1px solid #D2D2D7;
-        padding-bottom: 16px;
-        margin-bottom: 24px;
-    }
-    .cabecera-lista h2 {
-        margin: 0;
-        font-weight: 600;
-        letter-spacing: -0.02em;
-    }
-    .subtitulo {
-        color: #6E6E73;
-        font-size: 1rem;
-        margin: 0 0 24px 0;
-    }
-    table.ejecuciones {
-        width: 100%;
-        border-collapse: separate;
-        border-spacing: 0;
-        background: #FFFFFF;
-        border: 1px solid #D2D2D7;
-        border-radius: 12px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
-        overflow: hidden;
-    }
-    table.ejecuciones th {
-        text-align: left;
-        font-weight: 600;
-        font-size: 0.75rem;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-        color: #6E6E73;
-        background: #F5F5F7;
-        border-bottom: 1px solid #D2D2D7;
-        padding: 12px 16px;
-    }
-    table.ejecuciones td {
-        border-bottom: 1px solid #D2D2D7;
-        padding: 14px 16px;
-        vertical-align: middle;
-        font-size: 0.9rem;
-    }
-    table.ejecuciones tbody tr:last-child td {
-        border-bottom: none;
-    }
-    table.ejecuciones tbody tr:hover {
-        background: #FAFAFC;
-    }
-    .badge {
-        display: inline-block;
-        padding: 4px 10px;
-        border-radius: 12px;
-        font-size: 0.75rem;
-        font-weight: 500;
-    }
-    .badge-exito { background: #E9F7EF; color: #34C759; }
-    .badge-error { background: #FEE4E2; color: #FF3B30; }
-    .vacio {
-        color: #6E6E73;
-        text-align: center;
-        padding: 48px 24px;
-    }
-    .fecha {
-        color: #6E6E73;
-        font-size: 0.85rem;
-    }
-    .mono {
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        font-size: 0.85rem;
-    }
-</style>
 
 <div class="cabecera-lista">
     <h2>Historial de Ejecuciones</h2>
 </div>
 <p class="subtitulo">Auditoría de consumo y rendimiento</p>
 
-<table class="ejecuciones">
+<table class="tabla">
     <thead>
         <tr>
             <th>Fecha/Hora</th>
@@ -106,7 +30,7 @@
                 {% if ejecucion.error %}
                 <span class="badge badge-error">error</span>
                 {% else %}
-                <span class="badge badge-exito">éxito</span>
+                <span class="badge badge-success">éxito</span>
                 {% endif %}
             </td>
         </tr>
