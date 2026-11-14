@@ -7,7 +7,7 @@ from django.views.decorators.http import require_POST
 from django import forms
 from django.conf import settings
 from django.db import models
-from django.db.models import Sum
+from django.db.models import Sum, ProtectedError
 from django.forms import inlineformset_factory
 from apps.core.models import (
     Tarea, Proveedor, ModeloLLM, Habilidad, Agente, Equipo, Workflow, PasoWorkflow,
@@ -321,7 +321,14 @@ def editar_habilidad(request, pk):
 @require_POST
 def eliminar_habilidad(request, pk):
     habilidad = get_object_or_404(Habilidad, pk=pk)
-    habilidad.delete()
+    try:
+        habilidad.delete()
+    except ProtectedError:
+        messages.error(
+            request,
+            "No se puede eliminar: está siendo utilizado en tareas o workflows activos.",
+        )
+        return redirect("lista_habilidades")
     return redirect("lista_habilidades")
 
 
@@ -365,7 +372,14 @@ def editar_agente(request, pk):
 @require_POST
 def eliminar_agente(request, pk):
     agente = get_object_or_404(Agente, pk=pk)
-    agente.delete()
+    try:
+        agente.delete()
+    except ProtectedError:
+        messages.error(
+            request,
+            "No se puede eliminar: está siendo utilizado en tareas o workflows activos.",
+        )
+        return redirect("lista_agentes")
     return redirect("lista_agentes")
 
 

@@ -7,23 +7,7 @@
 
     <div class="tarjeta">
         <h3>ARM_API_KEY</h3>
-        <div class="api-key-fila">
-            <code id="api-key">{{ arm_api_key }}</code>
-            <button type="button" class="btn-primary" onclick="copiarClave()">Copiar</button>
-        </div>
-        <p class="subtexto">Mantén esta clave segura. Es requerida para autenticar peticiones a la API REST de ARM.</p>
+        <p class="subtexto">Por seguridad, la clave de API no se muestra en el panel. Gestiona esta clave exclusivamente a través de la variable de entorno ARM_API_KEY en tu archivo .env.</p>
     </div>
 </div>
 {% endblock %}
-
-<script>
-function copiarClave() {
-    const clave = document.getElementById('api-key').textContent;
-    navigator.clipboard.writeText(clave).then(function() {
-        const btn = document.querySelector('button[onclick="copiarClave()"]');
-        const textoOriginal = btn.textContent;
-        btn.textContent = 'Copiado';
-        setTimeout(function() { btn.textContent = textoOriginal; }, 1500);
-    });
-}
-</script>

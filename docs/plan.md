@@ -328,3 +328,49 @@ Cero CSS embebido, cero clases huérfanas en el panel; Bloque B al 100%.
 **Nota de corrección de matriz B.6:** `.filtros` (nav contenedor) no quedó cubierta en B.7; se define aquí en el Paso B.10.
 
 El menu de filtros de tareas ahora tiene contenedor propio en app.css sin solaparse sobre la cabecera de la tabla; sin fondos crema ni emojis.
+
+## Paso C.1a - Diagnóstico y preparación segura de variables de entorno — COMPLETADO
+
+**Objetivo:** Crear un .env real con claves válidas, preparar el terreno para el blindaje estricto de C.1b y evitar que .env se commitee por error.
+
+**Archivos tocados:**
+- `config/settings.py`: añadido `import os` al inicio; comentario TODO C.1b junto a `SECRET_KEY` (valor sin cambiar todavía).
+- `apps/core/models.py`: comentario TODO C.1b en `EncryptedTextField` (lógica de fallback sin cambiar todavía).
+- `.env.example` (nuevo): `SECRET_KEY`, `ARM_ENCRYPTION_KEY` y `ARM_API_KEY` con comentarios explicativos.
+- `apps/core/management/commands/generar_env.py` (nuevo): comando Django que genera `SECRET_KEY` y `ARM_ENCRYPTION_KEY`, escribe `.env` si no existe (sin sobrescribir), NO re-cifra api_key automáticamente e imprime aviso de re-ingresar API Keys en Configuración.
+- `apps/core/management/__init__.py` y `apps/core/management/commands/__init__.py` (nuevos): paquetes vacíos para que Django reconozca el comando.
+
+**Reglas respetadas:**
+- No se modificó urls.py, views.py, forms.py ni templates.
+- No se ejecutó git push.
+- No se hizo `git add .env` (archivo local y secreto).
+- Commit: "Paso C.1a: Preparación de entorno y script de generación de claves".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py generar_env` → `.env creado` + claves generadas + aviso de re-ingresar API Keys.
+
+**Pendiente:** Paso C.1b (blindaje estricto: SECRET_KEY y ARM_ENCRYPTION_KEY obligatorias por entorno con ImproperlyConfigured, eliminar fallback dinámico, ProtectedError en eliminar_agente/eliminar_habilidad, ocultar ARM_API_KEY en integraciones.html).
+
+## Paso C.1b - Blindaje estricto de entorno, cifrado e integridad al borrar — COMPLETADO
+
+**Objetivo:** Exigir variables de entorno obligatorias, eliminar fallbacks inseguros y manejar errores de integridad referencial de forma amigable (preparando el terreno para la refactorización de vistas en C.2).
+
+**Archivos tocados:**
+- `config/settings.py`: `SECRET_KEY = os.environ.get("SECRET_KEY")` con `ImproperlyConfigured` si falta.
+- `apps/core/models.py`: `EncryptedTextField` sin fallback dinámico; `ARM_ENCRYPTION_KEY` obligatoria por entorno y `_fernet` para cifrar/descifrar.
+- `apps/panel/views.py`: import `ProtectedError`; `eliminar_agente` y `eliminar_habilidad` envuelven `.delete()` en `try...except ProtectedError` con `messages.error` y `redirect` a `lista_agentes` / `lista_habilidades`.
+- `apps/panel/templates/panel/integraciones.html`: eliminado `{{ arm_api_key }}` y botón copiar; tarjeta de seguridad con mensaje claro y clases centrales.
+- `docs/plan.md`: esta sección.
+
+**Reglas respetadas:**
+- No se modificó `urls.py`, `forms.py` ni ningún otro archivo Python no listado.
+- No se ejecutó `git push`.
+- Variables de entorno cargadas desde `.env` antes de ejecutar comandos (Django no carga `.env` automáticamente).
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "eliminar" -q` → `3 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -q` → `28 passed`.
+
+SECRET_KEY y ARM_ENCRYPTION_KEY ahora son obligatorias por entorno; fallbacks dinámicos eliminados; borrado de agente/habilidad con dependencias protegidas devuelve error amigable; ARM_API_KEY ya no se expone en el panel.

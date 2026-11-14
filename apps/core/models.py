@@ -6,16 +6,12 @@ from django.db import models
 
 
 # Clave de cifrado para api_key de Proveedor (RB-013).
-# En producción es obligatorio definir ARM_ENCRYPTION_KEY como variable de entorno.
-# Si no existe, se genera una clave dinámicamente solo para desarrollo.
-_ENCRYPTION_KEY_RAW = os.environ.get("ARM_ENCRYPTION_KEY")
-if not _ENCRYPTION_KEY_RAW:
-    _ENCRYPTION_KEY_RAW = Fernet.generate_key().decode()
-ENCRYPTION_KEY = _ENCRYPTION_KEY_RAW
-_fernet = Fernet(ENCRYPTION_KEY.encode())
-
-
-# TODO C.1b: eliminar fallback, exigir ARM_ENCRYPTION_KEY por entorno
+# Es obligatorio definir ARM_ENCRYPTION_KEY como variable de entorno.
+from django.core.exceptions import ImproperlyConfigured
+_ENC_KEY = os.environ.get("ARM_ENCRYPTION_KEY")
+if not _ENC_KEY:
+    raise ImproperlyConfigured("La variable de entorno ARM_ENCRYPTION_KEY es obligatoria para cifrar las API keys.")
+_fernet = Fernet(_ENC_KEY.encode())
 class EncryptedTextField(models.TextField):
     """Campo de texto que cifra al guardar y descifra al leer desde la BD.
 
