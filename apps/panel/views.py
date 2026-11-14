@@ -567,6 +567,63 @@ def integraciones(request):
 
 
 @login_required
+def editar_destino(request, pk):
+    """Edita un destino de publicación, reutilizando DestinoPublicacionForm.
+
+    Si `cambiar_credenciales` NO está marcado, se conserva la credencial
+    cifrada original para no sobrescribirla con el valor enmascarado.
+    """
+    destino = get_object_or_404(DestinoPublicacion, pk=pk)
+    credenciales_originales = destino.credenciales
+    if request.method == "POST":
+        form = DestinoPublicacionForm(request.POST, instance=destino)
+        if form.is_valid():
+            destino_obj = form.save(commit=False)
+            if not form.cleaned_data.get('cambiar_credenciales'):
+                destino_obj.credenciales = credenciales_originales
+            else:
+                nueva = (
+                    request.POST.get('nueva_credenciales')
+                    or form.cleaned_data.get('credenciales')
+                    or credenciales_originales
+                )
+                destino_obj.credenciales = nueva
+            destino_obj.save()
+            messages.success(
+                request, f"Destino '{destino_obj.nombre}' actualizado."
+            )
+            return redirect("integraciones")
+    else:
+        form = DestinoPublicacionForm(instance=destino)
+    return render(request, "panel/integraciones.html", {
+        "destinos": (
+            DestinoPublicacion.objects.all().order_by("nombre")
+        ),
+        "form_destino": form,
+        "destino_editar": destino,
+    })
+
+
+@login_required
+@require_POST
+def eliminar_destino(request, pk):
+    """Elimina un destino con protección contra ProtectedError."""
+    destino = get_object_or_404(DestinoPublicacion, pk=pk)
+    nombre = destino.nombre
+    try:
+        destino.delete()
+    except ProtectedError:
+        messages.error(
+            request,
+            "No se puede eliminar el destino: está siendo utilizado por "
+            "tareas o workflows activos.",
+        )
+        return redirect("integraciones")
+    messages.success(request, f"Destino '{nombre}' eliminado.")
+    return redirect("integraciones")
+
+
+@login_required
 def lista_proveedores(request):
     """Lista de proveedores con sus modelos anidados."""
     proveedores = (

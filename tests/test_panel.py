@@ -5,7 +5,7 @@ from django.test import TestCase
 from django.urls import reverse
 from apps.core.models import (
     Proveedor, ModeloLLM, Habilidad, Agente, Equipo, Tarea, Artefacto, Ejecucion,
-    Workflow, PasoWorkflow,
+    Workflow, PasoWorkflow, DestinoPublicacion,
 )
 
 @pytest.mark.django_db
@@ -568,3 +568,44 @@ class TestPanel(TestCase):
         assert destino.tipo == 'wordpress'
         assert destino.credenciales == 'contraseña-app-secreta'
         assert destino.activa is True
+
+    def test_editar_destino_preserva_credenciales(self):
+        self.client.login(username='testuser', password='testpass123')
+        destino = DestinoPublicacion.objects.create(
+            nombre='Blog Editor',
+            tipo='wordpress',
+            url='https://blog.ejemplo.com',
+            usuario='admin',
+            credenciales='credencial-super-secreta-12345',
+            activa=True,
+        )
+        credencial_original = destino.credenciales
+        url = reverse('editar_destino', kwargs={'pk': destino.pk})
+        response = self.client.post(url, {
+            'nombre': 'Blog Editor Editado',
+            'tipo': 'wordpress',
+            'url': 'https://blog.ejemplo.com',
+            'usuario': 'admin',
+            'activa': 'on',
+        })
+        assert response.status_code == 302
+        assert response.url == reverse('integraciones')
+        destino.refresh_from_db()
+        assert destino.nombre == 'Blog Editor Editado'
+        assert destino.credenciales == credencial_original
+
+    def test_eliminar_destino(self):
+        self.client.login(username='testuser', password='testpass123')
+        destino = DestinoPublicacion.objects.create(
+            nombre='Blog Borrar',
+            tipo='wordpress',
+            url='https://blog.ejemplo.com',
+            usuario='admin',
+            credenciales='credencial-borrar-12345',
+            activa=True,
+        )
+        url = reverse('eliminar_destino', kwargs={'pk': destino.pk})
+        response = self.client.post(url)
+        assert response.status_code == 302
+        assert response.url == reverse('integraciones')
+        assert not DestinoPublicacion.objects.filter(pk=destino.pk).exists()

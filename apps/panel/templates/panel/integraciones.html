@@ -87,6 +87,13 @@
                         <span class="badge badge-error">Inactiva</span>
                     {% endif %}
                 </td>
+                <td class="acciones">
+                    <a href="{% url 'editar_destino' destino.pk %}" class="enlace-editar">Editar</a>
+                    <form method="post" action="{% url 'eliminar_destino' destino.pk %}" class="form-eliminar" onsubmit="return confirm('¿Estás seguro de que quieres eliminar este destino?');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-danger-sm">Eliminar</button>
+                    </form>
+                </td>
             </tr>
             {% endfor %}
         </tbody>
@@ -123,6 +130,50 @@
         {% endif %}
         <button type="submit" class="btn-primary">Añadir Destino</button>
     </form>
+
+    {% if destino_editar %}
+    <div class="tarjeta" style="margin-top: 24px;">
+        <h3>Editar destino: {{ destino_editar.nombre }}</h3>
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                {{ form_destino.nombre.label_tag }} {{ form_destino.nombre }}
+            </div>
+            <div class="form-group">
+                {{ form_destino.tipo.label_tag }} {{ form_destino.tipo }}
+            </div>
+            <div class="form-group">
+                {{ form_destino.url.label_tag }} {{ form_destino.url }}
+            </div>
+            <div class="form-group">
+                {{ form_destino.usuario.label_tag }} {{ form_destino.usuario }}
+            </div>
+            <div class="form-group">
+                {{ form_destino.credenciales.label_tag }} {{ form_destino.credenciales }}
+                <p class="ayuda">Las credenciales están enmascaradas por seguridad. Marca "Cambiar credenciales" para ingresar unas nuevas.</p>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" name="cambiar_credenciales" id="id_cambiar_credenciales">
+                    Cambiar credenciales
+                </label>
+            </div>
+            <div class="form-group" id="nueva_credenciales_group" style="display: none;">
+                <label for="id_nueva_credenciales">Nueva credencial</label>
+                <textarea id="id_nueva_credenciales" name="nueva_credenciales" class="input" rows="3"></textarea>
+            </div>
+            <div class="acciones-formulario">
+                <button type="submit" class="btn-primary">Guardar cambios</button>
+                <a href="{% url 'integraciones' %}" class="btn-secondary">Cancelar</a>
+            </div>
+        </form>
+        <script>
+        document.getElementById('id_cambiar_credenciales').addEventListener('change', function() {
+            document.getElementById('nueva_credenciales_group').style.display = this.checked ? 'block' : 'none';
+        });
+        </script>
+    </div>
+    {% endif %}
 </div>
 
 <script>
