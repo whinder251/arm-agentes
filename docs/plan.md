@@ -5,7 +5,7 @@
 El sistema cuenta con: panel web estilo Apple/SaaS, creación de tareas con asignación automática, modelos Workflow/PasoWorkflow/Equipo, API REST con Pydantic v2, publicación en WordPress (borradores), cifrado de API keys, validación de cuotas, orquestación de workflows paso a paso, conteo real de tokens, dashboard de métricas, integraciones con ARM_API_KEY visible, propagación de fallos y vista de historial de ejecuciones para auditoría.
 *Ver `docs/plan_historial.md` para el registro detallado de evidencias de los pasos 0-20.*
 
-**Bloque B (Rediseño UX/UI) COMPLETADO.** Sistema de diseño ARM Flow centralizado y aplicado a todo el panel.
+**Bloque B (Rediseño UX/UI) 100% COMPLETADO.** Cero CSS embebido, cero clases huérfanas en el panel.
 
 ## Reglas de Ejecución (NO ROMPER)
 1. **Máximo 4 archivos** por paso (excepción autorizada solo si se explicita).
@@ -263,3 +263,25 @@ Deuda técnica de B.3 resuelta y sidebar con iconos SVG profesionales para compl
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "sidebar or dashboard or integraciones" -q` → tests en verde.
 
 Clases transversales definidas y estilos inline migrados a clases del sistema ARM Flow; pendiente B.8 (migración de las 3 vistas con <style> embebido).
+
+## Paso B.8 - Migración final de CSS embebido — COMPLETADO
+
+**Objetivo:** Eliminar los bloques `<style>` embebidos de las últimas 3 vistas pendientes y adaptar sus clases al sistema ARM Flow centralizado en `static/css/app.css`.
+
+**Archivos tocados:**
+- `apps/panel/templates/panel/configuracion.html`: eliminado TODO el bloque `<style>`. `.btn-acento` → `.btn-primary`, `.btn-cancelar` → `.btn-secondary`, `.badge-activo` → `.badge badge-success`, `.badge-inactivo` → `.badge badge-error`. Contenedores `.tarjeta` y `.form-seccion` conservados.
+- `apps/panel/templates/panel/lista_agentes.html`: eliminado TODO el bloque `<style>`. `table.agentes` → `.tabla`, `.btn-acento` → `.btn-primary`, `.btn-eliminar` → `.btn-danger-sm`. Lógica de selección de modelos/habilidades (`.modelo-card`, `.habilidad-card`) intacta.
+- `apps/panel/templates/panel/lista_habilidades.html`: eliminado TODO el bloque `<style>`. `table.habilidades` → `.tabla`, `.btn-acento` → `.btn-primary`, `.btn-eliminar` → `.btn-danger-sm`.
+- `tests/test_panel.py`: 3 pruebas nuevas de render (login, GET, status 200): `test_configuracion_render`, `test_lista_agentes_render`, `test_lista_habilidades_render`.
+- `docs/plan.md`: esta sección y estado general del Bloque B.
+
+**Reglas respetadas:**
+- No se modificó `views.py`, `urls.py`, `forms.py` ni ningún archivo Python excepto `tests/test_panel.py` para los 3 tests nuevos.
+- No se tocó la lógica de Django (bucles, condicionales, formularios, HTMX); solo nombres de clases CSS y eliminación de bloques `<style>`.
+- Estilo ARM Flow estricto.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "configuracion or lista_agentes or lista_habilidades or sidebar or dashboard or integraciones or ejecuciones" -q` → `8 passed`.
+
+Cero CSS embebido, cero clases huérfanas en el panel; Bloque B al 100%.

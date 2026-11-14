@@ -450,3 +450,18 @@ class TestPanel(TestCase):
         assert 'href="{}"'.format(reverse('lista_equipos')) in content
         assert 'Workflows' in content
         assert 'Equipos' in content
+
+    def test_configuracion_render(self):
+        self.client.login(username='testuser', password='testpass123')
+        response = self.client.get(reverse('configuracion'))
+        assert response.status_code == 200
+
+    def test_lista_agentes_render(self):
+        self.client.login(username='testuser', password='testpass123')
+        response = self.client.get(reverse('lista_agentes'))
+        assert response.status_code == 200
+
+    def test_lista_habilidades_render(self):
+        self.client.login(username='testuser', password='testpass123')
+        response = self.client.get(reverse('lista_habilidades'))
+        assert response.status_code == 200
