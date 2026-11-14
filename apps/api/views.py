@@ -7,6 +7,8 @@ por sistemas externos sin sesión Django.
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
 import logging
 
@@ -15,18 +17,38 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
-from apps.core.models import Agente, Habilidad, Tarea
+from apps.core.models import Agente, Habilidad, Tarea, IntegracionConfig
 from apps.core.schemas import TareaCreateSchema
 from apps.engine.tasks import ejecutar_tarea
 
 logger = logging.getLogger(__name__)
 
 
+def _hash_sha256(clave: str) -> str:
+    return hashlib.sha256(clave.encode("utf-8")).hexdigest()
+
+
 def _autenticado(request) -> bool:
-    """Verifica el header X-ARM-API-KEY contra settings.ARM_API_KEY."""
+    """Verifica el header X-ARM-API-KEY contra el hash SHA-256 en BD.
+
+    Busca la IntegracionConfig activa de tipo arm_api y compara en tiempo
+    constante con hmac.compare_digest. Mientras no exista registro migrado en
+    BD, se mantiene el fallback a settings.ARM_API_KEY
+    (TODO C.5b: retirar este fallback al completar la migración de credenciales).
+    """
     clave = request.headers.get("X-ARM-API-KEY")
     if not clave:
         return False
+
+    hash_proporcionado = _hash_sha256(clave)
+
+    integracion = (
+        IntegracionConfig.objects.filter(tipo="arm_api", activa=True).first()
+    )
+    if integracion is not None:
+        return hmac.compare_digest(hash_proporcionado, integracion.credenciales)
+
+    # TODO C.5b: retirar este fallback una vez migrada la clave a IntegracionConfig.
     return clave == settings.ARM_API_KEY
 
 

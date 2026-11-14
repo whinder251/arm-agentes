@@ -7,7 +7,7 @@ from django.db import models
 
 # Clave de cifrado para api_key de Proveedor (RB-013).
 # Es obligatorio definir ARM_ENCRYPTION_KEY como variable de entorno.
-from django.core.exceptions import ImproperlyConfigured
+from django.core.exceptions import ImproperlyConfigured, ValidationError
 _ENC_KEY = os.environ.get("ARM_ENCRYPTION_KEY")
 if not _ENC_KEY:
     raise ImproperlyConfigured("La variable de entorno ARM_ENCRYPTION_KEY es obligatoria para cifrar las API keys.")
@@ -358,3 +358,49 @@ class PasoWorkflow(models.Model):
 
     def __str__(self):
         return f"Paso {self.orden} de {self.workflow.nombre}"
+
+
+class IntegracionConfig(models.Model):
+    """Credenciales de integraciones externas (no proveedores LLM).
+
+    Las credenciales que solo deben verificarse (como API keys de webhook)
+    se almacenan como hash SHA-256, nunca en texto plano ni cifradas de forma
+    reversible (docs/estandares/seguridad.md §3).
+    """
+
+    class Tipo(models.TextChoices):
+        ARM_API = "arm_api", "ARM API"
+        WORDPRESS = "wordpress", "WordPress"
+        SLACK = "slack", "Slack"
+
+    nombre = models.CharField(max_length=100, unique=True)
+    tipo = models.CharField(max_length=30, choices=Tipo.choices)
+    credenciales = models.TextField(
+        help_text="Hash SHA-256 de la credencial (no texto plano)."
+    )
+    activa = models.BooleanField(default=True)
+    proyecto_id = models.IntegerField(null=True, blank=True, db_index=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "configuración de integración"
+        verbose_name_plural = "configuraciones de integración"
+        ordering = ["nombre"]
+
+    def __str__(self):
+        return f"{self.nombre} ({self.tipo})"
+
+    def clean(self):
+        if self.tipo == self.Tipo.ARM_API and self.activa:
+            duplicados = (
+                IntegracionConfig.objects.filter(
+                    tipo=self.Tipo.ARM_API, activa=True
+                )
+                .exclude(pk=self.pk)
+            )
+            if duplicados.exists():
+                raise ValidationError(
+                    "Ya existe una integración ARM API activa. "
+                    "Solo puede haber una a la vez."
+                )
