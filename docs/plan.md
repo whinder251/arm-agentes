@@ -624,4 +624,30 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 - `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "publicar" -q` → `3 passed` (incluye `test_publicar_tarea_exitoso`, `test_publicar_tarea_con_destino_publicacion`, `test_publicar_tarea_sin_destino_no_expone_api_key_proveedor`).
 
-**Estado general:** Pasos 0 a 25 y Bloque B (B.1 a B.10) completados. Bloque C: C.1a, C.1b, C.2, C.3a, C.3b, C.4, C.5a, C.5b, C.5c, C.6, C.7a y C.7b completados. Pendiente C.8 (retirar fallback temporal de proveedor LLM en publicación).
+## Paso C.7c+d (Combinado) — Corrección de UI en DestinoPublicacion y comando seed_demo — COMPLETADO
+
+**Objetivo:**
+1) Corregir el formulario de edición de destinos: incluir el campo `activa`, arreglar el toggle de credenciales sin estilos inline y ocultar el formulario de alta por defecto.
+2) Crear un comando de gestión idempotente `seed_demo` para poblar habilidades, agentes, equipos y workflows de prueba usando proveedores existentes.
+
+**Archivos tocados:**
+- `apps/panel/templates/panel/integraciones.html`: el formulario de "Añadir Destino" está envuelto en `.form-seccion form-oculto` (oculto por defecto) con botón "Añadir Destino" que lo muestra/oculta mediante `toggleFormDestino()`; el bloque `{% if destino_editar %}` incluye todos los campos (nombre, tipo, url, usuario, `activa`, credenciales con checkbox "Cambiar credenciales" y textarea `nueva_credenciales_group` oculto por `.form-oculto`); el script JS usa solo clases CSS (`.form-oculto`) sin estilos inline; cero bloques `<style>`.
+- `apps/panel/views.py`: `editar_destino` verificado, ya procesa correctamente `activa` (campo en `Meta.fields` de `DestinoPublicacionForm`) y `cambiar_credenciales` (preserva la credencial original si no se marca el checkbox). No se modificó.
+- `apps/core/management/commands/seed_demo.py` (nuevo): comando idempotente con `handle()` que busca el primer ModeloLLM cuyo proveedor contenga "gemini" (o el primero disponible); si no existe, imprime error y sale con `sys.exit(1)` sin crear nada parcial. Usa `get_or_create` para 5 habilidades (investigar_tema, redactar_articulo, reescribir_editorial, revision_calidad en modo manual, metadatos_yoast con salida JSON), 4 agentes (Investigador, Redactor, Editor, Optimizador SEO vinculados al modelo encontrado), 2 equipos ("Contenido Web" y "Adaptacion") y 2 workflows con sus PasoWorkflow en orden. Imprime resumen de creado vs. ya existente. No crea Proveedor ni ModeloLLM nuevos.
+- `docs/plan.md`: esta sección y estado general actualizado.
+
+**Reglas respetadas:**
+- No se modificó `models.py` ni se creó migración.
+- Cero estilos inline, cero bloques `<style>`; solo clases de `app.css` (`.form-oculto`, `.form-seccion`, `.barra-acciones`, `.acciones-formulario`, `.btn-*`).
+- No se ejecutó `git push`.
+- Commit: "Paso C.7c+d: Corrección UI de destinos y comando seed_demo".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe manage.py seed_demo` (1ª ejecución) → 5 habilidades, 4 agentes, 2 equipos, 2 workflows creados.
+- `.venv\Scripts\python.exe manage.py seed_demo` (2ª ejecución) → todo ya existente (idempotente).
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "integraciones" -q` → `2 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_integraciones.py -q` → `10 passed`.
+
+**Estado general:** Pasos 0 a 25 y Bloque B (B.1 a B.10) completados. Bloque C: C.1a, C.1b, C.2, C.3a, C.3b, C.4, C.5a, C.5b, C.5c, C.6, C.7a, C.7b y C.7c+d completados. Pendiente C.8 (retirar fallback temporal de proveedor LLM en publicación).
