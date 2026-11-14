@@ -1,0 +1,54 @@
+{% extends "panel/base.html" %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Modelos</h1>
+        <p class="subtitulo">Gestión de modelos de IA por proveedor</p>
+    </div>
+    <div class="acciones-encabezado">
+        <a href="{% url 'crear_modelo' %}" class="btn-primary">Añadir Modelo</a>
+    </div>
+</div>
+
+{% if modelos %}
+<table class="tabla">
+    <thead>
+        <tr>
+            <th>Model ID</th>
+            <th>Proveedor</th>
+            <th>Prioridad</th>
+            <th>Json nativo</th>
+            <th>Activo</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for modelo in modelos %}
+        <tr>
+            <td>{{ modelo.model_id }}</td>
+            <td>{{ modelo.proveedor.nombre }}</td>
+            <td>{{ modelo.prioridad }}</td>
+            <td>{{ modelo.json_nativo }}</td>
+            <td>
+                {% if modelo.activo %}
+                <span class="badge badge-success">Activo</span>
+                {% else %}
+                <span class="badge badge-error">Inactivo</span>
+                {% endif %}
+            </td>
+            <td class="acciones">
+                <a href="#" class="enlace-editar">Editar</a>
+                <form method="post" action="#" class="form-eliminar" onsubmit="return confirm('¿Estás seguro de que quieres eliminar este modelo?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-danger-sm">Eliminar</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div class="vacio">No hay modelos registrados.</div>
+{% endif %}
+{% endblock %}

@@ -41,7 +41,7 @@
                 {% endwith %}
             </td>
             <td class="acciones">
-                <a href="#" class="enlace-editar">Editar</a>
+                <a href="{% url 'editar_proveedor' proveedor.pk %}" class="enlace-editar">Editar</a>
                 <form method="post" action="#" class="form-eliminar" onsubmit="return confirm('¿Estás seguro de que quieres eliminar este proveedor?');">
                     {% csrf_token %}
                     <button type="submit" class="btn-danger-sm">Eliminar</button>
@@ -53,5 +53,17 @@
 </table>
 {% else %}
 <div class="vacio">No hay proveedores registrados.</div>
+{% endif %}
+
+{% if form and proveedor_editar %}
+<div class="tarjeta">
+    <h3>Editar proveedor: {{ proveedor_editar.nombre }}</h3>
+    <form method="post" action="{% url 'editar_proveedor' proveedor_editar.pk %}">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn-primary">Guardar cambios</button>
+        <a href="{% url 'lista_proveedores' %}" class="btn-secondary">Cancelar</a>
+    </form>
+</div>
 {% endif %}
 {% endblock %}

@@ -483,3 +483,14 @@ class TestPanel(TestCase):
         assert 'Gestión de proveedores y modelos de IA' in content
         assert self.proveedor.nombre in content
         assert self.modelo.model_id in content
+
+    def test_lista_modelos_render(self):
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('lista_modelos')
+        response = self.client.get(url)
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        assert 'Modelos' in content
+        assert 'Gestión de modelos de IA por proveedor' in content
+        assert self.modelo.model_id in content
+        assert self.proveedor.nombre in content

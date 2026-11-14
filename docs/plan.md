@@ -397,3 +397,27 @@ SECRET_KEY y ARM_ENCRYPTION_KEY ahora son obligatorias por entorno; fallbacks di
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -q` → 28 passed antes de cuelgue preexistente de entorno (no relacionado con este cambio).
 
 Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cambios pendiente de limpieza posterior.
+
+## Paso C.3a - Arreglar botón Editar de proveedores y crear vista independiente de Modelos — COMPLETADO
+
+**Objetivo:** (1) Arreglar el botón "Editar" en `lista_proveedores.html` para que funcione (href + vista `editar_proveedor`). (2) Crear vista `lista_modelos` con tabla plana de todos los modelos.
+
+**Archivos tocados:**
+- `apps/panel/views.py`: vista `editar_proveedor` (@login_required, get_object_or_404, reusa `ProveedorForm`, GET/POST, redirect a `lista_proveedores`, renderiza `lista_proveedores.html` con `form` + `proveedor_editar`) y vista `lista_modelos` (@login_required, `ModeloLLM.objects.select_related('proveedor').order_by('proveedor__nombre', 'model_id')`, contexto `modelos`).
+- `apps/panel/urls.py`: `path('proveedores/<int:pk>/editar/', views.editar_proveedor, name='editar_proveedor')` y `path('modelos/', views.lista_modelos, name='lista_modelos')`.
+- `apps/panel/templates/panel/lista_proveedores.html`: botón Editar `href="{% url 'editar_proveedor' proveedor.pk %}"` (clase `.enlace-editar` mantenida) + bloque condicional al final que renderiza el formulario de edición cuando `form` y `proveedor_editar` están en contexto.
+- `apps/panel/templates/panel/lista_modelos.html` (nuevo): extiende `base.html`, título "Modelos", subtítulo, botón "Añadir Modelo" (`.btn-primary` → `crear_modelo`), tabla `.tabla` (Model ID, Proveedor, Prioridad, Json nativo, Activo, Acciones), badge Activo `.badge badge-success` / Inactivo `.badge badge-error`, acciones con `.enlace-editar` y form POST eliminar `.btn-danger-sm`.
+- `tests/test_panel.py`: nueva prueba `test_lista_modelos_render`.
+
+**Reglas respetadas:**
+- No se modificó `configuracion.html`, `forms.py`, `models.py` ni la lógica de borrado.
+- No se tocó el sidebar (pendiente C.3b).
+- No se ejecutó `git push`.
+- Estilo ARM Flow estricto: `.tabla`, `.btn-primary`, `.btn-danger-sm`, `.badge`, `.enlace-editar`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "proveedor or modelo" -q` → `2 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -q` → cuelgue preexistente de entorno en test posterior (no relacionado con este cambio), igual que en C.2.
+
+**Pendiente:** Paso C.3b (sidebar: enlace a proveedores/modelos).

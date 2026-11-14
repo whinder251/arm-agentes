@@ -554,6 +554,37 @@ def lista_proveedores(request):
 
 
 @login_required
+def editar_proveedor(request, pk):
+    """Edita un proveedor existente, reutilizando ProveedorForm."""
+    proveedor = get_object_or_404(Proveedor, pk=pk)
+    if request.method == "POST":
+        form = ProveedorForm(request.POST, instance=proveedor)
+        if form.is_valid():
+            form.save()
+            return redirect("lista_proveedores")
+    else:
+        form = ProveedorForm(instance=proveedor)
+    return render(request, "panel/lista_proveedores.html", {
+        "proveedores": (
+            Proveedor.objects.prefetch_related('modelos')
+            .order_by('nombre')
+        ),
+        "form": form,
+        "proveedor_editar": proveedor,
+    })
+
+
+@login_required
+def lista_modelos(request):
+    """Listado plano de todos los modelos de IA con su proveedor."""
+    modelos = (
+        ModeloLLM.objects.select_related('proveedor')
+        .order_by('proveedor__nombre', 'model_id')
+    )
+    return render(request, 'panel/lista_modelos.html', {'modelos': modelos})
+
+
+@login_required
 def lista_ejecuciones(request):
     """Historial de solo lectura de todas las ejecuciones de IA."""
     ejecuciones = (
