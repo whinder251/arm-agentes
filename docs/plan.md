@@ -676,4 +676,21 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 - Verificación de relaciones: equipos Editorial/Marketing/Soporte con agentes vinculados; 11 PasoWorkflow todos con agente asignado (ninguno None); 4 workflows con equipo.
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "integraciones" -q` → `2 passed`.
 
-**Estado general:** Pasos 0 a 25 y Bloque B (B.1 a B.10) completados. Bloque C: C.1a, C.1b, C.2, C.3a, C.3b, C.4, C.5a, C.5b, C.5c, C.6, C.7a, C.7b, C.7c+d y C.7e completados. Pendiente C.8 (retirar fallback temporal de proveedor LLM en publicación).
+## Paso C.8a - Corrección de sintaxis de encolado Huey en ejecutar_workflow — COMPLETADO
+
+**Objetivo:** Corregir el AttributeError en la ejecución de workflows causado por usar sintaxis de Celery (.delay) en lugar de la sintaxis nativa de Huey.
+
+**Archivos tocados:**
+- `apps/panel/views.py`: en la función `ejecutar_workflow` (línea 439), cambiado `continuar_workflow.delay(workflow.pk, 1)` por `continuar_workflow(workflow.pk, 1)`.
+
+**Reglas respetadas:**
+- Solo se modificó la línea de encolado. No se tocó la lógica de autorización, estados ni la firma de la tarea.
+- No se modificó `models.py`, `urls.py`, `forms.py`, `tasks.py` ni ningún otro archivo Python.
+- No se ejecutó `git push`.
+- Commit: "Corrección: sintaxis de encolado Huey en ejecutar_workflow".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "workflow" -q` → `3 passed`.
+
+**Estado general:** Pasos 0 a 25 y Bloque B (B.1 a B.10) completados. Bloque C: C.1a, C.1b, C.2, C.3a, C.3b, C.4, C.5a, C.5b, C.5c, C.6, C.7a, C.7b, C.7c+d, C.7e, C.8a y C.8b completados. Pendiente C.8 (retirar fallback temporal de proveedor LLM en publicación).

@@ -220,7 +220,7 @@ def ejecutar_tarea(tarea_id: int) -> str:
             tarea.estado == Tarea.Estado.OK
             and tarea.paso_workflow_id is not None
         ):
-            continuar_workflow.delay(
+            continuar_workflow(
                 tarea.paso_workflow.workflow.pk, tarea.paso_workflow.orden + 1
             )
         return "ok"
@@ -323,5 +323,5 @@ def continuar_workflow(workflow_id: int, siguiente_orden: int) -> str:
         payload={},
         paso_workflow=paso,
     )
-    ejecutar_tarea.delay(nueva_tarea.pk)
+    ejecutar_tarea(nueva_tarea.pk)
     return "encolado"
