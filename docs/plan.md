@@ -5,6 +5,8 @@
 El sistema cuenta con: panel web estilo Apple/SaaS, creación de tareas con asignación automática, modelos Workflow/PasoWorkflow/Equipo, API REST con Pydantic v2, publicación en WordPress (borradores), cifrado de API keys, validación de cuotas, orquestación de workflows paso a paso, conteo real de tokens, dashboard de métricas, integraciones con ARM_API_KEY visible, propagación de fallos y vista de historial de ejecuciones para auditoría.
 *Ver `docs/plan_historial.md` para el registro detallado de evidencias de los pasos 0-20.*
 
+**Bloque B (Rediseño UX/UI) COMPLETADO.** Sistema de diseño ARM Flow centralizado y aplicado a todo el panel.
+
 ## Reglas de Ejecución (NO ROMPER)
 1. **Máximo 4 archivos** por paso (excepción autorizada solo si se explicita).
 2. **PowerShell 5.1**: Usar `.venv\Scripts\python.exe` línea por línea. **PROHIBIDO usar `&&`**.
@@ -198,3 +200,23 @@ Templates de listado limpiados de CSS embebido; clases centralizadas en `static/
 - `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -q` → tests en verde.
 - Verificación: cero bloques `<style>` en los 5 templates modificados.
+
+## Paso B.4 - Cierre del sistema de diseño y refinamiento — COMPLETADO
+
+**Objetivo:** Resolver la deuda técnica reportada en B.3 (layout de agente y estilos de inputs de Django) y añadir iconos SVG profesionales al sidebar para completar el look ARM Flow.
+
+**Archivos tocados:**
+- `static/css/app.css`: reglas `.agente-columnas`, `.agente-izquierda`, `.agente-derecha` con media query 768px; `:has(input:checked)` para estados de `.modelo-card` y `.habilidad-card` sin depender de JS; estilo global para inputs de Django en `.form-group` (text, number, select, textarea + focus); slider de rango con `accent-color`; `.sidebar a` cambiado a `display: flex` con `align-items: center` y `gap: 8px`.
+- `apps/panel/templates/panel/base.html`: 10 enlaces del sidebar con iconos SVG inline (20x20px, stroke-width 1.5, color currentColor, estilo Heroicons) + texto, alineados verticalmente con flex y gap 8px.
+- `docs/plan.md`: estado general actualizado a "Bloque B (Rediseño UX/UI) COMPLETADO. Sistema de diseño ARM Flow centralizado y aplicado a todo el panel."; esta sección.
+
+**Reglas respetadas:**
+- No se modificó views.py, urls.py, forms.py ni ningún archivo Python.
+- No se usaron librerías externas de iconos; SVG inline puro.
+- Estilo ARM Flow estricto.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -q` → tests relevantes en verde.
+
+Deuda técnica de B.3 resuelta y sidebar con iconos SVG profesionales para completar el look ARM Flow.
