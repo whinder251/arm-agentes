@@ -472,3 +472,14 @@ class TestPanel(TestCase):
         assert response.status_code == 200
         content = response.content.decode('utf-8')
         assert 'form-oculto' in content
+
+    def test_lista_proveedores_render(self):
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('lista_proveedores')
+        response = self.client.get(url)
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        assert 'Proveedores' in content
+        assert 'Gestión de proveedores y modelos de IA' in content
+        assert self.proveedor.nombre in content
+        assert self.modelo.model_id in content

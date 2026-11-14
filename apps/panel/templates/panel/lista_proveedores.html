@@ -1,0 +1,57 @@
+{% extends "panel/base.html" %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Proveedores</h1>
+        <p class="subtitulo">Gestión de proveedores y modelos de IA</p>
+    </div>
+    <div class="acciones-encabezado">
+        <a href="{% url 'crear_proveedor' %}" class="btn-primary">Añadir Proveedor</a>
+    </div>
+</div>
+
+{% if proveedores %}
+<table class="tabla">
+    <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>Base URL</th>
+            <th>Modelos</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for proveedor in proveedores %}
+        <tr>
+            <td>{{ proveedor.nombre }}</td>
+            <td>{{ proveedor.base_url }}</td>
+            <td>
+                {% with proveedor.modelos.all as modelos %}
+                {% if modelos %}
+                <div class="modelos-grid">
+                    {% for modelo in modelos %}
+                    <span class="modelo">{{ modelo.model_id }}</span>
+                    <span class="badge badge-info">{{ modelo.prioridad }}</span>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <span class="texto-vacio">Sin modelos</span>
+                {% endif %}
+                {% endwith %}
+            </td>
+            <td class="acciones">
+                <a href="#" class="enlace-editar">Editar</a>
+                <form method="post" action="#" class="form-eliminar" onsubmit="return confirm('¿Estás seguro de que quieres eliminar este proveedor?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-danger-sm">Eliminar</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div class="vacio">No hay proveedores registrados.</div>
+{% endif %}
+{% endblock %}

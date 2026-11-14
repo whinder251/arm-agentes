@@ -542,6 +542,18 @@ def integraciones(request):
 
 
 @login_required
+def lista_proveedores(request):
+    """Lista de proveedores con sus modelos anidados."""
+    proveedores = (
+        Proveedor.objects.prefetch_related('modelos')
+        .order_by('nombre')
+    )
+    return render(request, 'panel/lista_proveedores.html', {
+        'proveedores': proveedores,
+    })
+
+
+@login_required
 def lista_ejecuciones(request):
     """Historial de solo lectura de todas las ejecuciones de IA."""
     ejecuciones = (

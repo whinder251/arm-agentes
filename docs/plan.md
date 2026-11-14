@@ -374,3 +374,26 @@ El menu de filtros de tareas ahora tiene contenedor propio en app.css sin solapa
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -q` → `28 passed`.
 
 SECRET_KEY y ARM_ENCRYPTION_KEY ahora son obligatorias por entorno; fallbacks dinámicos eliminados; borrado de agente/habilidad con dependencias protegidas devuelve error amigable; ARM_API_KEY ya no se expone en el panel.
+
+## Paso C.2 - Refactorización de Proveedores y Modelos en vista dedicada — COMPLETADO
+
+**Objetivo:** Crear una vista `lista_proveedores` que muestre los proveedores con sus modelos anidados, y opciones de Editar/Eliminar. Esto separa la lógica de configuración monolítica en vistas especializadas.
+
+**Archivos tocados:**
+- `apps/panel/views.py`: nueva vista `lista_proveedores` con `@login_required`, queryset `Proveedor.objects.prefetch_related('modelos').order_by('nombre')`, contexto `proveedores`.
+- `apps/panel/urls.py`: ruta `path('proveedores/', views.lista_proveedores, name='lista_proveedores')` añadida.
+- `apps/panel/templates/panel/lista_proveedores.html` (nuevo): extiende `base.html`, título "Proveedores", subtítulo "Gestión de proveedores y modelos de IA", botón "Añadir Proveedor" `.btn-primary`, tabla `.tabla` (Nombre, Base URL, Modelos, Acciones), acciones con `.enlace-editar` y formulario POST eliminar `.btn-danger-sm`, modelos anidados con `.modelo` y `.badge`.
+- `apps/panel/templates/panel/base.html`: enlace "Proveedores" en sección "Configuración" con icono SVG y clase `activo` condicional (`url_name == 'lista_proveedores'`).
+- `tests/test_panel.py`: nueva prueba `test_lista_proveedores_render`.
+
+**Reglas respetadas:**
+- No se modificó `configuracion.html`, `forms.py`, `models.py` ni la lógica de borrado.
+- No se ejecutó `git push`.
+- Estilo ARM Flow estricto: `.tabla`, `.btn-primary`, `.btn-danger-sm`, `.badge`, `.enlace-editar`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "proveedor" -q` → `1 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -q` → 28 passed antes de cuelgue preexistente de entorno (no relacionado con este cambio).
+
+Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cambios pendiente de limpieza posterior.
