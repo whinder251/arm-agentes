@@ -650,4 +650,30 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "integraciones" -q` → `2 passed`.
 - `.venv\Scripts\python.exe -m pytest tests/test_integraciones.py -q` → `10 passed`.
 
-**Estado general:** Pasos 0 a 25 y Bloque B (B.1 a B.10) completados. Bloque C: C.1a, C.1b, C.2, C.3a, C.3b, C.4, C.5a, C.5b, C.5c, C.6, C.7a, C.7b y C.7c+d completados. Pendiente C.8 (retirar fallback temporal de proveedor LLM en publicación).
+## Paso C.7e - Corregir duplicado de formulario en integraciones y ampliar seed_demo con equipos reales — COMPLETADO
+
+**Objetivo:**
+1) Corregir UI en `integraciones.html`: renombrar tarjeta a "Conexiones de Publicación" y botón a "Añadir Conexión"; asegurar que el formulario de alta esté fuera de la tabla, envuelto en `.form-seccion form-oculto` con id `form-anadir-destino`, y que el script `toggleFormDestino` siempre esté definido (fuera del bloque `{% if destino_editar %}`) apuntando al id correcto y alternando la clase `.form-oculto`.
+2) Ampliar `seed_demo.py`: 12 habilidades (slug + modo_ejecucion), 6 agentes con habilidades M2M, 3 equipos ("Editorial", "Marketing", "Soporte") con agentes vinculados vía ManyToMany, 4 workflows con pasos encadenados y agente asignado en cada `PasoWorkflow`. Lógica idempotente: si un equipo ya existe pero está sin agentes, se vinculan con `.set()`; si un paso ya existe con `agente=None`, se actualiza con `update_or_create`.
+
+**Archivos tocados:**
+- `apps/panel/templates/panel/integraciones.html`: renombrado título de tarjeta y botón; movido script `toggleFormDestino` fuera del bloque condicional para que siempre esté disponible; verificado que solo existe un form `crear_destino` (oculto, fuera de la tabla). Cero estilos inline, cero bloques `<style>`.
+- `apps/core/management/commands/seed_demo.py`: reescrito con 12 habilidades, 6 agentes, 3 equipos con agentes M2M, 4 workflows con pasos y agente asignado; idempotente con actualización de registros incompletos.
+- `docs/plan.md`: esta sección y estado general actualizado.
+
+**Reglas respetadas:**
+- No se modificó `models.py` ni se creó migración.
+- Cero estilos inline, cero bloques `<style>`; solo clases de `app.css` (`.form-oculto`, `.tarjeta`, `.btn-primary`, etc.).
+- `PasoWorkflow.agente` es nullable (FK con `null=True, blank=True`); `Equipo.agentes` es ManyToManyField con `related_name="equipos"`.
+- No se ejecutó `git push`.
+- Commit: "Paso C.7e: Corrección UI de conexiones y seed_demo con equipos y workflows completos".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe manage.py seed_demo` (1ª ejecución) → 12 habilidades (7 nuevas), 6 agentes (3 nuevas), 3 equipos (Editorial/Marketing/Soporte con agentes), 4 workflows (2 nuevos) con pasos y agente asignado.
+- `.venv\Scripts\python.exe manage.py seed_demo` (2ª ejecución) → todo ya existente (idempotente, sin duplicados).
+- Verificación de relaciones: equipos Editorial/Marketing/Soporte con agentes vinculados; 11 PasoWorkflow todos con agente asignado (ninguno None); 4 workflows con equipo.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "integraciones" -q` → `2 passed`.
+
+**Estado general:** Pasos 0 a 25 y Bloque B (B.1 a B.10) completados. Bloque C: C.1a, C.1b, C.2, C.3a, C.3b, C.4, C.5a, C.5b, C.5c, C.6, C.7a, C.7b, C.7c+d y C.7e completados. Pendiente C.8 (retirar fallback temporal de proveedor LLM en publicación).

@@ -656,8 +656,8 @@ class TestPanel(TestCase):
         content = response.content.decode('utf-8')
         assert 'Integraciones del Sistema' in content
         assert 'Rotar Clave API' in content
-        assert 'Destinos de Publicación' in content
-        assert 'Añadir Destino' in content
+        assert 'Conexiones de Publicación' in content
+        assert 'Añadir Conexión' in content
 
     def test_crear_destino_publicacion(self):
         self.client.login(username='testuser', password='testpass123')

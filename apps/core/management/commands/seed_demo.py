@@ -3,6 +3,10 @@
 Siembra habilidades, agentes, equipos y workflows reutilizando proveedores y
 modelos de IA existentes. No crea Proveedor ni ModeloLLM nuevos. Si no existe
 ningún proveedor/modelo, aborta con mensaje claro y no crea nada parcial.
+
+Es idempotente: al ejecutarse varias veces no duplica registros. Si un Equipo
+ya existe pero no tiene agentes vinculados, se le añaden. Si un PasoWorkflow
+ya existe pero tiene agente=None, se le asigna el agente correcto.
 """
 
 import sys
@@ -80,6 +84,55 @@ class Command(BaseCommand):
                 "esquema_salida": {"titulo": "", "descripcion": "", "keyword": ""},
                 "modo_ejecucion": "auto",
             },
+            {
+                "slug": "corregir_ortografia",
+                "nombre": "Corregir ortografía",
+                "plantilla_prompt": "Corrige faltas de ortografía: {{ texto }}",
+                "esquema_salida": {},
+                "modo_ejecucion": "auto",
+            },
+            {
+                "slug": "optimizar_seo",
+                "nombre": "Optimizar SEO",
+                "plantilla_prompt": "Optimiza para SEO: {{ texto }}",
+                "esquema_salida": {},
+                "modo_ejecucion": "auto",
+            },
+            {
+                "slug": "crear_titular",
+                "nombre": "Crear titular",
+                "plantilla_prompt": "Crea un titular atractivo para: {{ texto }}",
+                "esquema_salida": {},
+                "modo_ejecucion": "auto",
+            },
+            {
+                "slug": "resumir_contenido",
+                "nombre": "Resumir contenido",
+                "plantilla_prompt": "Resume el contenido: {{ texto }}",
+                "esquema_salida": {},
+                "modo_ejecucion": "manual",
+            },
+            {
+                "slug": "traducir_texto",
+                "nombre": "Traducir texto",
+                "plantilla_prompt": "Traduce al inglés: {{ texto }}",
+                "esquema_salida": {},
+                "modo_ejecucion": "auto",
+            },
+            {
+                "slug": "generar_meta_descripcion",
+                "nombre": "Generar meta descripción",
+                "plantilla_prompt": "Genera meta descripción para: {{ texto }}",
+                "esquema_salida": {},
+                "modo_ejecucion": "auto",
+            },
+            {
+                "slug": "revisar_estilo",
+                "nombre": "Revisar estilo",
+                "plantilla_prompt": "Revisa el estilo y tono: {{ texto }}",
+                "esquema_salida": {},
+                "modo_ejecucion": "manual",
+            },
         ]
         creadas = 0
         existentes = 0
@@ -90,93 +143,190 @@ class Command(BaseCommand):
             if created:
                 creadas += 1
             else:
+                for campo, valor in d.items():
+                    setattr(obj, campo, valor)
+                obj.save()
                 existentes += 1
         return creadas, existentes
 
     def _siembrar_agentes(self, modelo):
-        datos = [
-            {"nombre": "Investigador", "rol": "Eres un investigador experto.", "temperatura": 0.5},
-            {"nombre": "Redactor", "rol": "Eres un redactor experto.", "temperatura": 0.7},
-            {"nombre": "Editor", "rol": "Eres un editor experto.", "temperatura": 0.6},
-            {"nombre": "Optimizador SEO", "rol": "Eres un experto en SEO.", "temperatura": 0.4},
-        ]
+        # nombre -> {rol, temperatura, [slugs de habilidades]}
+        datos = {
+            "Investigador": {
+                "rol": "Eres un investigador experto.",
+                "temperatura": 0.5,
+                "habilidades": ["investigar_tema", "resumir_contenido"],
+            },
+            "Redactor": {
+                "rol": "Eres un redactor experto.",
+                "temperatura": 0.7,
+                "habilidades": ["redactar_articulo", "crear_titular"],
+            },
+            "Editor": {
+                "rol": "Eres un editor experto.",
+                "temperatura": 0.6,
+                "habilidades": ["revision_calidad", "revisar_estilo"],
+            },
+            "SEO": {
+                "rol": "Eres un experto en SEO.",
+                "temperatura": 0.4,
+                "habilidades": [
+                    "optimizar_seo",
+                    "metadatos_yoast",
+                    "generar_meta_descripcion",
+                ],
+            },
+            "Ortografia": {
+                "rol": "Eres un corrector de ortografía.",
+                "temperatura": 0.3,
+                "habilidades": ["corregir_ortografia"],
+            },
+            "Traductor": {
+                "rol": "Eres un traductor experto.",
+                "temperatura": 0.5,
+                "habilidades": ["traducir_texto"],
+            },
+        }
+        habilidades = {h.slug: h for h in Habilidad.objects.all()}
         creados = 0
         existentes = 0
-        for d in datos:
+        for nombre, d in datos.items():
             obj, created = Agente.objects.get_or_create(
-                nombre=d["nombre"],
-                defaults={"rol": d["rol"], "temperatura": d["temperatura"], "modelo": modelo},
+                nombre=nombre,
+                defaults={
+                    "rol": d["rol"],
+                    "temperatura": d["temperatura"],
+                    "modelo": modelo,
+                },
             )
             if created:
                 creados += 1
             else:
+                obj.rol = d["rol"]
+                obj.temperatura = d["temperatura"]
+                obj.modelo = modelo
+                obj.save()
                 existentes += 1
+            obj.habilidades.set(
+                [habilidades[s] for s in d["habilidades"] if s in habilidades]
+            )
         return creados, existentes
 
     def _siembrar_equipos(self):
-        datos = [
-            {"nombre": "Contenido Web", "descripcion": "Equipo para contenido web."},
-            {"nombre": "Adaptacion", "descripcion": "Equipo para adaptacion de contenido."},
-        ]
+        # nombre -> {descripcion, [nombres de agentes]}
+        datos = {
+            "Editorial": {
+                "descripcion": "Equipo de creación y revisión de contenido editorial.",
+                "agentes": ["Investigador", "Redactor", "Editor"],
+            },
+            "Marketing": {
+                "descripcion": "Equipo de contenidos de marketing y SEO.",
+                "agentes": ["Redactor", "SEO", "Traductor"],
+            },
+            "Soporte": {
+                "descripcion": "Equipo de soporte y corrección de contenidos.",
+                "agentes": ["Investigador", "Ortografia", "Redactor"],
+            },
+        }
+        agentes = {a.nombre: a for a in Agente.objects.all()}
         creados = 0
         existentes = 0
-        for d in datos:
+        for nombre, d in datos.items():
             obj, created = Equipo.objects.get_or_create(
-                nombre=d["nombre"], defaults={"descripcion": d["descripcion"]}
+                nombre=nombre,
+                defaults={"descripcion": d["descripcion"]},
             )
             if created:
                 creados += 1
             else:
+                obj.descripcion = d["descripcion"]
+                obj.save()
                 existentes += 1
+            obj.agentes.set(
+                [agentes[a] for a in d["agentes"] if a in agentes]
+            )
         return creados, existentes
 
     def _siembrar_workflows(self):
-        datos = [
-            {
-                "nombre": "Publicacion de articulos",
+        # nombre -> {descripcion, equipo, [(orden, slug_habilidad, nombre_agente, modo)]}
+        datos = {
+            "Publicacion de articulos": {
                 "descripcion": "Flujo completo de investigacion y publicacion.",
+                "equipo": "Editorial",
                 "pasos": [
-                    {"orden": 1, "habilidad_slug": "investigar_tema", "modo_ejecucion": "auto"},
-                    {"orden": 2, "habilidad_slug": "redactar_articulo", "modo_ejecucion": "auto"},
-                    {"orden": 3, "habilidad_slug": "revision_calidad", "modo_ejecucion": "manual"},
+                    (1, "investigar_tema", "Investigador", "auto"),
+                    (2, "redactar_articulo", "Redactor", "auto"),
+                    (3, "revisar_estilo", "Editor", "manual"),
+                    (4, "metadatos_yoast", "SEO", "auto"),
                 ],
             },
-            {
-                "nombre": "Adaptacion de contenido",
+            "Adaptacion de contenido": {
                 "descripcion": "Flujo de reescritura y optimizacion SEO.",
+                "equipo": "Marketing",
                 "pasos": [
-                    {"orden": 1, "habilidad_slug": "reescribir_editorial", "modo_ejecucion": "auto"},
-                    {"orden": 2, "habilidad_slug": "metadatos_yoast", "modo_ejecucion": "auto"},
+                    (1, "reescribir_editorial", "Redactor", "auto"),
+                    (2, "traducir_texto", "Traductor", "auto"),
+                    (3, "optimizar_seo", "SEO", "auto"),
                 ],
             },
-        ]
+            "Revision de calidad": {
+                "descripcion": "Flujo de correccion y revision final.",
+                "equipo": "Editorial",
+                "pasos": [
+                    (1, "corregir_ortografia", "Ortografia", "auto"),
+                    (2, "revision_calidad", "Editor", "manual"),
+                ],
+            },
+            "Creacion de titulares y SEO": {
+                "descripcion": "Flujo de titulares y metadatos SEO.",
+                "equipo": "Marketing",
+                "pasos": [
+                    (1, "crear_titular", "Redactor", "auto"),
+                    (2, "generar_meta_descripcion", "SEO", "auto"),
+                ],
+            },
+        }
+        habilidades = {h.slug: h for h in Habilidad.objects.all()}
+        agentes = {a.nombre: a for a in Agente.objects.all()}
+        equipos = {e.nombre: e for e in Equipo.objects.all()}
         creados = 0
         existentes = 0
-        for d in datos:
+        for nombre, d in datos.items():
+            equipo = equipos.get(d["equipo"])
             workflow, created = Workflow.objects.get_or_create(
-                nombre=d["nombre"],
-                defaults={"descripcion": d["descripcion"], "estado": "borrador"},
+                nombre=nombre,
+                defaults={
+                    "descripcion": d["descripcion"],
+                    "estado": "borrador",
+                    "equipo": equipo,
+                },
             )
             if created:
                 creados += 1
             else:
+                workflow.descripcion = d["descripcion"]
+                workflow.equipo = equipo
+                workflow.estado = "borrador"
+                workflow.save()
                 existentes += 1
-            for paso in d["pasos"]:
-                habilidad = Habilidad.objects.filter(slug=paso["habilidad_slug"]).first()
+            for orden, slug_habilidad, nombre_agente, modo in d["pasos"]:
+                habilidad = habilidades.get(slug_habilidad)
+                agente = agentes.get(nombre_agente)
                 if habilidad is None:
                     self.stdout.write(
                         self.style.WARNING(
-                            f"  Saltando paso '{paso['habilidad_slug']}': habilidad no encontrada."
+                            f"  Saltando paso {orden} de '{nombre}': "
+                            f"habilidad '{slug_habilidad}' no encontrada."
                         )
                     )
                     continue
-                PasoWorkflow.objects.get_or_create(
+                PasoWorkflow.objects.update_or_create(
                     workflow=workflow,
-                    orden=paso["orden"],
+                    orden=orden,
                     defaults={
                         "habilidad": habilidad,
-                        "agente": None,
-                        "modo_ejecucion": paso["modo_ejecucion"],
+                        "agente": agente,
+                        "modo_ejecucion": modo,
                     },
                 )
         return creados, existentes

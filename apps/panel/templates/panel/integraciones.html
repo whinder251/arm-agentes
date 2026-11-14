@@ -62,7 +62,7 @@
 </div>
 
 <div class="tarjeta">
-    <h3>Destinos de Publicación</h3>
+    <h3>Conexiones de Publicación</h3>
     <p class="subtexto">Destinos donde se pueden publicar los artefactos (WordPress u otras APIs). Independiente de los proveedores de IA.</p>
 
     {% if destinos %}
@@ -104,7 +104,7 @@
     {% endif %}
 
     <div class="barra-acciones">
-        <button type="button" class="btn-primary" id="btn-anadir-destino" onclick="toggleFormDestino()">Añadir Destino</button>
+        <button type="button" class="btn-primary" id="btn-anadir-destino" onclick="toggleFormDestino()">Añadir Conexión</button>
     </div>
 
     <div class="form-seccion form-oculto" id="form-anadir-destino">
@@ -180,31 +180,6 @@
                 <a href="{% url 'integraciones' %}" class="btn-secondary">Cancelar</a>
             </div>
         </form>
-        <script>
-        function toggleFormDestino() {
-            var el = document.getElementById('form-anadir-destino');
-            var btn = document.getElementById('btn-anadir-destino');
-            if (!el) return;
-            if (el.classList.contains('form-oculto')) {
-                el.classList.remove('form-oculto');
-                btn.textContent = "Ocultar formulario";
-            } else {
-                el.classList.add('form-oculto');
-                btn.textContent = "Añadir Destino";
-            }
-        }
-        var chk = document.getElementById('id_cambiar_credenciales');
-        var grupo = document.getElementById('nueva_credenciales_group');
-        if (chk && grupo) {
-            chk.addEventListener('change', function() {
-                if (this.checked) {
-                    grupo.classList.remove('form-oculto');
-                } else {
-                    grupo.classList.add('form-oculto');
-                }
-            });
-        }
-        </script>
     </div>
     {% endif %}
 </div>
@@ -217,6 +192,19 @@ function copiarClave(btn) {
         btn.textContent = "Copiado";
         setTimeout(function() { btn.textContent = textoOriginal; }, 1500);
     });
+}
+
+function toggleFormDestino() {
+    var el = document.getElementById('form-anadir-destino');
+    var btn = document.getElementById('btn-anadir-destino');
+    if (!el) return;
+    if (el.classList.contains('form-oculto')) {
+        el.classList.remove('form-oculto');
+        btn.textContent = "Ocultar formulario";
+    } else {
+        el.classList.add('form-oculto');
+        btn.textContent = "Añadir Conexión";
+    }
 }
 </script>
 {% endblock %}
