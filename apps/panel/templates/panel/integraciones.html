@@ -60,6 +60,71 @@
     {% endif %}
 </div>
 
+<div class="tarjeta">
+    <h3>Destinos de Publicación</h3>
+    <p class="subtexto">Destinos donde se pueden publicar los artefactos (WordPress u otras APIs). Independiente de los proveedores de IA.</p>
+
+    {% if destinos %}
+    <table class="tabla">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Tipo</th>
+                <th>URL</th>
+                <th>Estado</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for destino in destinos %}
+            <tr>
+                <td>{{ destino.nombre }}</td>
+                <td>{{ destino.get_tipo_display }}</td>
+                <td class="fecha">{{ destino.url }}</td>
+                <td>
+                    {% if destino.activa %}
+                        <span class="badge badge-success">Activa</span>
+                    {% else %}
+                        <span class="badge badge-error">Inactiva</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="vacio">No hay destinos de publicación configurados.</p>
+    {% endif %}
+
+    <form method="post" action="{% url 'integraciones' %}">
+        {% csrf_token %}
+        <input type="hidden" name="crear_destino" value="1">
+        <div class="form-group">
+            {{ form_destino.nombre.label_tag }} {{ form_destino.nombre }}
+        </div>
+        <div class="form-group">
+            {{ form_destino.tipo.label_tag }} {{ form_destino.tipo }}
+        </div>
+        <div class="form-group">
+            {{ form_destino.url.label_tag }} {{ form_destino.url }}
+        </div>
+        <div class="form-group">
+            {{ form_destino.usuario.label_tag }} {{ form_destino.usuario }}
+        </div>
+        <div class="form-group">
+            {{ form_destino.credenciales.label_tag }} {{ form_destino.credenciales }}
+        </div>
+        <div class="form-group">
+            {{ form_destino.activa.label_tag }} {{ form_destino.activa }}
+        </div>
+        {% if form_destino.errors %}
+        <div class="alerta-error">
+            {{ form_destino.errors }}
+        </div>
+        {% endif %}
+        <button type="submit" class="btn-primary">Añadir Destino</button>
+    </form>
+</div>
+
 <script>
 function copiarClave(btn) {
     var input = btn.previousElementSibling;

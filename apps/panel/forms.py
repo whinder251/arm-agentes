@@ -1,6 +1,6 @@
 from django import forms
 
-from apps.core.models import Agente, Habilidad, Proveedor, ModeloLLM
+from apps.core.models import Agente, Habilidad, Proveedor, ModeloLLM, DestinoPublicacion
 
 
 class ProveedorForm(forms.ModelForm):
@@ -65,3 +65,26 @@ class AgenteForm(forms.ModelForm):
         self.fields["modelo"].widget = forms.RadioSelect(
             choices=self.fields["modelo"].choices
         )
+
+
+class DestinoPublicacionForm(forms.ModelForm):
+    """Formulario para crear/editar un destino de publicación."""
+
+    cambiar_credenciales = forms.BooleanField(
+        required=False, label='Cambiar credenciales'
+    )
+
+    class Meta:
+        model = DestinoPublicacion
+        fields = ["nombre", "tipo", "url", "usuario", "credenciales", "activa"]
+        widgets = {
+            "credenciales": forms.PasswordInput,
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name, field in self.fields.items():
+            field.widget.attrs.update({'class': 'input'})
+        if self.instance and self.instance.pk and self.instance.credenciales:
+            self.initial['credenciales'] = f"****{self.instance.credenciales[-4:]}"
+            self.fields['credenciales'].widget.attrs.update({'readonly': 'readonly'})

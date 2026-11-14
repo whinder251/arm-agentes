@@ -11,12 +11,13 @@ from django.db.models import Sum, ProtectedError
 from django.forms import inlineformset_factory
 from apps.core.models import (
     Tarea, Proveedor, ModeloLLM, Habilidad, Agente, Equipo, Workflow, PasoWorkflow,
-    Ejecucion, IntegracionConfig,
+    Ejecucion, IntegracionConfig, DestinoPublicacion,
 )
 from apps.engine.tasks import ejecutar_tarea, continuar_workflow
 from apps.providers.wordpress import WordPressProvider
 from apps.panel.forms import (
     AgenteForm,
+    DestinoPublicacionForm,
     HabilidadForm,
     ModeloLLMForm,
     ProveedorForm,
@@ -535,17 +536,32 @@ def dashboard(request):
 
 @login_required
 def integraciones(request):
-    """Gestiona las integraciones externas y permite rotar la clave ARM API."""
+    """Gestiona las integraciones externas, rota la clave ARM API y
+    permite crear destinos de publicación (desacoplados de proveedores LLM)."""
     integraciones_list = (
         IntegracionConfig.objects.all().order_by("nombre")
     )
+    destinos = DestinoPublicacion.objects.all().order_by("nombre")
     nueva_clave_arm = None
 
-    if request.method == "POST" and request.POST.get("rotar_arm_api"):
-        nueva_clave_arm = IntegracionConfig.rotar_clave_arm()
+    if request.method == "POST":
+        if request.POST.get("rotar_arm_api"):
+            nueva_clave_arm = IntegracionConfig.rotar_clave_arm()
+        elif request.POST.get("crear_destino"):
+            form = DestinoPublicacionForm(request.POST)
+            if form.is_valid():
+                form.save()
+                messages.success(
+                    request, "Destino de publicación creado correctamente."
+                )
+                return redirect("integraciones")
+    else:
+        form = DestinoPublicacionForm()
 
     return render(request, "panel/integraciones.html", {
         "integraciones": integraciones_list,
+        "destinos": destinos,
+        "form_destino": form,
         "nueva_clave_arm": nueva_clave_arm,
     })
 

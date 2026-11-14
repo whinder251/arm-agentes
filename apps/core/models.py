@@ -1,9 +1,12 @@
 import os
 import hashlib
 import secrets
+import ipaddress
+import socket
+from urllib.parse import urlparse
 
 from cryptography.fernet import Fernet, InvalidToken
-from django.core.validators import MaxValueValidator, MinValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator, URLValidator
 from django.db import models, transaction
 
 
@@ -436,3 +439,91 @@ class IntegracionConfig(models.Model):
             registro.save(update_fields=["credenciales", "actualizado_en"])
 
         return token
+
+
+def validar_url_segura(value):
+    """Valida que la URL use esquema seguro y no apunte a redes internas (SSRF).
+
+    Rechaza esquemas distintos de http/https y direcciones loopback, privadas,
+    link-local, multicast, reservadas y endpoints de metadatos de nube.
+    """
+    URLValidator()(value)
+    try:
+        partes = urlparse(value)
+    except ValueError:
+        raise ValidationError("URL no válida.")
+    esquema = (partes.scheme or "").lower()
+    if esquema not in {"http", "https"}:
+        raise ValidationError(
+            f"Esquema no permitido: {esquema or '(vacío)'}. Solo se permiten http y https."
+        )
+    host = partes.hostname
+    if not host:
+        raise ValidationError("La URL debe incluir un host válido.")
+    try:
+        infos = socket.getaddrinfo(host, None, type=socket.SOCK_STREAM)
+    except OSError:
+        infos = []
+    for familia, _, _, _, sockaddr in infos:
+        ip = sockaddr[0]
+        try:
+            direccion = ipaddress.ip_address(ip)
+        except ValueError:
+            continue
+        if (
+            direccion.is_loopback
+            or direccion.is_private
+            or direccion.is_link_local
+            or direccion.is_multicast
+            or direccion.is_reserved
+        ):
+            raise ValidationError(
+                f"La URL apunta a una dirección restringida ({ip}). No se permiten "
+                "direcciones privadas, loopback ni metadatos de nube."
+            )
+        if str(direccion) == "169.254.169.254":
+            raise ValidationError(
+                "La URL apunta a un endpoint de metadatos de nube, no permitido."
+            )
+
+
+class DestinoPublicacion(models.Model):
+    """Destino de publicación (WordPress u otra API), desacoplado de proveedores LLM.
+
+    Permite que un agente use cualquier modelo LLM y publique en cualquier
+    destino configurado de forma independiente.
+    """
+
+    class Tipo(models.TextChoices):
+        WORDPRESS = "wordpress", "WordPress"
+        CUSTOM_API = "custom_api", "API personalizada"
+
+    nombre = models.CharField(max_length=100, unique=True)
+    tipo = models.CharField(max_length=30, choices=Tipo.choices, default=Tipo.WORDPRESS)
+    url = models.URLField(
+        max_length=300,
+        validators=[validar_url_segura],
+        help_text="URL del destino de publicación (http o https).",
+    )
+    usuario = models.CharField(max_length=100, blank=True)
+    credenciales = EncryptedTextField(
+        blank=True,
+        help_text="Contraseña o token de aplicación. Se cifra antes de guardar (RB-013).",
+    )
+    activa = models.BooleanField(default=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        """Ejecuta full_clean al guardar para que la validación SSRF y de
+        campos se aplique siempre, se cree desde código, API o panel."""
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    class Meta:
+        verbose_name = "destino de publicación"
+        verbose_name_plural = "destinos de publicación"
+        ordering = ["nombre"]
+
+    def __str__(self):
+        return self.nombre

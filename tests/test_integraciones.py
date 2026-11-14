@@ -1,4 +1,5 @@
-"""Pruebas de IntegracionConfig y autenticación API por hash SHA-256.
+"""Pruebas de IntegracionConfig, autenticación API por hash SHA-256
+y destinos de publicación (C.6).
 
 No llama APIs reales ni servicios externos.
 """
@@ -7,10 +8,11 @@ import hashlib
 from unittest.mock import patch
 
 import pytest
+from django.core.exceptions import ValidationError
 from django.test import Client
 from django.core.management import call_command
 
-from apps.core.models import IntegracionConfig
+from apps.core.models import IntegracionConfig, DestinoPublicacion
 
 
 def _hash(clave: str) -> str:
@@ -133,3 +135,38 @@ def test_rotar_clave_arm():
 
     # Se actualizó el registro existente (no se creó uno nuevo)
     assert IntegracionConfig.objects.filter(tipo="arm_api", activa=True).count() == 1
+
+
+@pytest.mark.django_db
+def test_destino_publicacion_guarda_credenciales_cifradas():
+    destino = DestinoPublicacion.objects.create(
+        nombre="Blog Principal",
+        tipo="wordpress",
+        url="https://blog.ejemplo.com",
+        usuario="admin",
+        credenciales="contraseña-secreta-123",
+        activa=True,
+    )
+    destino.refresh_from_db()
+    # Al leer desde BD se descifra y devuelve el valor real
+    assert destino.credenciales == "contraseña-secreta-123"
+
+
+@pytest.mark.django_db
+def test_destino_publicacion_rechaza_esquema_peligroso():
+    with pytest.raises(ValidationError):
+        DestinoPublicacion.objects.create(
+            nombre="Destino Peligroso",
+            tipo="custom_api",
+            url="file:///etc/passwd",
+        )
+
+
+@pytest.mark.django_db
+def test_destino_publicacion_rechaza_loopback():
+    with pytest.raises(ValidationError):
+        DestinoPublicacion.objects.create(
+            nombre="Loopback",
+            tipo="custom_api",
+            url="http://localhost:8000/",
+        )

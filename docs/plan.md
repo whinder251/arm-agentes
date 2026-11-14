@@ -520,3 +520,33 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "integraciones or sidebar" -q` → `3 passed`.
 
 **Pendiente:** Retirar el fallback temporal a `settings.ARM_API_KEY` en `apps/api/views.py` (`_autenticado`, TODO C.5b) una vez confirmada la migración de credenciales en producción.
+
+## Paso C.6 - Separación de credenciales de WordPress de los proveedores LLM — COMPLETADO
+
+**Objetivo:** Crear un modelo independiente `DestinoPublicacion` para destinos de publicación (WordPress, custom_api), desacoplado de los proveedores de IA, con credenciales cifradas y gestionable desde la vista `integraciones`. Permite que un agente use cualquier modelo LLM y publique en cualquier destino configurado.
+
+**Archivos tocados:**
+- `apps/core/models.py`: nuevo modelo `DestinoPublicacion` (`nombre` único, `tipo` choices wordpress/custom_api, `url` con validador SSRF personalizado `validar_url_segura` que rechaza esquemas peligrosos y direcciones loopback/privadas/link-local/multicast/reservadas y metadatos de nube, `usuario`, `credenciales` `EncryptedTextField` reutilizando Fernet existente (RB-013), `activa`, `fecha_creacion`, `actualizado_en`); `save()` sobreescrito para ejecutar `full_clean()` y que la validación SSRF se aplique siempre al guardar (código, API o panel).
+- `apps/panel/forms.py`: `DestinoPublicacionForm` con `.input` en todos los campos, `credenciales` como `PasswordInput`, enmascaramiento `****XXXX` y readonly en edición (misma lógica que proveedores), campo `cambiar_credenciales`.
+- `apps/panel/views.py`: vista `integraciones` ampliada con queryset `DestinoPublicacion` y manejo POST `crear_destino` usando `DestinoPublicacionForm` (redirect y mensaje de éxito).
+- `apps/panel/templates/panel/integraciones.html`: nueva `.tarjeta` "Destinos de Publicación" debajo de ARM API Key con `.tabla` (Nombre, Tipo, URL, Estado `.badge-success`/`.badge-error`) y formulario colapsable de alta con `.form-group`, `.input`, `.btn-primary`; cero `<style>` ni estilos inline.
+- `tests/test_integraciones.py`: 3 pruebas nuevas (`test_destino_publicacion_guarda_credenciales_cifradas`, `test_destino_publicacion_rechaza_esquema_peligroso`, `test_destino_publicacion_rechaza_loopback`).
+- `tests/test_panel.py`: 2 pruebas nuevas (`test_integraciones_render_muestra_destinos`, `test_crear_destino_publicacion`).
+- Migración generada y aplicada: `apps/core/migrations/0012_destinopublicacion.py`.
+- `docs/plan.md`: esta sección.
+
+**Reglas respetadas:**
+- No se modificó la lógica de proveedores LLM existentes ni `apps/providers/wordpress.py`.
+- No se usaron estilos inline ni bloques `<style>`; exclusivamente clases de `app.css`.
+- Las credenciales nunca se guardan en texto plano: `EncryptedTextField` con Fernet.
+- Validación SSRF en el modelo (protege también ante creación desde código/API).
+- No se ejecutó `git push`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py makemigrations core` → `0012_destinopublicacion` creada.
+- `.venv\Scripts\python.exe manage.py migrate` → `Applying core.0012_destinopublicacion... OK`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe -m pytest tests/test_integraciones.py -q` → `10 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "integraciones" -q` → `2 passed`.
+- Nota: `tests/test_panel.py` completo tiene un cuelgue preexistente de entorno (documentado en pasos C.2/C.3a/C.4), no relacionado con este cambio.

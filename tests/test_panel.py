@@ -538,3 +538,33 @@ class TestPanel(TestCase):
         assert response.url == reverse('lista_proveedores')
         self.proveedor.refresh_from_db()
         assert self.proveedor.api_key == nueva_clave
+
+    def test_integraciones_render_muestra_destinos(self):
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('integraciones')
+        response = self.client.get(url)
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        assert 'Destinos de Publicación' in content
+        assert 'Añadir Destino' in content
+
+    def test_crear_destino_publicacion(self):
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('integraciones')
+        response = self.client.post(url, {
+            'crear_destino': '1',
+            'nombre': 'Blog Principal',
+            'tipo': 'wordpress',
+            'url': 'https://blog.ejemplo.com',
+            'usuario': 'admin',
+            'credenciales': 'contraseña-app-secreta',
+            'activa': 'on',
+        })
+        assert response.status_code == 302
+        assert response.url == reverse('integraciones')
+        from apps.core.models import DestinoPublicacion
+        destino = DestinoPublicacion.objects.get(nombre='Blog Principal')
+        assert destino.url == 'https://blog.ejemplo.com'
+        assert destino.tipo == 'wordpress'
+        assert destino.credenciales == 'contraseña-app-secreta'
+        assert destino.activa is True
