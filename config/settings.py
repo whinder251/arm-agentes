@@ -10,6 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
+
 from pathlib import Path
 
 from huey import SqliteHuey
@@ -22,6 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
+# TODO C.1b: migrar a os.environ.get('SECRET_KEY') con ImproperlyConfigured
 SECRET_KEY = 'django-insecure-bkby_2l49&^b3av7)l%=i)&k3z=2&!lfj-=zxji_w5#sm$^bp_'
 
 # SECURITY WARNING: don't run with debug turned on in production!

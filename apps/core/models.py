@@ -15,6 +15,7 @@ ENCRYPTION_KEY = _ENCRYPTION_KEY_RAW
 _fernet = Fernet(ENCRYPTION_KEY.encode())
 
 
+# TODO C.1b: eliminar fallback, exigir ARM_ENCRYPTION_KEY por entorno
 class EncryptedTextField(models.TextField):
     """Campo de texto que cifra al guardar y descifra al leer desde la BD.
 
