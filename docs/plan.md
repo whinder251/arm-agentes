@@ -1069,3 +1069,33 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "agente" -q` → `3 passed`.
 
 **Impacto en contratos/datos:** SÍ datos persistidos (tabla intermedia M2M `agente_habilidades` se actualiza al editar). NO contratos de API, NO credenciales, NO permisos, NO tareas en cola. Retrocompatible: misma URL `editar_agente` y mismo redirect 302 en éxito.
+
+## Paso FIX-1 - Versionar migraciones pendientes y limpiar secretos en `.env.example` — COMPLETADO
+
+**Objetivo:** Asegurar que el repositorio permita migrar desde cero y que `.env.example` no contenga valores con apariencia de claves reales.
+
+**Archivos tocados:**
+- `apps/core/migrations/0007_alter_proveedor_api_key.py`, `apps/core/migrations/0013_artefacto_raw_response_habilidad_esquema_version_and_more.py`, `apps/core/migrations/0014_alter_tarea_estado.py`: añadidos a Git (contenido sin modificar).
+- `.env.example`: `SECRET_KEY` y `ARM_ENCRYPTION_KEY` reemplazadas por placeholders (`tu-clave-secreta-aqui-cambiar-en-produccion`, `tu-clave-fernet-aqui-cambiar-en-produccion`); `DEBUG=True` → `DEBUG=False` con comentario para desarrollo local; nota de no confirmar valores reales en Git.
+- `docs/plan.md`: esta sección (queda sin commitear; el usuario solicitó un único commit con las migraciones y `.env.example`).
+
+**Reglas respetadas:**
+- No se modificó código Python, modelos, vistas, permisos ni cola.
+- No se ejecutó `git push`.
+- No se añadieron archivos no relacionados (`.vscode/`, `db.sqlite3-shm/-wal`, `docs/estandares/`).
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `git status --short apps/core/migrations` → sin salida (migraciones confirmadas).
+- `git show --stat --oneline HEAD` → `1e9283d FIX-1: Versionar migraciones pendientes y limpiar secretos en .env.example` con 4 archivos.
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest -q` → `4 failed, 174 passed, 2 warnings in 310.47s`. La creación de la BD de test aplicó todas las migraciones desde cero (incluidas 0013/0014), por lo que la cadena de migraciones es válida.
+
+**Fallos preexistentes detectados (no causados por FIX-1):**
+- `tests/test_pipeline.py` (3 tests): envían texto plano y esperan pipeline exitoso; desde C.10/C.11b el normalizador exige JSON cuando `esquema_salida` no está vacío, la tarea principal termina en `error` y no se crea la tarea SEO.
+- `tests/test_workflow.py::test_orquestacion_workflow`: espera `ejecutar_tarea.delay`, pero desde C.8a el encolado usa llamada directa (`ejecutar_tarea(nueva_tarea.pk)`); el test no se actualizó.
+- FIX-1 solo añade archivos de migración ya presentes en disco y edita `.env.example`, que Django no carga (`settings.py` carga únicamente `.env`). No se corrigieron por estar fuera del alcance aprobado.
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO permisos, NO cola. SÍ credenciales de ejemplo (placeholders). Las claves reales que estuvieron en `.env.example` permanecen en el historial de Git: se recomienda rotar `SECRET_KEY` y `ARM_ENCRYPTION_KEY` en el `.env` local.
+
+**Pendientes:** commitear esta actualización de `docs/plan.md`; actualizar los 4 tests obsoletos en un paso separado.
