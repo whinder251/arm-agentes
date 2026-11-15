@@ -715,6 +715,34 @@ class TestPanel(TestCase):
         response = self.client.get(reverse('lista_agentes'))
         assert response.status_code == 200
 
+    def test_editar_agente_guarda_habilidades(self):
+        self.client.login(username='testuser', password='testpass123')
+        # Agente existente con 1 habilidad (self.habilidad)
+        nueva_h1 = Habilidad.objects.create(
+            nombre='Investigación',
+            slug='investigacion',
+            plantilla_prompt='test',
+            esquema_salida={},
+        )
+        nueva_h2 = Habilidad.objects.create(
+            nombre='Redacción',
+            slug='redaccion',
+            plantilla_prompt='test',
+            esquema_salida={},
+        )
+        url = reverse('editar_agente', args=[self.agente.pk])
+        response = self.client.post(url, {
+            'nombre': 'Editor',
+            'rol': 'Eres un editor experto.',
+            'temperatura': 0.7,
+            'modelo': self.modelo.pk,
+            'habilidades': [nueva_h1.pk, nueva_h2.pk],
+        })
+        self.agente.refresh_from_db()
+        ids = set(self.agente.habilidades.values_list("id", flat=True))
+        assert ids == {nueva_h1.pk, nueva_h2.pk}
+        assert response.status_code == 302
+
     def test_lista_habilidades_render(self):
         self.client.login(username='testuser', password='testpass123')
         response = self.client.get(reverse('lista_habilidades'))

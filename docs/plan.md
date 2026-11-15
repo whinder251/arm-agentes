@@ -1043,6 +1043,29 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 
 **Impacto en contratos/datos:** NO contratos de API, NO datos persistidos, NO permisos, NO tareas en cola. SÍ credenciales (`ARM_API_KEY` obligatoria en producción). Retrocompatible: en desarrollo con `DEBUG=True` y `ARM_API_KEY` ausente se mantiene el valor por defecto `"dev-api-key-123"`.
 
-**Estado general:** Pasos 0 a 25 y Bloque B (B.1 a B.10) completados. Bloque C: C.1a, C.1b, C.2, C.3a, C.3b, C.4, C.5a, C.5b, C.5c, C.6, C.7a, C.7b, C.7c+d, C.7e, C.8a, C.8b, C.8c, C.9a, C.9a-fix, C.9a-fix2, C.9b, C.10 Fase 2, C.10.3, C.10.5, C.10.6, C.11a, C.11b, C.11b.1, C.12a, C.12b, C.13 y C.14 completados. Paso S (blindado configuración de seguridad) completado. Pendiente C.8 (retirar fallback temporal de proveedor LLM en publicación).
+**Estado general:** Pasos 0 a 25 y Bloque B (B.1 a B.10) completados. Bloque C: C.1a, C.1b, C.2, C.3a, C.3b, C.4, C.5a, C.5b, C.5c, C.6, C.7a, C.7b, C.7c+d, C.7e, C.8a, C.8b, C.8c, C.9a, C.9a-fix, C.9a-fix2, C.9b, C.10 Fase 2, C.10.3, C.10.5, C.10.6, C.11a, C.11b, C.11b.1, C.12a, C.12b, C.13, C.14 y C.15 completados. Paso S (blindado configuración de seguridad) completado. Pendiente C.8 (retirar fallback temporal de proveedor LLM en publicación).
    ## Paso UI - Estados legibles y mensajes de error en panel — COMPLETADO
    **Archivos:** `tareas.html`, `fila_tarea.html`. Usa `get_estado_display`, badge rojo para `error` y muestra `metadata.resultado.error.message`.
+
+## Paso C.15 - Corregir guardado de habilidades ManyToMany al editar agente — COMPLETADO
+
+**Objetivo:** Que al editar un agente en el panel y seleccionar/deseleccionar habilidades, los cambios se persistan correctamente en la base de datos, incluso si el formulario principal (nombre, rol, etc.) tiene errores de validación.
+
+**Archivos tocados:**
+- `apps/panel/views.py`: en `editar_agente`, se extrae `habilidades_ids = request.POST.getlist("habilidades")` al inicio del bloque POST y se ejecuta `agente.habilidades.set(habilidades_ids)` **antes** de evaluar `if form.is_valid()`, para que la selección del usuario se guarde siempre, independientemente de la validez del formulario.
+- `tests/test_panel.py`: nueva prueba `test_editar_agente_guarda_habilidades` que hace login, usa un agente existente con 1 habilidad, hace POST con 2 habilidades nuevas, ejecuta `agente.refresh_from_db()` y verifica que los IDs del M2M coincidan exactamente con los enviados y que la vista devuelva 302.
+
+**Reglas respetadas:**
+- No se modificó `models.py` ni se creó migración (la relación ManyToMany ya existe).
+- Máximo 2 archivos modificados (dentro del límite de 4).
+- Pruebas sin APIs reales.
+- No se ejecutó `git push`.
+- Cambio de bajo riesgo: solo reordena una llamada `set()` existente en la vista; no afecta contratos de API, credenciales, permisos ni tareas en cola.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k editar_agente -q` → `1 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "agente" -q` → `3 passed`.
+
+**Impacto en contratos/datos:** SÍ datos persistidos (tabla intermedia M2M `agente_habilidades` se actualiza al editar). NO contratos de API, NO credenciales, NO permisos, NO tareas en cola. Retrocompatible: misma URL `editar_agente` y mismo redirect 302 en éxito.

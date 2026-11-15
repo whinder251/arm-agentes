@@ -407,11 +407,20 @@ def editar_agente(request, pk):
     )
     if request.method == "POST":
         form = AgenteForm(request.POST, instance=agente)
+        habilidades_ids = request.POST.getlist("habilidades")
+
+        # Persistir siempre la selección de habilidades para no perder el estado del usuario,
+        # incluso si el formulario principal tiene errores de validación.
+        agente.habilidades.set(habilidades_ids)
+
         if form.is_valid():
-            agente = form.save()
-            agente.habilidades.set(request.POST.getlist("habilidades"))
+            form.save()
+            messages.success(request, "Agente actualizado correctamente.")
             return redirect("lista_agentes")
-        seleccionadas = request.POST.getlist("habilidades")
+
+        # Si el formulario es inválido, se re-renderiza con form.errors,
+        # pero las habilidades ya se guardaron arriba.
+        seleccionadas = habilidades_ids
     else:
         form = AgenteForm(instance=agente)
         seleccionadas = [str(pk) for pk in agente.habilidades.values_list("id", flat=True)]
