@@ -9,6 +9,9 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
+from dotenv import load_dotenv
+from pathlib import Path
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 import os
 
@@ -31,9 +34,9 @@ if not SECRET_KEY:
     raise ImproperlyConfigured("La variable de entorno SECRET_KEY es obligatoria.")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get("DEBUG", "False") == "True"
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
 
 # Application definition
@@ -144,4 +147,10 @@ LOGIN_URL = 'login_panel'
 
 # Clave de autenticación para la API REST (endpoints webhook).
 # En producción debe ser una cadena segura definida como variable de entorno.
-ARM_API_KEY = __import__("os").environ.get("ARM_API_KEY", "dev-api-key-123")
+ARM_API_KEY = os.environ.get("ARM_API_KEY")
+if not ARM_API_KEY:
+    if DEBUG:
+        ARM_API_KEY = "dev-api-key-123"
+    else:
+        from django.core.exceptions import ImproperlyConfigured
+        raise ImproperlyConfigured("La variable de entorno ARM_API_KEY es obligatoria en producción.")
