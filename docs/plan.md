@@ -977,4 +977,24 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 
 **Impacto en contratos/datos:** NO contratos de API, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola existentes. Solo cambia el comportamiento de ejecución: tareas sueltas con modo manual quedan en REVISION (antes quedaban en OK). Retrocompatible: modo `"auto"` (default) no se ve afectado.
 
-**Estado general:** Pasos 0 a 25 y Bloque B (B.1 a B.10) completados. Bloque C: C.1a, C.1b, C.2, C.3a, C.3b, C.4, C.5a, C.5b, C.5c, C.6, C.7a, C.7b, C.7c+d, C.7e, C.8a, C.8b, C.8c, C.9a, C.9a-fix, C.9a-fix2, C.9b, C.10 Fase 2, C.10.3, C.10.5, C.10.6, C.11a, C.11b, C.11b.1, C.12a y C.12b completados. Pendiente C.8 (retirar fallback temporal de proveedor LLM en publicación).
+## Paso C.14 - Corregir creación de tareas para usar habilidad seleccionada — COMPLETADO
+
+**Objetivo:** Que la vista `crear_tarea` use la habilidad seleccionada por el usuario en el formulario (`habilidad_id` por POST), en lugar de hardcodear `slug="reescritura"`, con fallback a la primera habilidad del agente.
+
+**Archivos tocados:**
+- `apps/panel/views.py`: en `crear_tarea`, se lee `habilidad_id` del POST; si se envía, se busca `Habilidad.objects.get(pk=...)` y se erroria con `messages.error` + `redirect` si no existe; si no se envía, se usa `agente.habilidades.first()` como fallback, con error si el agente no tiene habilidades.
+- `apps/panel/templates/panel/crear_tarea.html`: añadido `<select name="habilidad_id" class="input">` que lista las habilidades de todos los agentes (con nombre del agente para distinguir), opción por defecto "-- Selecciona una habilidad --", clases ARM Flow, sin CSS embebido ni estilos inline.
+- `tests/test_panel.py`: actualizado `test_crear_tarea_exitoso` para enviar `habilidad_id`; añadidas `test_crear_tarea_con_habilidad_seleccionada`, `test_crear_tarea_habilidad_inexistente` y `test_crear_tarea_sin_habilidad_id`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "crear_tarea" -q` → `9 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -q` → `46 passed`.
+
+**Reglas respetadas:**
+- No se modificó `models.py` ni se creó migración.
+- No se ejecutó `git push`.
+- Cambio retrocompatible: sin `habilidad_id` se usa el fallback a la primera habilidad del agente.
+
+**Estado general:** Pasos 0 a 25 y Bloque B (B.1 a B.10) completados. Bloque C: C.1a, C.1b, C.2, C.3a, C.3b, C.4, C.5a, C.5b, C.5c, C.6, C.7a, C.7b, C.7c+d, C.7e, C.8a, C.8b, C.8c, C.9a, C.9a-fix, C.9a-fix2, C.9b, C.10 Fase 2, C.10.3, C.10.5, C.10.6, C.11a, C.11b, C.11b.1, C.12a, C.12b y C.14 completados. Pendiente C.8 (retirar fallback temporal de proveedor LLM en publicación).

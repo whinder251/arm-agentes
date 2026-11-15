@@ -51,6 +51,21 @@
                           placeholder="Tono, audiencia o cualquier detalle extra para el agente...">{{ request.POST.instrucciones|default:"" }}</textarea>
             </div>
 
+            <div class="form-group">
+                <label for="habilidad_id">Habilidad:</label>
+                <select name="habilidad_id" id="habilidad_id" class="input">
+                    <option value="">-- Selecciona una habilidad --</option>
+                    {% for agente in agentes %}
+                        {% for h in agente.habilidades.all %}
+                            <option value="{{ h.pk }}"{% if request.POST.habilidad_id == h.pk|stringformat:"s" %} selected{% endif %}>
+                                {{ h.nombre }} ({{ h.slug }}) - {{ agente.nombre }}
+                            </option>
+                        {% endfor %}
+                    {% endfor %}
+                </select>
+                <span class="ayuda">Selecciona la habilidad que ejecutará esta tarea.</span>
+            </div>
+
             <div class="acciones-formulario">
                 <button type="submit" class="btn-primary">Procesar con IA</button>
             </div>

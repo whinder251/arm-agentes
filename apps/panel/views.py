@@ -79,30 +79,36 @@ def crear_tarea(request):
                     if proveedor.tokens_consumidos_hoy >= proveedor.limite_tokens_diario:
                         error = "El proveedor ha alcanzado su límite diario de tokens."
                 if error is None:
-                    habilidad = Habilidad.objects.filter(slug="reescritura").first()
-                    if habilidad is None:
-                        error = (
-                            "No existe la habilidad 'reescritura'. Créala antes de "
-                            "encolar una tarea."
-                        )
+                    habilidad_id = request.POST.get('habilidad_id')
+                    if habilidad_id:
+                        try:
+                            habilidad = Habilidad.objects.get(pk=habilidad_id)
+                        except Habilidad.DoesNotExist:
+                            messages.error(request, "La habilidad seleccionada no existe.")
+                            return redirect('crear_tarea')
                     else:
-                        payload = {"texto": texto}
-                        if keyword:
-                            payload["keyword"] = keyword
-                        if instrucciones:
-                            payload["instrucciones"] = instrucciones
-                        tarea = Tarea.objects.create(
-                            agente=agente,
-                            habilidad=habilidad,
-                            estado=Tarea.Estado.COLA,
-                            payload=payload,
-                        )
-                        ejecutar_tarea(tarea.pk)
-                        messages.success(
-                            request,
-                            f"Tarea creada y encolada con el agente {agente.nombre}.",
-                        )
-                        return redirect("lista_tareas")
+                        # Fallback: usar la primera habilidad del agente
+                        habilidad = agente.habilidades.first()
+                        if not habilidad:
+                            messages.error(request, "El agente no tiene habilidades asignadas.")
+                            return redirect('crear_tarea')
+                    payload = {"texto": texto}
+                    if keyword:
+                        payload["keyword"] = keyword
+                    if instrucciones:
+                        payload["instrucciones"] = instrucciones
+                    tarea = Tarea.objects.create(
+                        agente=agente,
+                        habilidad=habilidad,
+                        estado=Tarea.Estado.COLA,
+                        payload=payload,
+                    )
+                    ejecutar_tarea(tarea.pk)
+                    messages.success(
+                        request,
+                        f"Tarea creada y encolada con el agente {agente.nombre}.",
+                    )
+                    return redirect("lista_tareas")
     return render(
         request,
         "panel/crear_tarea.html",

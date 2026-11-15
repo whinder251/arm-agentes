@@ -206,6 +206,7 @@ class TestPanel(TestCase):
                 'texto': 'Texto de prueba para reescribir.',
                 'keyword': 'energía solar',
                 'instrucciones': 'Tono cercano',
+                'habilidad_id': self.habilidad.pk,
             })
 
         assert response.status_code == 302
@@ -217,6 +218,55 @@ class TestPanel(TestCase):
         assert tarea.payload['texto'] == 'Texto de prueba para reescribir.'
         assert tarea.payload['keyword'] == 'energía solar'
         assert tarea.payload['instrucciones'] == 'Tono cercano'
+        encolar.assert_called_once_with(tarea.pk)
+
+    def test_crear_tarea_con_habilidad_seleccionada(self):
+        seo = Habilidad.objects.create(
+            nombre='SEO',
+            slug='seo',
+            plantilla_prompt='test seo',
+            esquema_salida={}
+        )
+        self.agente.habilidades.add(seo)
+        self.client.login(username='testuser', password='testpass123')
+
+        with patch('apps.panel.views.ejecutar_tarea') as encolar:
+            response = self.client.post(reverse('crear_tarea'), {
+                'texto': 'Texto para SEO.',
+                'habilidad_id': seo.pk,
+            })
+
+        assert response.status_code == 302
+        tarea = Tarea.objects.get()
+        assert tarea.habilidad == seo
+        assert tarea.habilidad != self.habilidad
+        encolar.assert_called_once_with(tarea.pk)
+
+    def test_crear_tarea_habilidad_inexistente(self):
+        self.client.login(username='testuser', password='testpass123')
+
+        with patch('apps.panel.views.ejecutar_tarea') as encolar:
+            response = self.client.post(reverse('crear_tarea'), {
+                'texto': 'Texto de prueba.',
+                'habilidad_id': 99999,
+            })
+
+        assert response.status_code == 302
+        assert response.url == reverse('crear_tarea')
+        assert Tarea.objects.count() == 0
+        encolar.assert_not_called()
+
+    def test_crear_tarea_sin_habilidad_id(self):
+        self.client.login(username='testuser', password='testpass123')
+
+        with patch('apps.panel.views.ejecutar_tarea') as encolar:
+            response = self.client.post(reverse('crear_tarea'), {
+                'texto': 'Texto de prueba.',
+            })
+
+        assert response.status_code == 302
+        tarea = Tarea.objects.get()
+        assert tarea.habilidad == self.habilidad
         encolar.assert_called_once_with(tarea.pk)
 
     def test_crear_tarea_sin_agentes_activos(self):
