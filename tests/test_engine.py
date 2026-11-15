@@ -77,7 +77,15 @@ def respuesta_429_gemini() -> httpx.Response:
 @respx.mock
 def test_ejecutar_tarea_termina_en_ok():
     tarea = crear_escenario()
-    respx.post(GEMINI_CHAT).mock(return_value=respuesta_ok_gemini())
+    payload_json = json.dumps({
+        "titulo": "La capital de Francia",
+        "contenido": "París es la capital de Francia.",
+    })
+    respx.post(GEMINI_CHAT).mock(return_value=httpx.Response(200, json={
+        "candidates": [{"content": {"parts": [{"text": payload_json}]}}],
+        "usageMetadata": {"promptTokenCount": 10, "candidatesTokenCount": 5},
+        "modelVersion": "gemini-2.0-flash",
+    }))
 
     resultado = tasks.ejecutar_tarea.call_local(tarea.pk)
 
@@ -85,6 +93,92 @@ def test_ejecutar_tarea_termina_en_ok():
     assert resultado == "ok"
     assert tarea.estado == Tarea.Estado.OK
     assert tarea.intentos == 0
+
+
+@pytest.mark.django_db
+@respx.mock
+def test_tarea_falla_cuando_normalizador_falla():
+    """Cuando el modelo no devuelve JSON válido, el normalizador marca
+    status="failed" y la tarea queda en estado ERROR."""
+    tarea = crear_escenario()
+    respx.post(GEMINI_CHAT).mock(return_value=respuesta_ok_gemini())
+
+    resultado = tasks.ejecutar_tarea.call_local(tarea.pk)
+
+    tarea.refresh_from_db()
+    assert resultado == "error"
+    assert tarea.estado == Tarea.Estado.ERROR
+
+
+@pytest.mark.django_db
+@respx.mock
+def test_tarea_revision_cuando_modo_manual():
+    """Si modo_ejecucion=="manual", la tarea queda en REVISION y no
+    se crea la siguiente tarea del workflow."""
+    proveedor = Proveedor.objects.create(
+        nombre="gemini",
+        base_url=GEMINI_BASE,
+        api_key="test-gemini-key",
+        limite_diario=100,
+    )
+    modelo = ModeloLLM.objects.create(
+        proveedor=proveedor,
+        model_id="gemini-2.0-flash",
+        prioridad=1,
+    )
+    habilidad_manual = Habilidad.objects.create(
+        nombre="Manual",
+        slug="manual",
+        plantilla_prompt="Haz algo: {{ texto }}",
+        esquema_salida={"type": "object"},
+        modo_ejecucion="manual",
+    )
+    agente = Agente.objects.create(
+        nombre="Agente Manual",
+        rol="Eres un agente.",
+        modelo=modelo,
+        temperatura=0.3,
+    )
+    workflow = Workflow.objects.create(
+        nombre="W manual",
+        descripcion="Flujo con paso manual",
+        estado="en_ejecucion",
+    )
+    paso1 = PasoWorkflow.objects.create(
+        workflow=workflow,
+        orden=1,
+        habilidad=habilidad_manual,
+        agente=agente,
+    )
+    paso2 = PasoWorkflow.objects.create(
+        workflow=workflow,
+        orden=2,
+        habilidad=habilidad_manual,
+        agente=agente,
+    )
+
+    payload_json = json.dumps({"contenido": "resultado manual"})
+    respx.post(GEMINI_CHAT).mock(return_value=httpx.Response(200, json={
+        "candidates": [{"content": {"parts": [{"text": payload_json}]}}],
+        "usageMetadata": {"promptTokenCount": 10, "candidatesTokenCount": 5},
+        "modelVersion": "gemini-2.0-flash",
+    }))
+
+    resultado = tasks.ejecutar_tarea.call_local(
+        Tarea.objects.create(
+            agente=agente,
+            habilidad=habilidad_manual,
+            payload={"texto": "x"},
+            paso_workflow=paso1,
+        ).pk
+    )
+
+    tarea = Tarea.objects.get(paso_workflow=paso1)
+    tarea.refresh_from_db()
+    assert resultado == "revision"
+    assert tarea.estado == Tarea.Estado.REVISION
+    # El workflow no debe haber continuado: no existe tarea del paso 2.
+    assert Tarea.objects.filter(paso_workflow=paso2).count() == 0
 
 
 @pytest.mark.django_db
@@ -194,15 +288,17 @@ def test_artefacto_guarda_metadata_estructurado_desde_json():
 @pytest.mark.django_db
 @respx.mock
 def test_artefacto_guarda_texto_plano_cuando_respuesta_no_es_json():
-    """Si la respuesta no es JSON válido, se guarda como texto plano en
-    metadata['contenido'] sin romper el flujo de la tarea."""
+    """Si la respuesta no es JSON válido, el normalizador marca status="failed",
+    la tarea queda en ERROR y el artefacto guarda texto plano en
+    metadata['contenido'] sin romper el flujo."""
     tarea = crear_escenario()
     respx.post(GEMINI_CHAT).mock(return_value=respuesta_ok_gemini())
 
     resultado = tasks.ejecutar_tarea.call_local(tarea.pk)
 
     tarea.refresh_from_db()
-    assert resultado == "ok"
+    assert resultado == "error"
+    assert tarea.estado == Tarea.Estado.ERROR
     artefacto = Artefacto.objects.get(tarea=tarea)
     assert artefacto.metadata["contenido"] == TEXTO_ESPERADO
     assert artefacto.metadata["modelo"] == "gemini-2.0-flash"

@@ -926,4 +926,32 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 
 **Impacto en contratos/datos:** SÍ contratos (el `payload` del paso N+1 ya no viene vacío, contiene los datos del paso anterior). NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola. Retrocompatible: si no hay artefacto previo, el payload queda `{}`.
 
-**Estado general:** Pasos 0 a 25 y Bloque B (B.1 a B.10) completados. Bloque C: C.1a, C.1b, C.2, C.3a, C.3b, C.4, C.5a, C.5b, C.5c, C.6, C.7a, C.7b, C.7c+d, C.7e, C.8a, C.8b, C.8c, C.9a, C.9a-fix, C.9a-fix2, C.9b, C.10 Fase 2, C.10.3, C.10.5, C.10.6 y C.11a completados. Pendiente C.8 (retirar fallback temporal de proveedor LLM en publicación) y C.11b (gestión de estados y modo manual).
+## Paso C.11b - Estados reales y modo manual en workflows — COMPLETADO
+
+**Objetivo:**
+1) Que el estado de la Tarea refleje el status del ResultadoAgente (completed→ok, partial→revision, failed→error).
+2) Que modo_ejecucion="manual" pause el workflow y deje la tarea en estado "revision".
+
+**Archivos tocados:**
+- `apps/core/models.py`: añadido `ERROR = "error", "Error"` a `Tarea.Estado` y `Estado.OK` a las transiciones desde `Estado.CURSO` (antes requería doble transición CURSO→REVISION→OK). `ERROR` es estado terminal.
+- `apps/engine/tasks.py`: en `ejecutar_tarea`, tras `_guardar_artefacto`, se lee `metadata['resultado']['status']` del último artefacto: `failed` → `transicionar(ERROR)` + propaga workflow a 'fallido'; `partial` o `modo_ejecucion == 'manual'` → `transicionar(REVISION)` y retorna sin continuar workflow; `completed` → `transicionar(OK)` y continúa workflow solo si `modo_ejecucion == 'auto'`. En `continuar_workflow`, se agregó guardia: si la tarea del paso anterior está en `REVISION` o `ERROR`, retorna "bloqueado" sin crear la siguiente tarea.
+- `tests/test_engine.py`: actualizada `test_ejecutar_tarea_termina_en_ok` (respuesta JSON válida para esperar OK); actualizada `test_artefacto_guarda_texto_plano_cuando_respuesta_no_es_json` (estado ahora ERROR); añadidas `test_tarea_falla_cuando_normalizador_falla` (respuesta no-JSON → ERROR) y `test_tarea_revision_cuando_modo_manual` (manual → REVISION y no crea tarea del paso 2).
+- Migración generada y aplicada: `apps/core/migrations/0014_alter_tarea_estado.py`.
+- `docs/plan.md`: esta sección y estado general actualizado.
+
+**Reglas respetadas:**
+- No se crearon migraciones manuales (usó `makemigrations`).
+- Máximo 3 archivos Python modificados (dentro del límite de 4).
+- Pruebas sin APIs reales; `respx` para simular HTTP.
+- No se ejecutó `git push`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe manage.py migrate` → `Applying core.0014_alter_tarea_estado... OK`.
+- `.venv\Scripts\python.exe -m pytest tests/test_engine.py -q` → `10 passed in 12.76s` (incluye las 2 pruebas nuevas).
+- `.venv\Scripts\python.exe -m pytest tests/test_engine.py tests/test_models.py tests/test_providers.py tests/test_router.py tests/test_api.py tests/test_publicacion.py tests/test_integraciones.py -q` → `59 passed`.
+
+**Impacto en contratos/datos:** SÍ datos persistidos (nuevo estado `ERROR` en choices del campo `estado` → migración 0014). NO credenciales, NO permisos, NO tareas en cola existentes, NO contratos de API. Retrocompatible: estados existentes (COLA, CURSO, REVISION, OK, FALLO) se mantienen.
+
+**Estado general:** Pasos 0 a 25 y Bloque B (B.1 a B.10) completados. Bloque C: C.1a, C.1b, C.2, C.3a, C.3b, C.4, C.5a, C.5b, C.5c, C.6, C.7a, C.7b, C.7c+d, C.7e, C.8a, C.8b, C.8c, C.9a, C.9a-fix, C.9a-fix2, C.9b, C.10 Fase 2, C.10.3, C.10.5, C.10.6, C.11a y C.11b completados. Pendiente C.8 (retirar fallback temporal de proveedor LLM en publicación).

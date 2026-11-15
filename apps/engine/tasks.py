@@ -294,7 +294,9 @@ def ejecutar_tarea(tarea_id: int) -> str:
         return "ignorada"
 
     tarea = (
-        Tarea.objects.select_related("agente__modelo", "habilidad")
+        Tarea.objects.select_related(
+            "agente__modelo", "habilidad", "paso_workflow__habilidad"
+        )
         .filter(pk=tarea_id)
         .first()
     )
@@ -333,19 +335,40 @@ def ejecutar_tarea(tarea_id: int) -> str:
             )
 
         _guardar_artefacto(tarea, respuesta, ejecucion)
-        tarea.transicionar(Tarea.Estado.REVISION)
-        tarea.transicionar(Tarea.Estado.OK)
         _marcar_latido(tarea_id)
-        # Orquestación: al terminar un paso en 'ok', encolar el siguiente
-        # paso del workflow automáticamente (RB-011).
-        if (
-            tarea.estado == Tarea.Estado.OK
-            and tarea.paso_workflow_id is not None
-        ):
-            continuar_workflow(
-                tarea.paso_workflow.workflow.pk, tarea.paso_workflow.orden + 1
-            )
-        return "ok"
+
+        paso = tarea.paso_workflow
+        modo_manual = paso is not None and paso.habilidad.modo_ejecucion == "manual"
+
+        # Leer el ResultadoAgente del artefacto recién creado para decidir el estado.
+        ultimo_artefacto = (
+            Artefacto.objects.filter(tarea=tarea)
+            .order_by("-version")
+            .first()
+        )
+        resultado = {}
+        if ultimo_artefacto and ultimo_artefacto.metadata:
+            resultado = ultimo_artefacto.metadata.get("resultado", {})
+        status = resultado.get("status", "completed")
+
+        if status == "failed":
+            tarea.transicionar(Tarea.Estado.ERROR)
+            # Propagar fallo al workflow padre si corresponde.
+            if paso is not None:
+                paso.workflow.estado = "fallido"
+                paso.workflow.save(update_fields=["estado"])
+            return "error"
+        elif status == "partial" or modo_manual:
+            tarea.transicionar(Tarea.Estado.REVISION)
+            # No continuar el workflow automáticamente (modo manual o parcial).
+            return "revision"
+        else:
+            tarea.transicionar(Tarea.Estado.OK)
+            # Orquestación: al terminar un paso en 'ok', encolar el siguiente
+            # paso del workflow automáticamente solo si es auto (RB-011).
+            if paso is not None and not modo_manual:
+                continuar_workflow(paso.workflow.pk, paso.orden + 1)
+            return "ok"
     except Exception as error:  # El worker no debe morir por una tarea.
         logger.exception("Tarea %s falló durante la ejecución", tarea_id)
         ejecucion.error = str(error)
@@ -451,6 +474,17 @@ def continuar_workflow(workflow_id: int, siguiente_orden: int) -> str:
             .first()
         )
         if tarea_anterior is not None:
+            if tarea_anterior.estado in (
+                Tarea.Estado.REVISION,
+                Tarea.Estado.ERROR,
+            ):
+                logger.info(
+                    "Workflow %s no continua: paso %s en estado %s",
+                    workflow.pk,
+                    paso_anterior.orden,
+                    tarea_anterior.estado,
+                )
+                return "bloqueado"
             ultimo_artefacto = (
                 Artefacto.objects.filter(tarea=tarea_anterior)
                 .order_by("-version")

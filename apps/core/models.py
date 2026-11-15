@@ -181,13 +181,15 @@ class Tarea(models.Model):
         CURSO = "curso", "En curso"
         REVISION = "revision", "En revisión"
         OK = "ok", "Completada"
+        ERROR = "error", "Error"
         FALLO = "fallo", "Fallida"
 
     TRANSICIONES = {
         Estado.COLA: {Estado.CURSO, Estado.FALLO},
-        Estado.CURSO: {Estado.COLA, Estado.REVISION, Estado.FALLO},
+        Estado.CURSO: {Estado.COLA, Estado.REVISION, Estado.FALLO, Estado.ERROR, Estado.OK},
         Estado.REVISION: {Estado.OK, Estado.FALLO},
         Estado.OK: set(),
+        Estado.ERROR: set(),
         Estado.FALLO: set(),
     }
 
