@@ -883,4 +883,47 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 - `.venv\Scripts\python.exe -m pytest tests/test_engine.py -q` → `7 passed in 8.11s`.
 - `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
 
-**Estado general:** Pasos 0 a 25 y Bloque B (B.1 a B.10) completados. Bloque C: C.1a, C.1b, C.2, C.3a, C.3b, C.4, C.5a, C.5b, C.5c, C.6, C.7a, C.7b, C.7c+d, C.7e, C.8a, C.8b, C.8c, C.9a, C.9a-fix, C.9a-fix2, C.9b, C.10 Fase 2, C.10.3 y C.10.5 completados. Pendiente C.8 (retirar fallback temporal de proveedor LLM en publicación).
+## Paso C.10.6 - Ajuste de tolerancia para habilidad de reescritura — COMPLETADO
+
+**Objetivo:** Que la habilidad `reescritura` acepte `texto_reescrito` como campo válido y requerido, evitando estados `failed` innecesarios cuando el modelo use esa nomenclatura. El normalizador ya extrae `texto_reescrito` → `Artefacto.contenido` si no encuentra `contenido` (tasks.py).
+
+**Archivos tocados:**
+- `apps/core/management/commands/seed_demo.py`: en la habilidad `reescritura`, el `esquema_salida` ahora es `{"type":"object","properties":{"titulo":{"type":"string"},"contenido":{"type":"string"},"texto_reescrito":{"type":"string"}},"required":["texto_reescrito"]}`. `titulo` y `contenido` pasan a ser opcionales; solo `texto_reescrito` es requerido. La lógica `if not created:` actualiza registros existentes (idempotente).
+
+**Reglas respetadas:**
+- No se modificó `models.py`, `tasks.py` ni se creó migración (`makemigrations --check --dry-run` → No changes detected).
+- Sin cambios de schema, credenciales, permisos ni cola. Retrocompatible: `publicar_tarea` lee `metadata['contenido']` o `artefacto.contenido`.
+- Máximo 1 archivo modificado (dentro del límite de 4).
+- No se ejecutó `git push`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py seed_demo` → "Habilidades: 0 creadas, 13 actualizadas, 0 sin cambios." (incluye reescritura).
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe -m pytest tests/test_engine.py -q` → `7 passed`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- Commit: `ba27c0b` "Paso C.10.6: Esquema flexible para habilidad de reescritura".
+
+**Impacto en contratos/datos:** SÍ datos persistidos (el `esquema_salida` de la habilidad `reescritura` se actualiza en BD al ejecutar `seed_demo`). NO contratos de código, NO credenciales, NO permisos, NO tareas en cola. Retrocompatible.
+
+## Paso C.11a - Datos entre pasos en workflows — COMPLETADO
+
+**Objetivo:** Que el paso N+1 de un workflow reciba el `data` del Artefacto del paso N como parte de su payload, permitiendo que el redactor use los hallazgos del investigador, por ejemplo.
+
+**Archivos tocados:**
+- `apps/engine/tasks.py`: en `continuar_workflow`, antes de crear la nueva tarea, extrae el último `Artefacto` de la tarea del paso anterior (`siguiente_orden - 1`) y lee `metadata['resultado']['data']` (con fallback a claves planas si no existe esa estructura). El `payload` de la nueva tarea pasa de `{}` a `{**datos_anteriores}`.
+- `tests/test_engine.py`: nueva prueba `test_workflow_pasa_datos_entre_pasos` que crea un workflow de 2 pasos, simula un artefacto del paso 1 con `metadata['resultado']['data'] = {'hallazgos': ['dato1', 'dato2']}`, ejecuta `continuar_workflow` y verifica que la tarea del paso 2 tiene `payload == {'hallazgos': ['dato1', 'dato2']}`.
+
+**Reglas respetadas:**
+- No se modificó `models.py` ni se creó migración.
+- No se tocó la lógica de estados (pendiente C.11b).
+- Máximo 2 archivos modificados (dentro del límite de 4).
+- No se ejecutó `git push`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe -m pytest tests/test_engine.py -q` → `8 passed in 7.77s` (incluye la prueba nueva `test_workflow_pasa_datos_entre_pasos`).
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+
+**Impacto en contratos/datos:** SÍ contratos (el `payload` del paso N+1 ya no viene vacío, contiene los datos del paso anterior). NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola. Retrocompatible: si no hay artefacto previo, el payload queda `{}`.
+
+**Estado general:** Pasos 0 a 25 y Bloque B (B.1 a B.10) completados. Bloque C: C.1a, C.1b, C.2, C.3a, C.3b, C.4, C.5a, C.5b, C.5c, C.6, C.7a, C.7b, C.7c+d, C.7e, C.8a, C.8b, C.8c, C.9a, C.9a-fix, C.9a-fix2, C.9b, C.10 Fase 2, C.10.3, C.10.5, C.10.6 y C.11a completados. Pendiente C.8 (retirar fallback temporal de proveedor LLM en publicación) y C.11b (gestión de estados y modo manual).

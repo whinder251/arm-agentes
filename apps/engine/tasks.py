@@ -438,11 +438,40 @@ def continuar_workflow(workflow_id: int, siguiente_orden: int) -> str:
         )
         return "sin_modelo_activo"
 
+    # Extraer datos del paso anterior para pasarlos al siguiente
+    paso_anterior = (
+        PasoWorkflow.objects.filter(workflow=workflow, orden=siguiente_orden - 1)
+        .first()
+    )
+    datos_anteriores = {}
+    if paso_anterior is not None:
+        tarea_anterior = (
+            Tarea.objects.filter(paso_workflow=paso_anterior)
+            .order_by("-id")
+            .first()
+        )
+        if tarea_anterior is not None:
+            ultimo_artefacto = (
+                Artefacto.objects.filter(tarea=tarea_anterior)
+                .order_by("-version")
+                .first()
+            )
+            if ultimo_artefacto and ultimo_artefacto.metadata:
+                resultado = ultimo_artefacto.metadata.get("resultado", {})
+                datos_anteriores = resultado.get("data", {}) or {}
+                if not datos_anteriores:
+                    datos_anteriores = {
+                        k: v
+                        for k, v in ultimo_artefacto.metadata.items()
+                        if k
+                        not in ("modelo", "tokens_in", "tokens_out", "ejecucion", "resultado")
+                    }
+
     nueva_tarea = Tarea.objects.create(
         agente=agente,
         habilidad=paso.habilidad,
         estado=Tarea.Estado.COLA,
-        payload={},
+        payload={**datos_anteriores},
         paso_workflow=paso,
     )
     ejecutar_tarea(nueva_tarea.pk)

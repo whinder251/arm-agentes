@@ -17,8 +17,10 @@ from apps.core.models import (
     Ejecucion,
     Habilidad,
     ModeloLLM,
+    PasoWorkflow,
     Proveedor,
     Tarea,
+    Workflow,
 )
 from apps.engine import tasks
 
@@ -231,3 +233,86 @@ def test_artefacto_extrae_cuerpo_cuando_json_no_tiene_contenido():
     assert artefacto.contenido == "Este es el texto reescrito sin la clave contenido."
     assert artefacto.metadata["contenido"] == "Este es el texto reescrito sin la clave contenido."
     assert artefacto.metadata["titulo"] == "Título reescrito"
+
+
+@pytest.mark.django_db
+def test_workflow_pasa_datos_entre_pasos(monkeypatch):
+    proveedor = Proveedor.objects.create(
+        nombre="gemini",
+        base_url=GEMINI_BASE,
+        api_key="test-gemini-key",
+        limite_diario=100,
+    )
+    modelo = ModeloLLM.objects.create(
+        proveedor=proveedor,
+        model_id="gemini-2.0-flash",
+        prioridad=1,
+    )
+    habilidad_investigar = Habilidad.objects.create(
+        nombre="Investigar",
+        slug="investigar",
+        plantilla_prompt="Investiga: {{ tema }}",
+        esquema_salida={},
+    )
+    habilidad_redactar = Habilidad.objects.create(
+        nombre="Redactar",
+        slug="redactar",
+        plantilla_prompt="Redacta: {{ hallazgos }}",
+        esquema_salida={},
+    )
+    agente = Agente.objects.create(
+        nombre="Agente",
+        rol="Eres un agente.",
+        modelo=modelo,
+        temperatura=0.3,
+    )
+    workflow = Workflow.objects.create(
+        nombre="W1",
+        descripcion="Flujo de prueba",
+        estado="en_ejecucion",
+    )
+    paso1 = PasoWorkflow.objects.create(
+        workflow=workflow,
+        orden=1,
+        habilidad=habilidad_investigar,
+        agente=agente,
+    )
+    paso2 = PasoWorkflow.objects.create(
+        workflow=workflow,
+        orden=2,
+        habilidad=habilidad_redactar,
+        agente=agente,
+    )
+    tarea1 = Tarea.objects.create(
+        agente=agente,
+        habilidad=habilidad_investigar,
+        estado=Tarea.Estado.OK,
+        payload={},
+        paso_workflow=paso1,
+    )
+    Artefacto.objects.create(
+        tarea=tarea1,
+        version=1,
+        contenido="contenido del paso 1",
+        metadata={
+            "modelo": "gemini",
+            "tokens_in": 10,
+            "tokens_out": 5,
+            "ejecucion": 1,
+            "resultado": {
+                "success": True,
+                "status": "completed",
+                "data": {"hallazgos": ["dato1", "dato2"]},
+                "error": None,
+                "metadata": {},
+            },
+        },
+    )
+
+    monkeypatch.setattr(tasks, "ejecutar_tarea", lambda pk: None)
+
+    resultado = tasks.continuar_workflow.call_local(workflow.pk, 2)
+
+    assert resultado == "encolado"
+    tarea2 = Tarea.objects.get(paso_workflow=paso2)
+    assert tarea2.payload == {"hallazgos": ["dato1", "dato2"]}
