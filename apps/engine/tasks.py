@@ -228,20 +228,29 @@ def _guardar_artefacto(
     resultado, datos, crudo = _normalizar_respuesta(respuesta.texto, tarea.habilidad)
     metadata["resultado"] = resultado.model_dump()
     if datos:
+        # Extraer texto plano con prioridad cuando el JSON no cumple el esquema:
+        # contenido > cuerpo > texto > texto_reescrito > fallback crudo.
+        contenido_texto = respuesta.texto
+        if isinstance(datos, dict):
+            for clave in ['contenido', 'cuerpo', 'texto', 'texto_reescrito']:
+                if clave in datos and isinstance(datos[clave], str):
+                    contenido_texto = datos[clave]
+                    break
         metadata.update({
             "titulo": str(datos.get("titulo", "") or ""),
             "slug": str(datos.get("slug", "") or ""),
-            "contenido": str(datos.get("contenido", respuesta.texto) or respuesta.texto),
+            "contenido": contenido_texto,
             "meta_description": str(datos.get("meta_description", "") or ""),
             "focus_keyword": str(datos.get("focus_keyword", "") or ""),
         })
     else:
+        contenido_texto = respuesta.texto
         metadata["contenido"] = respuesta.texto
     raw_response_val: str | None = crudo if getattr(settings, "ARM_GUARDAR_RAW", False) else None
     return Artefacto.objects.create(
         tarea=tarea,
         version=version,
-        contenido=respuesta.texto,
+        contenido=contenido_texto,
         metadata=metadata,
         raw_response=raw_response_val,
     )

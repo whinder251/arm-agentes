@@ -860,4 +860,27 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 
 **Impacto en contratos/datos:** SÍ (actualiza datos existentes en BD: capacidades del modelo, esquemas y prompts de habilidades, roles de agentes). Sin cambios de schema, migraciones, credenciales, permisos ni cola. Retrocompatible.
 
-**Estado general:** Pasos 0 a 25 y Bloque B (B.1 a B.10) completados. Bloque C: C.1a, C.1b, C.2, C.3a, C.3b, C.4, C.5a, C.5b, C.5c, C.6, C.7a, C.7b, C.7c+d, C.7e, C.8a, C.8b, C.8c, C.9a, C.9a-fix, C.9a-fix2, C.9b, C.10 Fase 2 y C.10.3 completados. Pendiente C.8 (retirar fallback temporal de proveedor LLM en publicación).
+## Paso C.10.5 - Fix de habilidades faltantes y normalizador de texto — COMPLETADO
+
+**Objetivo:**
+1) Añadir la habilidad `reescritura` al seed_demo con esquema coherente.
+2) Mejorar el normalizador para extraer texto plano cuando el modelo devuelve JSON que no coincide con el esquema.
+
+**Archivos tocados:**
+- `apps/core/management/commands/seed_demo.py`: añade la habilidad `reescritura` (slug `reescritura`, nombre "Reescritura", esquema `{titulo, contenido}` requerido, `esquema_version: "v1"`, `permite_parcial: False`, prompt JSON estricto, modo auto). Idempotente: actualiza registros existentes.
+- `apps/engine/tasks.py`: `_guardar_artefacto` extrae texto plano con prioridad `contenido` → `cuerpo` → `texto` → `texto_reescrito` → fallback `respuesta.texto` cuando el modelo devuelve JSON válido que no cumple el esquema. Guarda el texto en `Artefacto.contenido` y `metadata["contenido"]`.
+- `tests/test_engine.py`: nueva prueba `test_artefacto_extrae_cuerpo_cuando_json_no_tiene_contenido` (respx, sin API real).
+- `docs/plan.md`: esta sección.
+
+**Reglas respetadas:**
+- No se modificó `models.py` ni se creó migración (`makemigrations --check --dry-run` → No changes detected).
+- Sin cambios de schema, credenciales, permisos ni cola. Retrocompatible: `publicar_tarea` lee `meta.get('contenido')` o `artefacto.contenido`.
+- Máximo 4 archivos modificados.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py seed_demo` → "Habilidades: 0 creadas, 13 actualizadas, 0 sin cambios." (incluye reescritura).
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe -m pytest tests/test_engine.py -q` → `7 passed in 8.11s`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+
+**Estado general:** Pasos 0 a 25 y Bloque B (B.1 a B.10) completados. Bloque C: C.1a, C.1b, C.2, C.3a, C.3b, C.4, C.5a, C.5b, C.5c, C.6, C.7a, C.7b, C.7c+d, C.7e, C.8a, C.8b, C.8c, C.9a, C.9a-fix, C.9a-fix2, C.9b, C.10 Fase 2, C.10.3 y C.10.5 completados. Pendiente C.8 (retirar fallback temporal de proveedor LLM en publicación).

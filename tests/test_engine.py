@@ -205,3 +205,29 @@ def test_artefacto_guarda_texto_plano_cuando_respuesta_no_es_json():
     assert artefacto.metadata["contenido"] == TEXTO_ESPERADO
     assert artefacto.metadata["modelo"] == "gemini-2.0-flash"
     assert artefacto.contenido == TEXTO_ESPERADO
+
+
+@pytest.mark.django_db
+@respx.mock
+def test_artefacto_extrae_cuerpo_cuando_json_no_tiene_contenido():
+    """Cuando el modelo devuelve JSON válido con 'cuerpo' pero sin 'contenido',
+    el artefacto guarda el texto de 'cuerpo' en contenido y metadata."""
+    tarea = crear_escenario()
+    payload_json = json.dumps({
+        "titulo": "Título reescrito",
+        "cuerpo": "Este es el texto reescrito sin la clave contenido.",
+    })
+    respx.post(GEMINI_CHAT).mock(return_value=httpx.Response(200, json={
+        "candidates": [{"content": {"parts": [{"text": payload_json}]}}],
+        "usageMetadata": {"promptTokenCount": 10, "candidatesTokenCount": 5},
+        "modelVersion": "gemini-2.0-flash",
+    }))
+
+    resultado = tasks.ejecutar_tarea.call_local(tarea.pk)
+
+    tarea.refresh_from_db()
+    assert resultado == "ok"
+    artefacto = Artefacto.objects.get(tarea=tarea)
+    assert artefacto.contenido == "Este es el texto reescrito sin la clave contenido."
+    assert artefacto.metadata["contenido"] == "Este es el texto reescrito sin la clave contenido."
+    assert artefacto.metadata["titulo"] == "Título reescrito"

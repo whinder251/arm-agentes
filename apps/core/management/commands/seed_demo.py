@@ -314,6 +314,25 @@ class Command(BaseCommand):
                 ),
                 "modo_ejecucion": "manual",
             },
+            {
+                "slug": "reescritura",
+                "nombre": "Reescritura",
+                "esquema_salida": {
+                    "type": "object",
+                    "properties": {
+                        "titulo": {"type": "string"},
+                        "contenido": {"type": "string"},
+                    },
+                    "required": ["titulo", "contenido"],
+                },
+                "esquema_version": "v1",
+                "permite_parcial": False,
+                "plantilla_prompt": (
+                    "Reescribe el siguiente texto aplicando las reglas editoriales: {{ texto }}. "
+                    + self.INSTRUCCION_ROL
+                ),
+                "modo_ejecucion": "auto",
+            },
         ]
         creadas = 0
         existentes = 0
