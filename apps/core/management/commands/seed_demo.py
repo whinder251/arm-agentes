@@ -45,157 +45,279 @@ class Command(BaseCommand):
                 .order_by("pk")
                 .first()
             )
+        if modelo is not None:
+            capacidades = list(modelo.capacidades or [])
+            for cap in ("structured_output", "json_mode"):
+                if cap not in capacidades:
+                    capacidades.append(cap)
+            modelo.capacidades = capacidades
+            modelo.save(update_fields=["capacidades"])
         return modelo
+
+    INSTRUCCION_ROL = (
+        "Debes responder estrictamente con un objeto JSON válido que cumpla "
+        "el esquema de salida solicitado. No incluyas texto, explicaciones ni "
+        "bloques de código markdown fuera del JSON."
+    )
 
     def _siembrar_habilidades(self):
         datos = [
             {
                 "slug": "investigar_tema",
                 "nombre": "Investigar tema",
-                "plantilla_prompt": """Investiga a fondo el tema: {{ texto }}
-
-Responde ÚNICAMENTE con un objeto JSON válido con esta estructura:
-{'titulo': 'Título del tema investigado', 'slug': 'slug-del-tema', 'contenido': 'Cuerpo del informe de investigación en markdown', 'meta_description': 'Resumen de 150-160 caracteres para SEO', 'focus_keyword': 'palabra clave principal'}
-
-No incluyas texto fuera del JSON. No uses bloques de código markdown.""",
-                "esquema_salida": {"titulo": "", "slug": "", "contenido": "", "meta_description": "", "focus_keyword": ""},
+                "esquema_salida": {
+                    "type": "object",
+                    "properties": {
+                        "titulo": {"type": "string"},
+                        "hallazgos": {"type": "array", "items": {"type": "string"}},
+                        "conclusiones": {"type": "string"},
+                    },
+                    "required": ["titulo", "hallazgos"],
+                },
+                "esquema_version": "v1",
+                "permite_parcial": False,
+                "plantilla_prompt": (
+                    "Investiga a fondo el tema: {{ texto }}\n\n" + self.INSTRUCCION_ROL
+                ),
                 "modo_ejecucion": "auto",
             },
             {
                 "slug": "redactar_articulo",
                 "nombre": "Redactar artículo",
-                "plantilla_prompt": """Redacta un artículo basado en: {{ texto }}
-
-Responde ÚNICAMENTE con un objeto JSON válido con esta estructura:
-{'titulo': 'Título atractivo del artículo', 'slug': 'titulo-atractivo-del-articulo', 'contenido': 'Cuerpo del artículo en markdown, con H2 y H3', 'meta_description': 'Descripción de 150-160 caracteres para SEO', 'focus_keyword': 'palabra clave principal'}
-
-No incluyas texto fuera del JSON. No uses bloques de código markdown.""",
-                "esquema_salida": {"titulo": "", "slug": "", "contenido": "", "meta_description": "", "focus_keyword": ""},
+                "esquema_salida": {
+                    "type": "object",
+                    "properties": {
+                        "titulo": {"type": "string"},
+                        "slug": {"type": "string"},
+                        "contenido": {"type": "string"},
+                        "meta_description": {"type": "string"},
+                        "focus_keyword": {"type": "string"},
+                    },
+                    "required": ["titulo", "contenido"],
+                },
+                "esquema_version": "v1",
+                "permite_parcial": False,
+                "plantilla_prompt": (
+                    "Redacta un artículo basado en: {{ texto }}\n\n"
+                    + self.INSTRUCCION_ROL
+                ),
                 "modo_ejecucion": "auto",
             },
             {
                 "slug": "reescribir_editorial",
                 "nombre": "Reescribir editorial",
-                "plantilla_prompt": """Reescribe con tono editorial: {{ texto }}
-
-Responde ÚNICAMENTE con un objeto JSON válido con esta estructura:
-{'titulo': 'Título reescrito', 'slug': 'titulo-reescrito', 'contenido': 'Texto reescrito con tono editorial', 'meta_description': 'Descripción de 150-160 caracteres para SEO', 'focus_keyword': 'palabra clave principal'}
-
-No incluyas texto fuera del JSON. No uses bloques de código markdown.""",
-                "esquema_salida": {"titulo": "", "slug": "", "contenido": "", "meta_description": "", "focus_keyword": ""},
+                "esquema_salida": {
+                    "type": "object",
+                    "properties": {
+                        "titulo": {"type": "string"},
+                        "slug": {"type": "string"},
+                        "contenido": {"type": "string"},
+                        "meta_description": {"type": "string"},
+                        "focus_keyword": {"type": "string"},
+                    },
+                    "required": ["titulo", "contenido"],
+                },
+                "esquema_version": "v1",
+                "permite_parcial": False,
+                "plantilla_prompt": (
+                    "Reescribe con tono editorial: {{ texto }}\n\n"
+                    + self.INSTRUCCION_ROL
+                ),
                 "modo_ejecucion": "auto",
             },
             {
                 "slug": "revision_calidad",
                 "nombre": "Revisión de calidad",
-                "plantilla_prompt": """Revisa la calidad de: {{ texto }}
-
-Responde ÚNICAMENTE con un objeto JSON válido con esta estructura:
-{'titulo': 'Informe de revisión', 'slug': 'informe-revision', 'contenido': 'Observaciones y sugerencias de mejora en markdown', 'meta_description': 'Resumen de la revisión de calidad', 'focus_keyword': 'calidad'}
-
-No incluyas texto fuera del JSON. No uses bloques de código markdown.""",
-                "esquema_salida": {"titulo": "", "slug": "", "contenido": "", "meta_description": "", "focus_keyword": ""},
+                "esquema_salida": {
+                    "type": "object",
+                    "properties": {
+                        "titulo": {"type": "string"},
+                        "slug": {"type": "string"},
+                        "contenido": {"type": "string"},
+                        "meta_description": {"type": "string"},
+                        "focus_keyword": {"type": "string"},
+                    },
+                    "required": ["titulo", "contenido"],
+                },
+                "esquema_version": "v1",
+                "permite_parcial": False,
+                "plantilla_prompt": (
+                    "Revisa la calidad de: {{ texto }}\n\n" + self.INSTRUCCION_ROL
+                ),
                 "modo_ejecucion": "manual",
             },
             {
                 "slug": "metadatos_yoast",
                 "nombre": "Metadatos Yoast",
-                "plantilla_prompt": """Genera metadatos SEO para: {{ texto }}
-
-Responde ÚNICAMENTE con un objeto JSON válido con esta estructura:
-{'titulo': 'Título SEO optimizado', 'slug': 'titulo-seo-optimizado', 'contenido': 'Texto optimizado para SEO', 'meta_description': 'Descripción meta de 150-160 caracteres', 'focus_keyword': 'palabra clave principal'}
-
-No incluyas texto fuera del JSON. No uses bloques de código markdown.""",
-                "esquema_salida": {"titulo": "", "slug": "", "contenido": "", "meta_description": "", "focus_keyword": ""},
+                "esquema_salida": {
+                    "type": "object",
+                    "properties": {
+                        "titulo_seo": {"type": "string"},
+                        "slug": {"type": "string"},
+                        "meta_descripcion": {"type": "string"},
+                        "palabra_clave": {"type": "string"},
+                    },
+                    "required": ["titulo_seo", "meta_descripcion", "palabra_clave"],
+                },
+                "esquema_version": "v1",
+                "permite_parcial": False,
+                "plantilla_prompt": (
+                    "Genera metadatos SEO para: {{ texto }}\n\n"
+                    + self.INSTRUCCION_ROL
+                ),
                 "modo_ejecucion": "auto",
             },
             {
                 "slug": "corregir_ortografia",
                 "nombre": "Corregir ortografía",
-                "plantilla_prompt": """Corrige faltas de ortografía: {{ texto }}
-
-Responde ÚNICAMENTE con un objeto JSON válido con esta estructura:
-{'titulo': 'Texto corregido', 'slug': 'texto-corregido', 'contenido': 'Texto con la ortografía corregida', 'meta_description': 'Resumen del texto corregido', 'focus_keyword': 'ortografía'}
-
-No incluyas texto fuera del JSON. No uses bloques de código markdown.""",
-                "esquema_salida": {"titulo": "", "slug": "", "contenido": "", "meta_description": "", "focus_keyword": ""},
+                "esquema_salida": {
+                    "type": "object",
+                    "properties": {
+                        "titulo": {"type": "string"},
+                        "slug": {"type": "string"},
+                        "contenido": {"type": "string"},
+                        "meta_description": {"type": "string"},
+                        "focus_keyword": {"type": "string"},
+                    },
+                    "required": ["contenido"],
+                },
+                "esquema_version": "v1",
+                "permite_parcial": False,
+                "plantilla_prompt": (
+                    "Corrige faltas de ortografía: {{ texto }}\n\n"
+                    + self.INSTRUCCION_ROL
+                ),
                 "modo_ejecucion": "auto",
             },
             {
                 "slug": "optimizar_seo",
                 "nombre": "Optimizar SEO",
-                "plantilla_prompt": """Optimiza para SEO: {{ texto }}
-
-Responde ÚNICAMENTE con un objeto JSON válido con esta estructura:
-{'titulo': 'Título optimizado para SEO', 'slug': 'titulo-seo', 'contenido': 'Texto optimizado para motores de búsqueda', 'meta_description': 'Descripción meta optimizada', 'focus_keyword': 'palabra clave principal'}
-
-No incluyas texto fuera del JSON. No uses bloques de código markdown.""",
-                "esquema_salida": {"titulo": "", "slug": "", "contenido": "", "meta_description": "", "focus_keyword": ""},
+                "esquema_salida": {
+                    "type": "object",
+                    "properties": {
+                        "titulo": {"type": "string"},
+                        "slug": {"type": "string"},
+                        "contenido": {"type": "string"},
+                        "meta_description": {"type": "string"},
+                        "focus_keyword": {"type": "string"},
+                    },
+                    "required": ["titulo", "contenido"],
+                },
+                "esquema_version": "v1",
+                "permite_parcial": False,
+                "plantilla_prompt": (
+                    "Optimiza para SEO: {{ texto }}\n\n" + self.INSTRUCCION_ROL
+                ),
                 "modo_ejecucion": "auto",
             },
             {
                 "slug": "crear_titular",
                 "nombre": "Crear titular",
-                "plantilla_prompt": """Crea un titular atractivo para: {{ texto }}
-
-Responde ÚNICAMENTE con un objeto JSON válido con esta estructura:
-{'titulo': 'Titular atractivo', 'slug': 'titular-atractivo', 'contenido': 'Desarrollo del titular en una frase', 'meta_description': 'Descripción corta del titular', 'focus_keyword': 'palabra clave del titular'}
-
-No incluyas texto fuera del JSON. No uses bloques de código markdown.""",
-                "esquema_salida": {"titulo": "", "slug": "", "contenido": "", "meta_description": "", "focus_keyword": ""},
+                "esquema_salida": {
+                    "type": "object",
+                    "properties": {
+                        "titulo": {"type": "string"},
+                        "slug": {"type": "string"},
+                        "contenido": {"type": "string"},
+                        "meta_description": {"type": "string"},
+                        "focus_keyword": {"type": "string"},
+                    },
+                    "required": ["titulo"],
+                },
+                "esquema_version": "v1",
+                "permite_parcial": False,
+                "plantilla_prompt": (
+                    "Crea un titular atractivo para: {{ texto }}\n\n"
+                    + self.INSTRUCCION_ROL
+                ),
                 "modo_ejecucion": "auto",
             },
             {
                 "slug": "resumir_contenido",
                 "nombre": "Resumir contenido",
-                "plantilla_prompt": """Resume el contenido: {{ texto }}
-
-Responde ÚNICAMENTE con un objeto JSON válido con esta estructura:
-{'titulo': 'Resumen', 'slug': 'resumen-contenido', 'contenido': 'Resumen del contenido en markdown', 'meta_description': 'Resumen ejecutivo de 150-160 caracteres', 'focus_keyword': 'tema principal'}
-
-No incluyas texto fuera del JSON. No uses bloques de código markdown.""",
-                "esquema_salida": {"titulo": "", "slug": "", "contenido": "", "meta_description": "", "focus_keyword": ""},
+                "esquema_salida": {
+                    "type": "object",
+                    "properties": {
+                        "titulo": {"type": "string"},
+                        "slug": {"type": "string"},
+                        "contenido": {"type": "string"},
+                        "meta_description": {"type": "string"},
+                        "focus_keyword": {"type": "string"},
+                    },
+                    "required": ["contenido"],
+                },
+                "esquema_version": "v1",
+                "permite_parcial": True,
+                "plantilla_prompt": (
+                    "Resume el contenido: {{ texto }}\n\n" + self.INSTRUCCION_ROL
+                ),
                 "modo_ejecucion": "manual",
             },
             {
                 "slug": "traducir_texto",
                 "nombre": "Traducir texto",
-                "plantilla_prompt": """Traduce al inglés: {{ texto }}
-
-Responde ÚNICAMENTE con un objeto JSON válido con esta estructura:
-{'titulo': 'Título traducido', 'slug': 'titulo-traducido', 'contenido': 'Texto traducido al inglés', 'meta_description': 'Descripción de la traducción', 'focus_keyword': 'traducción'}
-
-No incluyas texto fuera del JSON. No uses bloques de código markdown.""",
-                "esquema_salida": {"titulo": "", "slug": "", "contenido": "", "meta_description": "", "focus_keyword": ""},
+                "esquema_salida": {
+                    "type": "object",
+                    "properties": {
+                        "texto_traducido": {"type": "string"},
+                        "idioma_destino": {"type": "string"},
+                        "titulo": {"type": "string"},
+                        "slug": {"type": "string"},
+                    },
+                    "required": ["texto_traducido", "idioma_destino"],
+                },
+                "esquema_version": "v1",
+                "permite_parcial": False,
+                "plantilla_prompt": (
+                    "Traduce al inglés: {{ texto }}\n\n" + self.INSTRUCCION_ROL
+                ),
                 "modo_ejecucion": "auto",
             },
             {
                 "slug": "generar_meta_descripcion",
                 "nombre": "Generar meta descripción",
-                "plantilla_prompt": """Genera meta descripción para: {{ texto }}
-
-Responde ÚNICAMENTE con un objeto JSON válido con esta estructura:
-{'titulo': 'Título para meta', 'slug': 'titulo-para-meta', 'contenido': 'Contenido base para la meta descripción', 'meta_description': 'Descripción meta de 150-160 caracteres', 'focus_keyword': 'palabra clave para meta'}
-
-No incluyas texto fuera del JSON. No uses bloques de código markdown.""",
-                "esquema_salida": {"titulo": "", "slug": "", "contenido": "", "meta_description": "", "focus_keyword": ""},
+                "esquema_salida": {
+                    "type": "object",
+                    "properties": {
+                        "meta_descripcion": {"type": "string"},
+                        "slug": {"type": "string"},
+                        "palabra_clave": {"type": "string"},
+                    },
+                    "required": ["meta_descripcion"],
+                },
+                "esquema_version": "v1",
+                "permite_parcial": False,
+                "plantilla_prompt": (
+                    "Genera meta descripción para: {{ texto }}\n\n"
+                    + self.INSTRUCCION_ROL
+                ),
                 "modo_ejecucion": "auto",
             },
             {
                 "slug": "revisar_estilo",
                 "nombre": "Revisar estilo",
-                "plantilla_prompt": """Revisa el estilo y tono: {{ texto }}
-
-Responde ÚNICAMENTE con un objeto JSON válido con esta estructura:
-{'titulo': 'Informe de estilo', 'slug': 'informe-estilo', 'contenido': 'Comentarios sobre estilo y tono en markdown', 'meta_description': 'Resumen de la revisión de estilo', 'focus_keyword': 'estilo'}
-
-No incluyas texto fuera del JSON. No uses bloques de código markdown.""",
-                "esquema_salida": {"titulo": "", "slug": "", "contenido": "", "meta_description": "", "focus_keyword": ""},
+                "esquema_salida": {
+                    "type": "object",
+                    "properties": {
+                        "titulo": {"type": "string"},
+                        "slug": {"type": "string"},
+                        "contenido": {"type": "string"},
+                        "meta_description": {"type": "string"},
+                        "focus_keyword": {"type": "string"},
+                    },
+                    "required": ["contenido"],
+                },
+                "esquema_version": "v1",
+                "permite_parcial": False,
+                "plantilla_prompt": (
+                    "Revisa el estilo y tono: {{ texto }}\n\n" + self.INSTRUCCION_ROL
+                ),
                 "modo_ejecucion": "manual",
             },
         ]
         creadas = 0
         existentes = 0
+        actualizadas = 0
         for d in datos:
             obj, created = Habilidad.objects.get_or_create(
                 slug=d["slug"], defaults=d
@@ -203,32 +325,40 @@ No incluyas texto fuera del JSON. No uses bloques de código markdown.""",
             if created:
                 creadas += 1
             else:
-                for campo, valor in d.items():
-                    setattr(obj, campo, valor)
+                obj.esquema_salida = d["esquema_salida"]
+                obj.esquema_version = d.get("esquema_version", "v1")
+                obj.permite_parcial = d.get("permite_parcial", False)
+                obj.plantilla_prompt = d["plantilla_prompt"]
                 obj.save()
-                existentes += 1
-        return creadas, existentes
+                actualizadas += 1
+        return creadas, existentes, actualizadas
+
+    FORMATO_ROL = (
+        " Entregas siempre el resultado en el formato exacto que declare la "
+        "instrucción de la tarea (ej. objeto JSON con claves específicas), sin "
+        "prosa adicional."
+    )
 
     def _siembrar_agentes(self, modelo):
         # nombre -> {rol, temperatura, [slugs de habilidades]}
         datos = {
             "Investigador": {
-                "rol": "Eres un investigador experto.",
+                "rol": "Eres un investigador experto." + self.FORMATO_ROL,
                 "temperatura": 0.5,
                 "habilidades": ["investigar_tema", "resumir_contenido"],
             },
             "Redactor": {
-                "rol": "Eres un redactor experto.",
+                "rol": "Eres un redactor experto." + self.FORMATO_ROL,
                 "temperatura": 0.7,
                 "habilidades": ["redactar_articulo", "crear_titular"],
             },
             "Editor": {
-                "rol": "Eres un editor experto.",
+                "rol": "Eres un editor experto." + self.FORMATO_ROL,
                 "temperatura": 0.6,
                 "habilidades": ["revision_calidad", "revisar_estilo"],
             },
             "SEO": {
-                "rol": "Eres un experto en SEO.",
+                "rol": "Eres un experto en SEO." + self.FORMATO_ROL,
                 "temperatura": 0.4,
                 "habilidades": [
                     "optimizar_seo",
@@ -237,12 +367,12 @@ No incluyas texto fuera del JSON. No uses bloques de código markdown.""",
                 ],
             },
             "Ortografia": {
-                "rol": "Eres un corrector de ortografía.",
+                "rol": "Eres un corrector de ortografía." + self.FORMATO_ROL,
                 "temperatura": 0.3,
                 "habilidades": ["corregir_ortografia"],
             },
             "Traductor": {
-                "rol": "Eres un traductor experto.",
+                "rol": "Eres un traductor experto." + self.FORMATO_ROL,
                 "temperatura": 0.5,
                 "habilidades": ["traducir_texto"],
             },
@@ -408,14 +538,14 @@ No incluyas texto fuera del JSON. No uses bloques de código markdown.""",
             )
         )
 
-        h_creadas, h_exist = self._siembrar_habilidades()
+        h_creadas, h_exist, h_actualizadas = self._siembrar_habilidades()
         a_creados, a_exist = self._siembrar_agentes(modelo)
         e_creados, e_exist = self._siembrar_equipos()
         w_creados, w_exist = self._siembrar_workflows()
 
         self.stdout.write("")
         self.stdout.write(self.style.SUCCESS("Resumen de seed_demo:"))
-        self.stdout.write(f"  Habilidades: {h_creadas} creadas, {h_exist} ya existían.")
+        self.stdout.write(f"  Habilidades: {h_creadas} creadas, {h_actualizadas} actualizadas, {h_exist} sin cambios.")
         self.stdout.write(f"  Agentes: {a_creados} creados, {a_exist} ya existían.")
         self.stdout.write(f"  Equipos: {e_creados} creados, {e_exist} ya existían.")
         self.stdout.write(f"  Workflows: {w_creados} creados, {w_exist} ya existían.")

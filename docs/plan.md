@@ -831,4 +831,33 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 
 **Impacto en contratos/datos:** SÍ (firma de `chat()` y campos de `RespuestaChat`; 3 nuevas columnas en BD). Retrocompatible. Credenciales/permisos/cola: NO.
 
-**Estado general:** Pasos 0 a 25 y Bloque B (B.1 a B.10) completados. Bloque C: C.1a, C.1b, C.2, C.3a, C.3b, C.4, C.5a, C.5b, C.5c, C.6, C.7a, C.7b, C.7c+d, C.7e, C.8a, C.8b, C.8c, C.9a, C.9a-fix, C.9a-fix2, C.9b y C.10 Fase 2 completados. Pendiente C.8 (retirar fallback temporal de proveedor LLM en publicación).
+## Paso C.10.3 - Actualización integral de datos de prueba para el contrato universal — COMPLETADO
+
+**Objetivo:** Actualizar TODAS las habilidades, agentes, modelos y flujos existentes en la base de datos para que utilicen los nuevos campos (`esquema_version`, `permite_parcial`, `capacidades`) y los nuevos esquemas JSON estructurados, asegurando que todo el sistema hable el mismo idioma.
+
+**Archivos tocados:**
+- `apps/core/management/commands/seed_demo.py`: 
+  - `_obtener_modelo`: al obtener el modelo (ej. Gemini), actualiza `capacidades` a `["structured_output", "json_mode"]` (reasignación, no mutación in-place).
+  - `_siembrar_habilidades`: para CADA una de las 12 habilidades define `esquema_salida` válido en JSON Schema (`type`, `properties`, `required`), `esquema_version = "v1"`, `permite_parcial = False` (excepto "Resumir contenido" = True), y `plantilla_prompt` con instrucción de rol genérica ("Debes responder estrictamente con un objeto JSON válido..."). Lógica explícita `if not created:` que actualiza `esquema_salida`, `esquema_version`, `permite_parcial` y `plantilla_prompt` en registros existentes, sin depender de `defaults`.
+  - `_siembrar_agentes`: actualiza el `rol` de todos los agentes para incluir la frase "Entregas siempre el resultado en el formato exacto que declare la instrucción de la tarea (ej. objeto JSON con claves específicas), sin prosa adicional."
+  - `_siembrar_equipos` y `_siembrar_workflows`: mantenidos sin cambios (verificado que `update_or_create` en PasoWorkflow no se rompe).
+  - `handle`: muestra en consola cuántas habilidades se "actualizaron" (no solo "ya existían").
+- `docs/plan.md`: esta sección y estado general actualizado.
+
+**Reglas respetadas:**
+- No se modificó `models.py` ni se creó nueva migración (`makemigrations --check --dry-run` → No changes detected).
+- Reasignación, no mutación: `obj.capacidades = [...]`, `obj.esquema_salida = {...}`.
+- Prompts limpios: sin ejemplo JSON embebido, solo instrucción de rol genérica.
+- Idempotencia real: ejecutable N veces sin duplicar ni corromper.
+- Máximo 1 archivo modificado (dentro del límite de 4).
+- No se ejecutó `git push`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py seed_demo` → "Habilidades: 0 creadas, 12 actualizadas, 0 sin cambios." (actualizó registros existentes).
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe -m pytest tests/test_engine.py tests/test_models.py -q` → `20 passed`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+
+**Impacto en contratos/datos:** SÍ (actualiza datos existentes en BD: capacidades del modelo, esquemas y prompts de habilidades, roles de agentes). Sin cambios de schema, migraciones, credenciales, permisos ni cola. Retrocompatible.
+
+**Estado general:** Pasos 0 a 25 y Bloque B (B.1 a B.10) completados. Bloque C: C.1a, C.1b, C.2, C.3a, C.3b, C.4, C.5a, C.5b, C.5c, C.6, C.7a, C.7b, C.7c+d, C.7e, C.8a, C.8b, C.8c, C.9a, C.9a-fix, C.9a-fix2, C.9b, C.10 Fase 2 y C.10.3 completados. Pendiente C.8 (retirar fallback temporal de proveedor LLM en publicación).
