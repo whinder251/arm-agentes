@@ -322,8 +322,9 @@ class Command(BaseCommand):
                     "properties": {
                         "titulo": {"type": "string"},
                         "contenido": {"type": "string"},
+                        "texto_reescrito": {"type": "string"},
                     },
-                    "required": ["titulo", "contenido"],
+                    "required": ["texto_reescrito"],
                 },
                 "esquema_version": "v1",
                 "permite_parcial": False,
