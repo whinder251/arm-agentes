@@ -72,8 +72,19 @@ class WordPressProvider:
         titulo: str,
         contenido: str,
         metadata: Mapping[str, Any] | None = None,
+        tipo: str = "post",
+        slug: str | None = None,
+        meta_description: str | None = None,
+        focus_keyword: str | None = None,
     ) -> str:
-        """Crea un borrador en WordPress y devuelve su URL (link)."""
+        """Crea un borrador en WordPress y devuelve su URL (link).
+
+        ``tipo`` elige el endpoint: ``post`` (/posts) o ``page`` (/pages).
+        ``slug``, ``meta_description`` (excerpt) y ``focus_keyword`` se
+        asignan al payload cuando se proveen y tienen prioridad sobre los
+        valores de igual nombre en ``metadata``.
+        """
+        endpoint = "pages" if tipo == "page" else "posts"
         payload: dict[str, Any] = {
             "title": titulo,
             "content": contenido,
@@ -83,10 +94,16 @@ class WordPressProvider:
             for key in ("excerpt", "slug", "categories", "tags"):
                 if key in metadata:
                     payload[key] = metadata[key]
+        if slug:
+            payload["slug"] = slug
+        if meta_description:
+            payload["excerpt"] = meta_description
+        if focus_keyword:
+            payload["focus_keyword"] = focus_keyword
 
         response = self._request(
             "POST",
-            f"{self.base_url}/wp-json/wp/v2/posts",
+            f"{self.base_url}/wp-json/wp/v2/{endpoint}",
             json=payload,
         )
         data = response.json()

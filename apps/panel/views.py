@@ -9,6 +9,7 @@ from django.conf import settings
 from django.db import models
 from django.db.models import Sum, ProtectedError
 from django.forms import inlineformset_factory
+import markdown
 from apps.core.models import (
     Tarea, Proveedor, ModeloLLM, Habilidad, Agente, Equipo, Workflow, PasoWorkflow,
     Ejecucion, IntegracionConfig, DestinoPublicacion,
@@ -204,8 +205,22 @@ def publicar_tarea(request, pk):
         meta = ultimo_artefacto.metadata or {}
         # Orden de precedencia: metadata estructurada -> payload -> fallback.
         titulo = meta.get('titulo') or (tarea.payload or {}).get('titulo', f"Tarea #{tarea.pk}")
-        contenido = meta.get('contenido') or ultimo_artefacto.contenido
-        link = wp.crear_borrador(titulo=titulo, contenido=contenido)
+        contenido_md = meta.get('contenido') or ultimo_artefacto.contenido
+        # Convertir Markdown a HTML antes de enviar a WordPress.
+        contenido = markdown.markdown(contenido_md)
+        slug = meta.get('slug') or None
+        meta_description = meta.get('meta_description') or None
+        focus_keyword = meta.get('focus_keyword') or None
+        tipo_publicacion = request.POST.get('tipo_publicacion', 'post')
+        link = wp.crear_borrador(
+            titulo=titulo,
+            contenido=contenido,
+            metadata=meta,
+            tipo=tipo_publicacion,
+            slug=slug,
+            meta_description=meta_description,
+            focus_keyword=focus_keyword,
+        )
         wp.close()
     except Exception:
         messages.error(request, "Error al enviar a WordPress.")

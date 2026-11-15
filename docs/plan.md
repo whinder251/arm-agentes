@@ -764,4 +764,38 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 - `.venv\Scripts\python.exe -m pytest tests/test_engine.py -q` → `6 passed`.
 - `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
 
-**Estado general:** Pasos 0 a 25 y Bloque B (B.1 a B.10) completados. Bloque C: C.1a, C.1b, C.2, C.3a, C.3b, C.4, C.5a, C.5b, C.5c, C.6, C.7a, C.7b, C.7c+d, C.7e, C.8a, C.8b, C.8c, C.9a, C.9a-fix y C.9a-fix2 completados. Pendiente C.8 (retirar fallback temporal de proveedor LLM en publicación).
+## Paso C.9b - Selector de tipo de publicación, mapeo de metadatos y conversión Markdown a HTML — COMPLETADO
+
+**Objetivo:**
+1) Añadir selector Post/Página en el formulario de publicar.
+2) Mapear los campos estructurados del metadata (slug, meta_description, focus_keyword) a la API de WordPress.
+3) Convertir el contenido de Markdown a HTML antes de enviarlo, usando la librería `markdown`.
+
+**Archivos tocados:**
+- `apps/providers/wordpress.py`: `crear_borrador` amplía su firma con `tipo` ('post' por defecto o 'page'), `slug`, `meta_description`, `focus_keyword`. El endpoint es `/wp-json/wp/v2/pages` cuando `tipo='page'` y `/wp-json/wp/v2/posts` en caso contrario. `slug`, `excerpt` (desde `meta_description`) y `focus_keyword` se asignan al payload con prioridad sobre los valores de igual nombre en `metadata`.
+- `apps/panel/views.py`: `publicar_tarea` lee `tipo_publicacion` del POST, extrae `slug`/`meta_description`/`focus_keyword` del `metadata` del artefacto, aplica `markdown.markdown(contenido_md)` antes de enviar y pasa todos los campos a `crear_borrador`. Se añadió `import markdown`.
+- `apps/panel/templates/panel/tareas.html`: el formulario de publicar incluye `<select name="tipo_publicacion" class="input">` con opciones 'post' (Entrada) y 'page' (Página), sin CSS embebido.
+- `tests/test_panel.py`: tres pruebas nuevas (`test_publicar_tarea_tipo_pagina`, `test_publicar_tarea_mapea_metadatos_estructurados`, `test_publicar_tarea_convierte_markdown_a_html`) que verifican endpoint `/pages`, campos slug/excerpt/focus_keyword en el payload y conversión Markdown→HTML, usando `patch` sin HTTP real.
+
+**Reglas respetadas:**
+- Máximo 4 archivos modificados (exactamente 4).
+- Dependencia `markdown` instalada tras aprobación explícita (AGENTS.md §3); más robusta y segura que recibir HTML crudo del modelo (evita XSS almacenado).
+- No se modificó `models.py` ni se creó migración (`makemigrations --check --dry-run` → No changes detected).
+- No se tocó `apps/providers/wordpress.py` más allá de la firma de `crear_borrador` (retrocompatible con valores por defecto).
+- Pruebas sin APIs reales; cero llamadas a WordPress.
+- Estilo ARM Flow estricto en el template (clase `.input`, cero `<style>`).
+- No se ejecutó `git push`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pip install markdown` → `Successfully installed markdown-3.11.3`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "publicar" -q` → `6 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_publicacion.py -q` → `3 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "destino or integraciones" -q` → `8 passed`.
+
+**Impacto en contratos:** SÍ (firma de `crear_borrador` ampliada con valores por defecto, retrocompatible; `publicar_tarea` lee `tipo_publicacion`). Datos persistidos/credenciales/permisos/cola: NO.
+
+**Pendiente:** C.8 (retirar fallback temporal de proveedor LLM en publicación).
+
+**Estado general:** Pasos 0 a 25 y Bloque B (B.1 a B.10) completados. Bloque C: C.1a, C.1b, C.2, C.3a, C.3b, C.4, C.5a, C.5b, C.5c, C.6, C.7a, C.7b, C.7c+d, C.7e, C.8a, C.8b, C.8c, C.9a, C.9a-fix, C.9a-fix2 y C.9b completados. Pendiente C.8 (retirar fallback temporal de proveedor LLM en publicación).

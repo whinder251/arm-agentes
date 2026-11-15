@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
@@ -419,6 +419,101 @@ class TestPanel(TestCase):
         assert 'secreto-fallback-12345' not in str(tarea.payload)
         # Tampoco en el cuerpo de la respuesta
         assert 'secreto-fallback-12345' not in response.content.decode('utf-8', errors='ignore')
+
+    def _crear_tarea_para_publicar(self, contenido, metadata):
+        """Helper: tarea en estado 'ok' con un artefacto y un destino activo."""
+        destino = DestinoPublicacion.objects.create(
+            nombre='Blog Test',
+            tipo='wordpress',
+            url='https://blog.ejemplo.com',
+            usuario='usuario',
+            credenciales='pass',
+            activa=True,
+        )
+        tarea = Tarea.objects.create(
+            agente=self.agente,
+            habilidad=self.habilidad,
+            estado='ok',
+            payload={'texto': 'Contenido de prueba'},
+        )
+        Artefacto.objects.create(
+            tarea=tarea, version=1,
+            contenido=contenido,
+            metadata=metadata,
+        )
+        return destino, tarea
+
+    def test_publicar_tarea_tipo_pagina(self):
+        """tipo_publicacion='page' construye la petición contra el endpoint /pages de WordPress."""
+        destino, tarea = self._crear_tarea_para_publicar(
+            'Contenido', {'titulo': 'Mi Página'},
+        )
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('publicar_tarea', args=[tarea.pk])
+
+        fake_response = Mock()
+        fake_response.json.return_value = {"link": "https://blog.ejemplo.com/page/1"}
+        with patch(
+            'apps.providers.wordpress.WordPressProvider._request',
+            return_value=fake_response,
+        ) as mock_req:
+            response = self.client.post(url, {
+                'destino_id': str(destino.pk),
+                'tipo_publicacion': 'page',
+            })
+
+        assert response.status_code == 302
+        llamada_url = mock_req.call_args.args[1]
+        assert '/wp-json/wp/v2/pages' in llamada_url
+
+    def test_publicar_tarea_mapea_metadatos_estructurados(self):
+        """slug, meta_description y focus_keyword se envían al payload de WordPress."""
+        destino, tarea = self._crear_tarea_para_publicar(
+            'Contenido',
+            {
+                'titulo': 'Título con meta',
+                'slug': 'mi-slug',
+                'meta_description': 'Descripción meta',
+                'focus_keyword': 'palabra clave',
+            },
+        )
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('publicar_tarea', args=[tarea.pk])
+
+        with patch('apps.panel.views.WordPressProvider') as mock_wp:
+            instance = mock_wp.return_value
+            instance.crear_borrador.return_value = 'https://blog.ejemplo.com/post/1'
+            response = self.client.post(url, {
+                'destino_id': str(destino.pk),
+                'tipo_publicacion': 'post',
+            })
+
+        assert response.status_code == 302
+        kwargs = instance.crear_borrador.call_args.kwargs
+        assert kwargs.get('slug') == 'mi-slug'
+        assert kwargs.get('meta_description') == 'Descripción meta'
+        assert kwargs.get('focus_keyword') == 'palabra clave'
+
+    def test_publicar_tarea_convierte_markdown_a_html(self):
+        """El contenido Markdown se convierte a HTML antes de enviarse a WordPress."""
+        destino, tarea = self._crear_tarea_para_publicar(
+            '# Título MD', {'titulo': 'Título'},
+        )
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('publicar_tarea', args=[tarea.pk])
+
+        with patch('apps.panel.views.WordPressProvider') as mock_wp:
+            instance = mock_wp.return_value
+            instance.crear_borrador.return_value = 'https://blog.ejemplo.com/post/1'
+            response = self.client.post(url, {
+                'destino_id': str(destino.pk),
+                'tipo_publicacion': 'post',
+            })
+
+        assert response.status_code == 302
+        kwargs = instance.crear_borrador.call_args.kwargs
+        assert kwargs.get('contenido') == '<h1>Título MD</h1>'
+        assert '# Título MD' not in kwargs.get('contenido', '')
 
     def test_crear_tarea_formulario_chat(self):
         self.client.login(username='testuser', password='testpass123')

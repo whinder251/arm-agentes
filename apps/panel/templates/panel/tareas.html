@@ -47,6 +47,11 @@
                         <option value="{{ destino.pk }}">{{ destino.nombre }}</option>
                     {% endfor %}
                 </select>
+                <label for="tipo_publicacion">Tipo de publicación:</label>
+                <select name="tipo_publicacion" id="tipo_publicacion" class="input">
+                    <option value="post">Entrada</option>
+                    <option value="page">Página</option>
+                </select>
                 <button type="submit" class="btn-primary">Enviar a WordPress como borrador</button>
             </form>
         </div>
