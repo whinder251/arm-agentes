@@ -136,6 +136,11 @@ def aprobar_tarea(request):
         if tarea.estado == 'revision':
             tarea.estado = 'ok'
             tarea.save()
+            if tarea.paso_workflow is not None:
+                continuar_workflow(
+                    tarea.paso_workflow.workflow.pk,
+                    tarea.paso_workflow.orden + 1,
+                )
             ultimo_artefacto = tarea.artefactos.order_by('-id').first()
             if ultimo_artefacto:
                 meta = ultimo_artefacto.metadata or {}
@@ -595,6 +600,7 @@ def integraciones(request):
     nueva_clave_arm = None
 
     if request.method == "POST":
+        form = DestinoPublicacionForm()
         if request.POST.get("rotar_arm_api"):
             nueva_clave_arm = IntegracionConfig.rotar_clave_arm()
         elif request.POST.get("crear_destino"):

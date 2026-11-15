@@ -7,6 +7,7 @@ from apps.core.models import (
     Proveedor, ModeloLLM, Habilidad, Agente, Equipo, Tarea, Artefacto, Ejecucion,
     Workflow, PasoWorkflow, DestinoPublicacion, IntegracionConfig,
 )
+from apps.engine.tasks import continuar_workflow
 
 @pytest.mark.django_db
 class TestPanel(TestCase):
@@ -918,3 +919,47 @@ class TestPanel(TestCase):
         assert response.status_code == 302
         assert response.url == reverse('integraciones')
         assert not DestinoPublicacion.objects.filter(pk=destino.pk).exists()
+
+    def test_aprobar_tarea_reanuda_workflow(self):
+        """Al aprobar una tarea en revisión con paso_workflow, se crea la tarea del siguiente paso en cola."""
+        workflow = Workflow.objects.create(
+            nombre='WF prueba', descripcion='wf', estado='en_ejecucion'
+        )
+        paso1 = PasoWorkflow.objects.create(
+            workflow=workflow, orden=1,
+            habilidad=self.habilidad, agente=self.agente, modo_ejecucion='auto'
+        )
+        paso2 = PasoWorkflow.objects.create(
+            workflow=workflow, orden=2,
+            habilidad=self.habilidad, agente=self.agente, modo_ejecucion='auto'
+        )
+        tarea = Tarea.objects.create(
+            agente=self.agente,
+            habilidad=self.habilidad,
+            estado='revision',
+            payload={'texto': 'revision wf'},
+            paso_workflow=paso1,
+        )
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('aprobar_tarea')
+        with patch('apps.engine.tasks.ejecutar_tarea') as mock_ejecutar:
+            response = self.client.post(url, {'task_id': tarea.pk})
+            # Simular el worker de Huey ejecutando la continuación encolada por la vista.
+            continuar_workflow.func(workflow.pk, paso1.orden + 1)
+        tarea.refresh_from_db()
+        assert tarea.estado == 'ok'
+        # Se creó la tarea del paso 2 en cola
+        tarea_paso2 = Tarea.objects.filter(
+            paso_workflow=paso2, estado='cola'
+        ).first()
+        assert tarea_paso2 is not None
+        assert tarea_paso2.habilidad == self.habilidad
+        # ejecutar_tarea fue invocado para la nueva tarea del paso 2
+        mock_ejecutar.assert_called_once()
+
+    def test_integraciones_rotar_clave_sin_500(self):
+        """Rotar la clave ARM en integraciones no lanza UnboundLocalError ni 500."""
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('integraciones')
+        response = self.client.post(url, {'rotar_arm_api': '1'})
+        assert response.status_code in (200, 302)

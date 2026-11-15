@@ -1098,4 +1098,28 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 
 **Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO permisos, NO cola. SÍ credenciales de ejemplo (placeholders). Las claves reales que estuvieron en `.env.example` permanecen en el historial de Git: se recomienda rotar `SECRET_KEY` y `ARM_ENCRYPTION_KEY` en el `.env` local.
 
-**Pendientes:** commitear esta actualización de `docs/plan.md`; actualizar los 4 tests obsoletos en un paso separado.
+## Paso FIX-2 - Corregir reanudación de workflow en aprobación y error 500 en integraciones — COMPLETADO
+
+**Objetivo:** (1) Que al aprobar una tarea en revisión con paso_workflow, el workflow continúe al siguiente paso. (2) Que rotar la clave API en integraciones no lance UnboundLocalError.
+
+**Archivos tocados:**
+- `apps/panel/views.py`: en `aprobar_tarea`, tras `tarea.estado = 'ok'` + `save()`, si `tarea.paso_workflow` existe, llama `continuar_workflow(tarea.paso_workflow.workflow.pk, tarea.paso_workflow.orden + 1)` (replicando la lógica de `ejecutar_tarea`). En `integraciones`, inicializa `form = DestinoPublicacionForm()` al inicio del bloque POST, antes de los if/elif, para evitar UnboundLocalError al rotar la clave ARM.
+- `tests/test_panel.py`: nuevas pruebas `test_aprobar_tarea_reanuda_workflow` y `test_integraciones_rotar_clave_sin_500`.
+
+**Reglas respetadas:**
+- No se modificó `models.py` ni se creó migración.
+- Máximo 2 archivos modificados (dentro del límite de 4).
+- Pruebas sin APIs reales; `ejecutar_tarea` mockeado para no llamar IA; `continuar_workflow.func` usado para simular el worker de Huey en la prueba.
+- Los 4 tests rotos preexistentes (test_pipeline.py x3, test_orquestacion_workflow) no se tocan y pueden seguir fallando (se arreglan en FIX-3).
+- No se ejecutó `git push`.
+- Commit: "FIX-2: Corregir reanudación de workflow en aprobación y error 500 en integraciones".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "aprobar or integraciones" -q` → `7 passed` (incluye las 2 pruebas nuevas).
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -q` → `49 passed`.
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Retrocompatible.
+
+**Pendientes:** actualizar los 4 tests obsoletos en un paso separado (FIX-3).
