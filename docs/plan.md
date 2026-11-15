@@ -1018,4 +1018,29 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 
 **Impacto en contratos/datos:** SÍ datos persistidos (el `plantilla_prompt` de las 10 habilidades se actualiza en BD al ejecutar `seed_demo`). NO contratos de código, NO credenciales, NO permisos, NO tareas en cola. Retrocompatible.
 
-**Estado general:** Pasos 0 a 25 y Bloque B (B.1 a B.10) completados. Bloque C: C.1a, C.1b, C.2, C.3a, C.3b, C.4, C.5a, C.5b, C.5c, C.6, C.7a, C.7b, C.7c+d, C.7e, C.8a, C.8b, C.8c, C.9a, C.9a-fix, C.9a-fix2, C.9b, C.10 Fase 2, C.10.3, C.10.5, C.10.6, C.11a, C.11b, C.11b.1, C.12a, C.12b, C.13 y C.14 completados. Pendiente C.8 (retirar fallback temporal de proveedor LLM en publicación).
+## Paso S - Blindar configuración de seguridad en settings.py — COMPLETADO
+
+**Objetivo:** Corregir las 3 configuraciones inseguras de `config/settings.py` para que el proyecto sea seguro en producción: `DEBUG` desde entorno (default `False`), `ALLOWED_HOSTS` desde entorno y `ARM_API_KEY` obligatoria si no `DEBUG`.
+
+**Archivos tocados:**
+- `config/settings.py`: `DEBUG = os.environ.get("DEBUG", "False") == "True"`; `ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")`; `ARM_API_KEY` leída de entorno con fallback a `"dev-api-key-123"` solo si `DEBUG=True`, `ImproperlyConfigured` si `DEBUG=False` y falta la variable.
+- `.env.example`: añadida variable `ALLOWED_HOSTS=localhost,127.0.0.1` (ya tenía `SECRET_KEY`, `ARM_ENCRYPTION_KEY`, `ARM_API_KEY`, `DEBUG`).
+
+**Reglas respetadas:**
+- No se modificó `models.py`, `views.py`, `urls.py`, `forms.py` ni templates.
+- No se creó migración (`makemigrations --check --dry-run` → No changes detected).
+- No se ejecutó `git push`.
+- Se respeta `docs/estandares/seguridad.md` §8 (`DEBUG=False` en producción, `ALLOWED_HOSTS` explícito) y §3 (no guardar secretos en repo).
+- No se leyó ni escribió `.env` (solo `.env.example`).
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_api.py tests/test_integraciones.py tests/test_core.py tests/test_checks.py -q` → `41 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "integraciones or publicar or dashboard or sidebar or ejecuciones or crear_tarea or eliminar or aprobar" -q` → `28 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_engine.py tests/test_models.py tests/test_publicacion.py -q` → `29 passed`.
+- Verificación de comportamiento: `DEBUG=True` sin `ARM_API_KEY` → usa `"dev-api-key-123"`; `DEBUG=False` sin `ARM_API_KEY` en entorno ni `.env` → lanza `ImproperlyConfigured`.
+
+**Impacto en contratos/datos:** NO contratos de API, NO datos persistidos, NO permisos, NO tareas en cola. SÍ credenciales (`ARM_API_KEY` obligatoria en producción). Retrocompatible: en desarrollo con `DEBUG=True` y `ARM_API_KEY` ausente se mantiene el valor por defecto `"dev-api-key-123"`.
+
+**Estado general:** Pasos 0 a 25 y Bloque B (B.1 a B.10) completados. Bloque C: C.1a, C.1b, C.2, C.3a, C.3b, C.4, C.5a, C.5b, C.5c, C.6, C.7a, C.7b, C.7c+d, C.7e, C.8a, C.8b, C.8c, C.9a, C.9a-fix, C.9a-fix2, C.9b, C.10 Fase 2, C.10.3, C.10.5, C.10.6, C.11a, C.11b, C.11b.1, C.12a, C.12b, C.13 y C.14 completados. Paso S (blindado configuración de seguridad) completado. Pendiente C.8 (retirar fallback temporal de proveedor LLM en publicación).
