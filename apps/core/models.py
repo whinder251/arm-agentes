@@ -104,6 +104,7 @@ class ModeloLLM(models.Model):
         default=100, help_text="Menor valor se intenta antes."
     )
     json_nativo = models.BooleanField(default=False)
+    capacidades = models.JSONField(default=list)
     activo = models.BooleanField(default=True)
 
     class Meta:
@@ -127,6 +128,8 @@ class Habilidad(models.Model):
     slug = models.SlugField(max_length=100, unique=True)
     plantilla_prompt = models.TextField()
     esquema_salida = models.JSONField(default=dict)
+    esquema_version = models.CharField(max_length=20, default="v1")
+    permite_parcial = models.BooleanField(default=False)
     modo_ejecucion = models.CharField(
         max_length=10,
         choices=[("auto", "Automático"), ("manual", "Requiere aprobación")],
@@ -252,9 +255,6 @@ class Ejecucion(models.Model):
         verbose_name = "ejecución"
         verbose_name_plural = "ejecuciones"
 
-    def __str__(self):
-        return f"Ejecución {self.pk} de la tarea {self.tarea_id}"
-
 
 class Artefacto(models.Model):
     """Resultado versionado producido por una tarea."""
@@ -265,6 +265,7 @@ class Artefacto(models.Model):
     version = models.PositiveIntegerField(default=1)
     contenido = models.TextField()
     metadata = models.JSONField(default=dict, blank=True)
+    raw_response = models.TextField(null=True, blank=True)
 
     class Meta:
         verbose_name = "artefacto"

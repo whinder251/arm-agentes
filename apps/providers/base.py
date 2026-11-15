@@ -40,6 +40,9 @@ class RespuestaChat:
     tokens_out: int
     modelo: str
     raw: Mapping[str, Any] = field(default_factory=dict, repr=False)
+    finish_reason: str | None = None
+    request_id: str | None = None
+    duration: float | None = None
 
 
 class BaseProveedor(ABC):
@@ -70,6 +73,7 @@ class BaseProveedor(ABC):
         messages: Messages,
         model_id: str,
         config: Mapping[str, Any] | None = None,
+        response_schema: Mapping[str, Any] | None = None,
     ) -> RespuestaChat:
         """Envía una conversación y devuelve la respuesta normalizada."""
 

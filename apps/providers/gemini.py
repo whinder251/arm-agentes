@@ -37,12 +37,13 @@ class GeminiProvider(BaseProveedor):
         messages: Messages,
         model_id: str,
         config: Mapping[str, Any] | None = None,
+        response_schema: Mapping[str, Any] | None = None,
     ) -> RespuestaChat:
         response = self._request(
             "POST",
             f"{self.base_url}/models/{model_id}:generateContent",
             headers={"x-goog-api-key": self.api_key},
-            json=self._payload(messages, config or {}),
+            json=self._payload(messages, config or {}, response_schema=response_schema),
         )
         data = response.json()
         usage = self.get_usage(data)
@@ -83,7 +84,9 @@ class GeminiProvider(BaseProveedor):
 
     @staticmethod
     def _payload(
-        messages: Messages, config: Mapping[str, Any]
+        messages: Messages,
+        config: Mapping[str, Any],
+        response_schema: Mapping[str, Any] | None = None,
     ) -> dict[str, Any]:
         system_parts: list[str] = []
         contents: list[dict[str, Any]] = []
@@ -109,6 +112,9 @@ class GeminiProvider(BaseProveedor):
             generation["temperature"] = config["temperature"]
         if "max_tokens" in config:
             generation["maxOutputTokens"] = config["max_tokens"]
+        if response_schema is not None:
+            generation["responseMimeType"] = "application/json"
+            generation["responseSchema"] = response_schema
         if generation:
             payload["generationConfig"] = generation
         return payload

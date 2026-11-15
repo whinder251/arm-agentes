@@ -798,4 +798,37 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 
 **Pendiente:** C.8 (retirar fallback temporal de proveedor LLM en publicación).
 
-**Estado general:** Pasos 0 a 25 y Bloque B (B.1 a B.10) completados. Bloque C: C.1a, C.1b, C.2, C.3a, C.3b, C.4, C.5a, C.5b, C.5c, C.6, C.7a, C.7b, C.7c+d, C.7e, C.8a, C.8b, C.8c, C.9a, C.9a-fix, C.9a-fix2 y C.9b completados. Pendiente C.8 (retirar fallback temporal de proveedor LLM en publicación).
+## Paso C.10 Fase 2 — Contrato universal con Pydantic — COMPLETADO
+
+**Objetivo:** Construir el contrato universal de respuestas de proveedores de IA validado con Pydantic v2, añadir campos aditivos a los modelos, permitir `response_schema` en los proveedores e integrar el normalizador en el motor de tareas.
+
+**Archivos tocados:**
+- `apps/core/schemas.py` (reconstruido): se conservó `TareaCreateSchema` (usado por `apps/api/views.py`) y se añadieron `ErrorEstructurado`, `ResultadoAgente` y `EsquemaHabilidad`.
+- `apps/core/models.py`: campos aditivos con default (no rompen migraciones): `Habilidad.esquema_version` (CharField default "v1"), `Habilidad.permite_parcial` (BooleanField default False), `ModeloLLM.capacidades` (JSONField default list), `Artefacto.raw_response` (TextField null=True, blank=True).
+- `apps/providers/base.py`: `RespuestaChat` amplió al final con `finish_reason`, `request_id`, `duration` (todos `None` por defecto); `chat()` añadió parámetro opcional `response_schema`.
+- `apps/providers/gemini.py`: `chat()` acepta `response_schema` e inyecta `responseMimeType="application/json"` + `responseSchema` en `generationConfig` del payload REST.
+- `apps/providers/openrouter.py`: `chat()` acepta `response_schema` e inyecta `response_format` con `json_schema` cuando se provee.
+- `apps/engine/tasks.py`: `_guardar_artefacto` usa normalizador Pydantic (`_normalizar_respuesta`) con: parseo JSON directo, fallback a bloque ` ```json `, error estructurado si no hay JSON, validación ligera de `esquema_salida`/`permite_parcial`, construcción de `ResultadoAgente` (status completed/partial/failed), `metadata['resultado']` serializado y `raw_response` solo si `settings.ARM_GUARDAR_RAW` (default False).
+- `apps/core/migrations/0013_artefacto_raw_response_habilidad_esquema_version_and_more.py` (nueva): migración generada con `makemigrations`.
+- `docs/plan.md`: esta sección y estado general actualizado.
+
+**Reglas respetadas:**
+- No se modificó lógica de publicación (`publicar_tarea`) ni adaptadores de destino.
+- No se tocó API REST ni serializadores.
+- Migración generada con `makemigrations` (no manual).
+- Cambios retrocompatibles (defaults en campos nuevos, parámetros opcionales en dataclass/firma).
+- Pruebas sin APIs reales; se usaron fixtures y respx existentes.
+- No se ejecutó `git push`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → detectó cambios (4 campos).
+- `.venv\Scripts\python.exe manage.py makemigrations core` → `0013_...` creada.
+- `.venv\Scripts\python.exe manage.py migrate` → `Applying core.0013... OK`.
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe -m pytest tests/test_engine.py -q` → `6 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "publicar" -q` → `6 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_models.py tests/test_providers.py tests/test_router.py tests/test_api.py -q` → `36 passed`.
+
+**Impacto en contratos/datos:** SÍ (firma de `chat()` y campos de `RespuestaChat`; 3 nuevas columnas en BD). Retrocompatible. Credenciales/permisos/cola: NO.
+
+**Estado general:** Pasos 0 a 25 y Bloque B (B.1 a B.10) completados. Bloque C: C.1a, C.1b, C.2, C.3a, C.3b, C.4, C.5a, C.5b, C.5c, C.6, C.7a, C.7b, C.7c+d, C.7e, C.8a, C.8b, C.8c, C.9a, C.9a-fix, C.9a-fix2, C.9b y C.10 Fase 2 completados. Pendiente C.8 (retirar fallback temporal de proveedor LLM en publicación).

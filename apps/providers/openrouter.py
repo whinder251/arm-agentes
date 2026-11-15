@@ -37,6 +37,7 @@ class OpenRouterProvider(BaseProveedor):
         messages: Messages,
         model_id: str,
         config: Mapping[str, Any] | None = None,
+        response_schema: Mapping[str, Any] | None = None,
     ) -> RespuestaChat:
         payload: dict[str, Any] = {
             "model": model_id,
@@ -47,6 +48,11 @@ class OpenRouterProvider(BaseProveedor):
             payload["temperature"] = config["temperature"]
         if "max_tokens" in config:
             payload["max_tokens"] = config["max_tokens"]
+        if response_schema is not None:
+            payload["response_format"] = {
+                "type": "json_schema",
+                "json_schema": response_schema,
+            }
         response = self._request(
             "POST",
             f"{self.base_url}/chat/completions",

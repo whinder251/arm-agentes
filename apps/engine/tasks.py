@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import threading
 import time
 from datetime import timedelta
+from typing import Any, Literal
 
+from django.conf import settings
 from django.db import close_old_connections
 from django.utils import timezone
 from huey import crontab
@@ -17,12 +20,14 @@ from apps.core.models import (
     Agente,
     Artefacto,
     Ejecucion,
+    Habilidad,
     ModeloLLM,
     PasoWorkflow,
     Proveedor,
     Tarea,
     Workflow,
 )
+from apps.core.schemas import ErrorEstructurado, ResultadoAgente
 from apps.providers.router import Router
 
 logger = logging.getLogger(__name__)
@@ -112,6 +117,99 @@ def _modelos_para(tarea: Tarea) -> list[ModeloLLM]:
     return modelos
 
 
+def _extraer_json_bloque(texto: str) -> str | None:
+    """Extrae el primer bloque de JSON entre ````json y ```` si existe."""
+    patron = r"```json\s*\n(.*?)\n\s*```"
+    match = re.search(patron, texto, re.DOTALL | re.IGNORECASE)
+    if match:
+        return match.group(1).strip()
+    return None
+
+
+def _normalizar_respuesta(
+    texto: str, habilidad: Habilidad
+) -> tuple[ResultadoAgente, dict[str, Any] | None, str]:
+    """Normaliza la respuesta del proveedor usando el contrato Pydantic.
+
+    Devuelve (resultado, datos_extraidos, crudo_guardar).
+    """
+    datos: dict[str, Any] | None = None
+    error: ErrorEstructurado | None = None
+    status: Literal["completed", "partial", "failed"] = "completed"
+    success = True
+
+    # a) Intento directo de parseo JSON.
+    candidato: Any = None
+    try:
+        candidato = json.loads(texto)
+    except (json.JSONDecodeError, TypeError, ValueError):
+        # b) Extraer bloque entre ```json y ```.
+        bloque = _extraer_json_bloque(texto)
+        if bloque is not None:
+            try:
+                candidato = json.loads(bloque)
+            except (json.JSONDecodeError, TypeError, ValueError):
+                candidato = None
+
+    if candidato is None or not isinstance(candidato, dict):
+        # No hay JSON válido: marcar como failed sin romper el flujo.
+        success = False
+        status = "failed"
+        error = ErrorEstructurado(
+            code="respuesta_no_json",
+            message="El modelo no devolvió un objeto JSON válido.",
+            details=None,
+        )
+        resultado = ResultadoAgente(
+            success=success,
+            status=status,
+            data=None,
+            error=error,
+            metadata={"contenido": texto},
+        )
+        return resultado, None, texto
+
+    datos = candidato
+
+    # Validación ligera contra el esquema de la habilidad si existe.
+    esquema = habilidad.esquema_salida
+    if esquema:
+        try:
+            required = (
+                esquema.get("required", []) if isinstance(esquema, dict) else []
+            )
+            faltantes = [k for k in required if k not in datos]
+            if faltantes:
+                if habilidad.permite_parcial:
+                    status = "partial"
+                    success = True
+                    error = ErrorEstructurado(
+                        code="campos_faltantes",
+                        message="Faltan campos requeridos del esquema.",
+                        details={"faltantes": faltantes},
+                    )
+                else:
+                    status = "failed"
+                    success = False
+                    error = ErrorEstructurado(
+                        code="campos_faltantes",
+                        message="Faltan campos requeridos del esquema.",
+                        details={"faltantes": faltantes},
+                    )
+        except Exception:
+            # Si el esquema no es válido, no se rompe el flujo.
+            pass
+
+    resultado = ResultadoAgente(
+        success=success,
+        status=status,
+        data=datos,
+        error=error,
+        metadata={},
+    )
+    return resultado, datos, texto
+
+
 def _guardar_artefacto(
     tarea: Tarea, respuesta, ejecucion: Ejecucion
 ) -> Artefacto:
@@ -127,32 +225,25 @@ def _guardar_artefacto(
         "tokens_out": respuesta.tokens_out,
         "ejecucion": ejecucion.pk,
     }
-    # Contrato de salida estructurada: si la habilidad declara esquema_salida
-    # y el modelo responde JSON válido, guardar claves nombradas en metadata
-    # para que el consumo posterior (publicación, consumo de API) las lea
-    # sin adivinar sobre texto plano revuelto.
-    if tarea.habilidad.esquema_salida:
-        try:
-            datos = json.loads(respuesta.texto)
-            if isinstance(datos, dict):
-                metadata.update({
-                    "titulo": str(datos.get("titulo", "") or ""),
-                    "slug": str(datos.get("slug", "") or ""),
-                    "contenido": str(datos.get("contenido", respuesta.texto) or respuesta.texto),
-                    "meta_description": str(datos.get("meta_description", "") or ""),
-                    "focus_keyword": str(datos.get("focus_keyword", "") or ""),
-                })
-            else:
-                # JSON válido pero no es objeto: tratar como texto plano.
-                metadata["contenido"] = respuesta.texto
-        except (json.JSONDecodeError, TypeError, ValueError):
-            # Respuesta no es JSON: guardar como texto plano sin romper el flujo.
-            metadata["contenido"] = respuesta.texto
+    resultado, datos, crudo = _normalizar_respuesta(respuesta.texto, tarea.habilidad)
+    metadata["resultado"] = resultado.model_dump()
+    if datos:
+        metadata.update({
+            "titulo": str(datos.get("titulo", "") or ""),
+            "slug": str(datos.get("slug", "") or ""),
+            "contenido": str(datos.get("contenido", respuesta.texto) or respuesta.texto),
+            "meta_description": str(datos.get("meta_description", "") or ""),
+            "focus_keyword": str(datos.get("focus_keyword", "") or ""),
+        })
+    else:
+        metadata["contenido"] = respuesta.texto
+    raw_response_val: str | None = crudo if getattr(settings, "ARM_GUARDAR_RAW", False) else None
     return Artefacto.objects.create(
         tarea=tarea,
         version=version,
         contenido=respuesta.texto,
         metadata=metadata,
+        raw_response=raw_response_val,
     )
 
 
