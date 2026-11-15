@@ -201,8 +201,11 @@ def publicar_tarea(request, pk):
             api_key = proveedor.api_key
             base_url = proveedor.base_url
         wp = WordPressProvider(api_key=api_key, base_url=base_url)
-        titulo = (tarea.payload or {}).get('titulo', f"Tarea #{tarea.pk}")
-        link = wp.crear_borrador(titulo=titulo, contenido=ultimo_artefacto.contenido)
+        meta = ultimo_artefacto.metadata or {}
+        # Orden de precedencia: metadata estructurada -> payload -> fallback.
+        titulo = meta.get('titulo') or (tarea.payload or {}).get('titulo', f"Tarea #{tarea.pk}")
+        contenido = meta.get('contenido') or ultimo_artefacto.contenido
+        link = wp.crear_borrador(titulo=titulo, contenido=contenido)
         wp.close()
     except Exception:
         messages.error(request, "Error al enviar a WordPress.")

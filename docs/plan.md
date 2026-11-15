@@ -715,4 +715,31 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 - `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "destino or integraciones" -q` → `8 passed`.
 
-**Estado general:** Pasos 0 a 25 y Bloque B (B.1 a B.10) completados. Bloque C: C.1a, C.1b, C.2, C.3a, C.3b, C.4, C.5a, C.5b, C.5c, C.6, C.7a, C.7b, C.7c+d, C.7e, C.8a, C.8b y C.8c completados. Pendiente C.8 (retirar fallback temporal de proveedor LLM en publicación).
+## Paso C.9a - Contrato de salida estructurada en las habilidades de contenido — COMPLETADO
+
+**Objetivo:** Que las habilidades de contenido emitan JSON con campos separados (titulo, slug, contenido, meta_description, focus_keyword) en lugar de texto plano revuelto, para que la publicación lea claves nombradas y no adivine.
+
+**Archivos tocados:**
+- `apps/engine/tasks.py`: `_guardar_artefacto` intenta parsear `respuesta.texto` como JSON cuando la habilidad tiene `esquema_salida` no vacío; si es dict válido guarda titulo/slug/contenido/meta_description/focus_keyword en metadata (con fallback a texto plano si falla el parseo o no es dict); si no hay esquema o la respuesta no es JSON, guarda texto plano en metadata['contenido'] sin romper el flujo.
+- `apps/panel/views.py`: `publicar_tarea` lee `titulo` y `contenido` del metadata del artefacto con este orden de precedencia: metadata estructurada -> payload -> `f"Tarea #{tarea.pk}"` (titulo) y metadata -> `artefacto.contenido` (contenido).
+- `apps/core/management/commands/seed_demo.py`: prompts de las 12 habilidades de contenido piden salida JSON explícita con la estructura de 5 campos; `esquema_salida` se actualiza de `{}` a `{"titulo": "", "slug": "", "contenido": "", "meta_description": "", "focus_keyword": ""}`.
+- `tests/test_engine.py`: dos pruebas nuevas (`test_artefacto_guarda_metadata_estructurado_desde_json`, `test_artefacto_guarda_texto_plano_cuando_respuesta_no_es_json`) usando respx, sin llamadas a APIs reales.
+- `docs/plan.md`: esta sección.
+
+**Reglas respetadas:**
+- No se modificó `models.py` ni se creó migración.
+- No se tocó credenciales, permisos, ni la cola de tareas.
+- Cambio retrocompatible: habilidades sin `esquema_salida` y respuestas no-JSON siguen comportándose como antes (texto plano en metadata['contenido']).
+- Pruebas sin HTTP real, usando `respx`.
+- No se ejecutó `git push`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe -m pytest tests/test_engine.py -q` → `6 passed in 6.95s` (incluye las 2 pruebas nuevas).
+- `.venv\Scripts\python.exe -m pytest tests/test_publicacion.py -q` → `3 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "publicar" -q` → `3 passed`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+
+**Impacto en contratos:** Cambia el contrato de salida de las habilidades de contenido (ahora JSON con claves nombradas cuando hay esquema_salida). `publicar_tarea` lee esas claves con fallback al comportamiento anterior.
+
+**Estado general:** Pasos 0 a 25 y Bloque B (B.1 a B.10) completados. Bloque C: C.1a, C.1b, C.2, C.3a, C.3b, C.4, C.5a, C.5b, C.5c, C.6, C.7a, C.7b, C.7c+d, C.7e, C.8a, C.8b, C.8c y C.9a completados. Pendiente C.8 (retirar fallback temporal de proveedor LLM en publicación).

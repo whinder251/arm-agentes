@@ -154,3 +154,54 @@ def test_ejecucion_y_artefacto_se_crean():
     assert artefacto.contenido == TEXTO_ESPERADO
     assert artefacto.metadata["modelo"] == "gemini-2.0-flash"
     assert artefacto.metadata["ejecucion"] == ejecucion.pk
+
+
+@pytest.mark.django_db
+@respx.mock
+def test_artefacto_guarda_metadata_estructurado_desde_json():
+    """Cuando la habilidad tiene esquema_salida y el modelo responde JSON válido,
+    el artefacto guarda las claves nombradas en metadata."""
+    tarea = crear_escenario()
+    payload_json = json.dumps({
+        "titulo": "La capital de Francia",
+        "slug": "la-capital-de-francia",
+        "contenido": "París es la capital de Francia.",
+        "meta_description": "Descubre cuál es la capital de Francia.",
+        "focus_keyword": "París",
+    })
+    respx.post(GEMINI_CHAT).mock(return_value=httpx.Response(200, json={
+        "candidates": [{"content": {"parts": [{"text": payload_json}]}}],
+        "usageMetadata": {"promptTokenCount": 10, "candidatesTokenCount": 5},
+        "modelVersion": "gemini-2.0-flash",
+    }))
+
+    resultado = tasks.ejecutar_tarea.call_local(tarea.pk)
+
+    tarea.refresh_from_db()
+    assert resultado == "ok"
+    artefacto = Artefacto.objects.get(tarea=tarea)
+    assert artefacto.metadata["titulo"] == "La capital de Francia"
+    assert artefacto.metadata["slug"] == "la-capital-de-francia"
+    assert artefacto.metadata["contenido"] == "París es la capital de Francia."
+    assert artefacto.metadata["meta_description"] == "Descubre cuál es la capital de Francia."
+    assert artefacto.metadata["focus_keyword"] == "París"
+    assert artefacto.metadata["modelo"] == "gemini-2.0-flash"
+    assert artefacto.metadata["ejecucion"] is not None
+
+
+@pytest.mark.django_db
+@respx.mock
+def test_artefacto_guarda_texto_plano_cuando_respuesta_no_es_json():
+    """Si la respuesta no es JSON válido, se guarda como texto plano en
+    metadata['contenido'] sin romper el flujo de la tarea."""
+    tarea = crear_escenario()
+    respx.post(GEMINI_CHAT).mock(return_value=respuesta_ok_gemini())
+
+    resultado = tasks.ejecutar_tarea.call_local(tarea.pk)
+
+    tarea.refresh_from_db()
+    assert resultado == "ok"
+    artefacto = Artefacto.objects.get(tarea=tarea)
+    assert artefacto.metadata["contenido"] == TEXTO_ESPERADO
+    assert artefacto.metadata["modelo"] == "gemini-2.0-flash"
+    assert artefacto.contenido == TEXTO_ESPERADO

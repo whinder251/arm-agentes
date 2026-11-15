@@ -121,16 +121,38 @@ def _guardar_artefacto(
         .first()
         or 0
     ) + 1
+    metadata = {
+        "modelo": respuesta.modelo,
+        "tokens_in": respuesta.tokens_in,
+        "tokens_out": respuesta.tokens_out,
+        "ejecucion": ejecucion.pk,
+    }
+    # Contrato de salida estructurada: si la habilidad declara esquema_salida
+    # y el modelo responde JSON válido, guardar claves nombradas en metadata
+    # para que el consumo posterior (publicación, consumo de API) las lea
+    # sin adivinar sobre texto plano revuelto.
+    if tarea.habilidad.esquema_salida:
+        try:
+            datos = json.loads(respuesta.texto)
+            if isinstance(datos, dict):
+                metadata.update({
+                    "titulo": str(datos.get("titulo", "") or ""),
+                    "slug": str(datos.get("slug", "") or ""),
+                    "contenido": str(datos.get("contenido", respuesta.texto) or respuesta.texto),
+                    "meta_description": str(datos.get("meta_description", "") or ""),
+                    "focus_keyword": str(datos.get("focus_keyword", "") or ""),
+                })
+            else:
+                # JSON válido pero no es objeto: tratar como texto plano.
+                metadata["contenido"] = respuesta.texto
+        except (json.JSONDecodeError, TypeError, ValueError):
+            # Respuesta no es JSON: guardar como texto plano sin romper el flujo.
+            metadata["contenido"] = respuesta.texto
     return Artefacto.objects.create(
         tarea=tarea,
         version=version,
         contenido=respuesta.texto,
-        metadata={
-            "modelo": respuesta.modelo,
-            "tokens_in": respuesta.tokens_in,
-            "tokens_out": respuesta.tokens_out,
-            "ejecucion": ejecucion.pk,
-        },
+        metadata=metadata,
     )
 
 
