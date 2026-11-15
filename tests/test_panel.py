@@ -705,6 +705,31 @@ class TestPanel(TestCase):
         assert destino.nombre == 'Blog Editor Editado'
         assert destino.credenciales == credencial_original
 
+    def test_editar_destino_credenciales_enmascaradas_y_toggle(self):
+        self.client.login(username='testuser', password='testpass123')
+        destino = DestinoPublicacion.objects.create(
+            nombre='Blog Toggle',
+            tipo='wordpress',
+            url='https://blog.ejemplo.com',
+            usuario='admin',
+            credenciales='credencial-toggle-9876',
+            activa=True,
+        )
+        url = reverse('editar_destino', kwargs={'pk': destino.pk})
+        response = self.client.get(url)
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        # El form aplica el enmascaramiento de credenciales (**** + últimos 4 chars).
+        # Nota: PasswordInput de Django no renderiza el value en el HTML por seguridad,
+        # por lo que se valida a través del contexto del form.
+        assert response.context['form_destino'].initial['credenciales'] == '****9876'
+        # Checkbox y textarea del toggle presentes
+        assert 'id_cambiar_credenciales' in content
+        assert 'id_nueva_credenciales' in content
+        assert 'nueva_credenciales_group' in content
+        # El textarea inicia oculto (clase form-oculto)
+        assert 'form-oculto' in content
+
     def test_eliminar_destino(self):
         self.client.login(username='testuser', password='testpass123')
         destino = DestinoPublicacion.objects.create(

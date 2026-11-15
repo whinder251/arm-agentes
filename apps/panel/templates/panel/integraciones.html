@@ -181,6 +181,23 @@
             </div>
         </form>
     </div>
+
+    <script>
+    (function() {
+        var checkbox = document.getElementById('id_cambiar_credenciales');
+        var group = document.getElementById('nueva_credenciales_group');
+        if (!checkbox || !group) return;
+        function actualizar() {
+            if (checkbox.checked) {
+                group.classList.remove('form-oculto');
+            } else {
+                group.classList.add('form-oculto');
+            }
+        }
+        checkbox.addEventListener('change', actualizar);
+        actualizar();
+    })();
+    </script>
     {% endif %}
 </div>
 

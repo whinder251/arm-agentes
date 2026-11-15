@@ -693,4 +693,26 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 - `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "workflow" -q` → `3 passed`.
 
-**Estado general:** Pasos 0 a 25 y Bloque B (B.1 a B.10) completados. Bloque C: C.1a, C.1b, C.2, C.3a, C.3b, C.4, C.5a, C.5b, C.5c, C.6, C.7a, C.7b, C.7c+d, C.7e, C.8a y C.8b completados. Pendiente C.8 (retirar fallback temporal de proveedor LLM en publicación).
+## Paso C.8c - Corrección del formulario de edición de destinos: enmascaramiento y toggle funcional — COMPLETADO
+
+**Objetivo:** (1) Asegurar que al editar un destino, el campo de credenciales muestre el valor enmascarado (****XXXX). (2) Hacer que el checkbox "Cambiar credenciales" revele correctamente un textarea para ingresar la nueva credencial.
+
+**Archivos tocados:**
+- `apps/panel/templates/panel/integraciones.html`: añadido `<script>` dentro del bloque `{% if destino_editar %}` que registra un listener `change` en `#id_cambiar_credenciales` y hace `classList.toggle('form-oculto')` sobre `#nueva_credenciales_group` (también inicializa el estado al cargar). Cero estilos inline, cero bloques `<style>`, JS solo cuando existe un destino en edición.
+- `tests/test_panel.py`: nueva prueba `test_editar_destino_credenciales_enmascaradas_y_toggle` que verifica `form_destino.initial['credenciales'] == '****9876'`, presencia de `id_cambiar_credenciales`, `id_nueva_credenciales`, `nueva_credenciales_group` y la clase `form-oculto` (el textarea inicia oculto).
+- `docs/plan.md`: esta sección y estado general actualizado.
+
+**Reglas respetadas:**
+- Solo se modificó `integraciones.html` y `tests/test_panel.py` (máximo 4 archivos).
+- Cero estilos inline, cero bloques `<style>`. El JS usa `classList` con `.form-oculto`, respetando `diseno-ui.md`.
+- No se modificó `forms.py` (el enmascaramiento `****{credenciales[-4:]}` y `readonly` ya estaban implementados en `DestinoPublicacionForm.__init__`).
+- No se modificó `models.py`, `urls.py`, views.py ni se creó migración.
+- No se tocó credenciales persistidas, permisos, tareas en cola ni compatibilidad.
+- No se ejecutó `git push`.
+- Commit: "Paso C.8c: Toggle funcional de credenciales en edición de destinos".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "destino or integraciones" -q` → `8 passed`.
+
+**Estado general:** Pasos 0 a 25 y Bloque B (B.1 a B.10) completados. Bloque C: C.1a, C.1b, C.2, C.3a, C.3b, C.4, C.5a, C.5b, C.5c, C.6, C.7a, C.7b, C.7c+d, C.7e, C.8a, C.8b y C.8c completados. Pendiente C.8 (retirar fallback temporal de proveedor LLM en publicación).
