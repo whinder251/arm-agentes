@@ -977,4 +977,4 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 
 **Impacto en contratos/datos:** NO contratos de API, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola existentes. Solo cambia el comportamiento de ejecución: tareas sueltas con modo manual quedan en REVISION (antes quedaban en OK). Retrocompatible: modo `"auto"` (default) no se ve afectado.
 
-**Estado general:** Pasos 0 a 25 y Bloque B (B.1 a B.10) completados. Bloque C: C.1a, C.1b, C.2, C.3a, C.3b, C.4, C.5a, C.5b, C.5c, C.6, C.7a, C.7b, C.7c+d, C.7e, C.8a, C.8b, C.8c, C.9a, C.9a-fix, C.9a-fix2, C.9b, C.10 Fase 2, C.10.3, C.10.5, C.10.6, C.11a, C.11b y C.11b.1 completados. Pendiente C.8 (retirar fallback temporal de proveedor LLM en publicación).
+**Estado general:** Pasos 0 a 25 y Bloque B (B.1 a B.10) completados. Bloque C: C.1a, C.1b, C.2, C.3a, C.3b, C.4, C.5a, C.5b, C.5c, C.6, C.7a, C.7b, C.7c+d, C.7e, C.8a, C.8b, C.8c, C.9a, C.9a-fix, C.9a-fix2, C.9b, C.10 Fase 2, C.10.3, C.10.5, C.10.6, C.11a, C.11b, C.11b.1 y C.12a completados. Pendiente C.8 (retirar fallback temporal de proveedor LLM en publicación).

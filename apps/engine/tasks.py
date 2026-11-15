@@ -351,6 +351,12 @@ def ejecutar_tarea(tarea_id: int) -> str:
             resultado = ultimo_artefacto.metadata.get("resultado", {})
         status = resultado.get("status", "completed")
 
+        # Modo manual siempre va a REVISION, independientemente del status (RB-010).
+        if modo_manual:
+            tarea.transicionar(Tarea.Estado.REVISION)
+            return "revision"
+
+        # Tareas automáticas: respetar el status del normalizador.
         if status == "failed":
             tarea.transicionar(Tarea.Estado.ERROR)
             # Propagar fallo al workflow padre si corresponde.
@@ -358,15 +364,14 @@ def ejecutar_tarea(tarea_id: int) -> str:
                 paso.workflow.estado = "fallido"
                 paso.workflow.save(update_fields=["estado"])
             return "error"
-        elif status == "partial" or modo_manual:
+        elif status == "partial":
             tarea.transicionar(Tarea.Estado.REVISION)
-            # No continuar el workflow automáticamente (modo manual o parcial).
             return "revision"
         else:
             tarea.transicionar(Tarea.Estado.OK)
             # Orquestación: al terminar un paso en 'ok', encolar el siguiente
-            # paso del workflow automáticamente solo si es auto (RB-011).
-            if paso is not None and not modo_manual:
+            # paso del workflow automáticamente (solo modo auto).
+            if paso is not None:
                 continuar_workflow(paso.workflow.pk, paso.orden + 1)
             return "ok"
     except Exception as error:  # El worker no debe morir por una tarea.

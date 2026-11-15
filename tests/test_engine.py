@@ -464,3 +464,53 @@ def test_tarea_manual_sin_workflow_queda_en_revision():
     assert resultado == "revision"
     assert tarea.estado == Tarea.Estado.REVISION
     assert tarea.paso_workflow is None
+
+
+@pytest.mark.django_db
+@respx.mock
+def test_tarea_manual_con_respuesta_no_json_queda_en_revision():
+    """Modo manual con respuesta no-JSON va a REVISION, no ERROR (RB-010)."""
+    proveedor = Proveedor.objects.create(
+        nombre="gemini",
+        base_url=GEMINI_BASE,
+        api_key="test-gemini-key",
+        limite_diario=100,
+    )
+    modelo = ModeloLLM.objects.create(
+        proveedor=proveedor,
+        model_id="gemini-2.0-flash",
+        prioridad=1,
+    )
+    habilidad_manual = Habilidad.objects.create(
+        nombre="Resumir",
+        slug="resumir-contenido",
+        plantilla_prompt="Resume: {{ texto }}",
+        esquema_salida={"type": "object"},
+        modo_ejecucion="manual",
+    )
+    agente = Agente.objects.create(
+        nombre="Agente Manual",
+        rol="Eres un agente.",
+        modelo=modelo,
+        temperatura=0.3,
+    )
+
+    # Respuesta de texto plano, no JSON válido -> normalizador marca "failed".
+    respx.post(GEMINI_CHAT).mock(return_value=httpx.Response(200, json={
+        "candidates": [{"content": {"parts": [{"text": "Texto sin estructura JSON"}]}}],
+        "usageMetadata": {"promptTokenCount": 10, "candidatesTokenCount": 5},
+        "modelVersion": "gemini-2.0-flash",
+    }))
+
+    resultado = tasks.ejecutar_tarea.call_local(
+        Tarea.objects.create(
+            agente=agente,
+            habilidad=habilidad_manual,
+            payload={"texto": "x"},
+        ).pk
+    )
+
+    tarea = Tarea.objects.get(agente=agente, habilidad=habilidad_manual)
+    tarea.refresh_from_db()
+    assert resultado == "revision"
+    assert tarea.estado == Tarea.Estado.REVISION
