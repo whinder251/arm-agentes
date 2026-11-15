@@ -1,6 +1,6 @@
 <tr id="task-{{ tarea.pk }}">
     <td><a href="{% url 'detalle_tarea' tarea.pk %}">{{ tarea.pk }}</a></td>
-    <td><span class="badge {% if tarea.estado == 'ok' %}badge-success{% elif tarea.estado == 'fallo' %}badge-error{% elif tarea.estado == 'revision' %}badge-warning{% else %}badge-info{% endif %}">{{ tarea.estado }}</span></td>
+    <td><span class="badge {% if tarea.estado == 'ok' %}badge-success{% elif tarea.estado == 'fallo' %}badge-error{% elif tarea.estado == 'error' %}badge-error{% elif tarea.estado == 'revision' %}badge-warning{% else %}badge-info{% endif %}">{{ tarea.get_estado_display }}</span></td>
     <td>{{ tarea.agente }}</td>
     <td>{{ tarea.habilidad }}</td>
     <td>{{ tarea.actualizado_en|date:"Y-m-d H:i:s" }}</td>

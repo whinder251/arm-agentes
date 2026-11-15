@@ -14,7 +14,7 @@
         <h1>Detalle de tarea #{{ tarea.pk }}</h1>
 
         <div class="bloque">
-            <p><strong>Estado:</strong> <span class="badge {% if tarea.estado == 'ok' %}badge-success{% elif tarea.estado == 'fallo' %}badge-error{% elif tarea.estado == 'revision' %}badge-warning{% else %}badge-info{% endif %}">{{ tarea.estado }}</span></p>
+            <p><strong>Estado:</strong> <span class="badge {% if tarea.estado == 'ok' %}badge-success{% elif tarea.estado == 'fallo' %}badge-error{% elif tarea.estado == 'error' %}badge-error{% elif tarea.estado == 'revision' %}badge-warning{% else %}badge-info{% endif %}">{{ tarea.get_estado_display }}</span></p>
             <p><strong>Agente:</strong> {{ tarea.agente }}</p>
             <p><strong>Habilidad:</strong> {{ tarea.habilidad }}</p>
             <p><strong>Actualizado en:</strong> {{ tarea.actualizado_en }}</p>
@@ -28,6 +28,14 @@
                 <p><strong>Versión:</strong> {{ ultimo_artefacto.version }}</p>
                 <p><strong>Metadata:</strong></p>
                 <pre>{{ ultimo_artefacto.metadata }}</pre>
+                {% if ultimo_artefacto.metadata.resultado.error %}
+                  <div class="alerta-error">
+                    <strong>Error de validación:</strong> {{ ultimo_artefacto.metadata.resultado.error.message }}
+                    {% if ultimo_artefacto.metadata.resultado.error.details %}
+                      <pre>{{ ultimo_artefacto.metadata.resultado.error.details }}</pre>
+                    {% endif %}
+                  </div>
+                {% endif %}
                 <p><strong>Contenido:</strong></p>
                 <pre>{{ ultimo_artefacto.contenido }}</pre>
             {% else %}
