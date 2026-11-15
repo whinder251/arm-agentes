@@ -49,8 +49,7 @@
             <form method="post" action="{% url 'publicar_tarea' tarea.pk %}">
                 {% csrf_token %}
                 <label for="destino_id">Destino de publicación:</label>
-                <select name="destino_id" id="destino_id" class="input">
-                    <option value="">(usar proveedor LLM de la tarea)</option>
+                <select name="destino_id" id="destino_id" class="input" required>
                     {% for destino in destinos %}
                         <option value="{{ destino.pk }}">{{ destino.nombre }}</option>
                     {% endfor %}

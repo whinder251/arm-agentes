@@ -329,6 +329,7 @@ class TestPanel(TestCase):
         assert Tarea.objects.filter(pk=tarea.pk).exists()
 
     def test_publicar_tarea_exitoso(self):
+        """Publicar con DestinoPublicacion usa sus credenciales, no las del proveedor LLM."""
         proveedor_wp = Proveedor.objects.create(
             nombre='wordpress',
             api_key='usuario:contraseña',
@@ -352,17 +353,28 @@ class TestPanel(TestCase):
             contenido='Contenido del artículo para publicar en WordPress.',
             metadata={},
         )
+        destino = DestinoPublicacion.objects.create(
+            nombre='Blog Principal',
+            tipo='wordpress',
+            url='https://blog.ejemplo.com',
+            usuario='usuario-blog',
+            credenciales='contraseña-blog-secreta',
+            activa=True,
+        )
         self.client.login(username='testuser', password='testpass123')
         url = reverse('publicar_tarea', args=[tarea.pk])
 
         with patch('apps.panel.views.WordPressProvider') as mock_wp:
             instance = mock_wp.return_value
             instance.crear_borrador.return_value = 'http://wp.test.invalid/123'
-            response = self.client.post(url)
+            response = self.client.post(url, {'destino_id': str(destino.pk)})
 
         assert response.status_code == 302
         assert response.url == reverse('detalle_tarea', args=[tarea.pk])
-        instance.crear_borrador.assert_called_once()
+        mock_wp.assert_called_once_with(
+            api_key='usuario-blog:contraseña-blog-secreta',
+            base_url='https://blog.ejemplo.com',
+        )
         tarea.refresh_from_db()
         assert tarea.payload.get('wordpress_link') == 'http://wp.test.invalid/123'
         assert tarea.payload.get('enviado_a_wordpress') is True
@@ -422,18 +434,18 @@ class TestPanel(TestCase):
         assert 'usuario-llm:contraseña-llm' not in str(tarea.payload)
         assert 'contraseña-llm' not in str(tarea.payload)
 
-    def test_publicar_tarea_sin_destino_no_expone_api_key_proveedor(self):
-        """Fallback al Proveedor LLM sin exponer su api_key en payload ni mensajes."""
+    def test_publicar_tarea_sin_destino_falla(self):
+        """Sin destino_id, la vista rechaza con mensaje de error y redirige."""
         proveedor_wp = Proveedor.objects.create(
-            nombre='wordpress-fallback',
-            api_key='usuario-fallback:secreto-fallback-12345',
-            base_url='http://wp-fallback.test.invalid',
+            nombre='wordpress',
+            api_key='usuario:contraseña',
+            base_url='http://wp.test.invalid',
         )
         modelo_wp = ModeloLLM.objects.create(
-            proveedor=proveedor_wp, model_id='wp-modelo-fallback'
+            proveedor=proveedor_wp, model_id='wp-modelo'
         )
         agente_wp = Agente.objects.create(
-            nombre='Agente WP Fallback', modelo=modelo_wp, rol='Publicador'
+            nombre='Agente WP', modelo=modelo_wp, rol='Publicador'
         )
         agente_wp.habilidades.add(self.habilidad)
         tarea = Tarea.objects.create(
@@ -451,24 +463,12 @@ class TestPanel(TestCase):
         url = reverse('publicar_tarea', args=[tarea.pk])
 
         with patch('apps.panel.views.WordPressProvider') as mock_wp:
-            instance = mock_wp.return_value
-            instance.crear_borrador.return_value = 'http://wp-fallback.test.invalid/456'
-            response = self.client.post(url)  # sin destino_id
+            response = self.client.post(url, follow=True)
 
-        assert response.status_code == 302
-        assert response.url == reverse('detalle_tarea', args=[tarea.pk])
-        # Usa el proveedor LLM como fallback
-        mock_wp.assert_called_once_with(
-            api_key='usuario-fallback:secreto-fallback-12345',
-            base_url='http://wp-fallback.test.invalid',
-        )
-        tarea.refresh_from_db()
-        assert tarea.payload.get('wordpress_link') == 'http://wp-fallback.test.invalid/456'
-        assert tarea.payload.get('enviado_a_wordpress') is True
-        # El api_key del proveedor LLM no debe persistirse en el payload
-        assert 'secreto-fallback-12345' not in str(tarea.payload)
-        # Tampoco en el cuerpo de la respuesta
-        assert 'secreto-fallback-12345' not in response.content.decode('utf-8', errors='ignore')
+        assert mock_wp.call_count == 0
+        assert response.status_code == 200
+        content = response.content.decode('utf-8', errors='ignore')
+        assert "Debe configurar y seleccionar un Destino de Publicación válido" in content
 
     def _crear_tarea_para_publicar(self, contenido, metadata):
         """Helper: tarea en estado 'ok' con un artefacto y un destino activo."""

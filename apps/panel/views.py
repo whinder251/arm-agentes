@@ -161,11 +161,8 @@ def eliminar_tarea(request, pk):
 def publicar_tarea(request, pk):
     """Envía el último artefacto de una tarea aprobada a WordPress como borrador.
 
-    Usa credenciales de DestinoPublicacion cuando se pasa destino_id (POST).
-    Si no se especifica destino, aplica fallback temporal al Proveedor LLM
-    (TODO C.8: retirar este fallback una vez todos los flujos de publicación
-    usen DestinoPublicacion. No confundir credenciales de proveedores LLM con
-    credenciales de integraciones, docs/estandares/seguridad.md §3).
+    Obligatorio usar un DestinoPublicacion activo (credenciales de integración,
+    no de proveedor LLM). Si no hay destino válido, se muestra error y se redirige.
     """
     tarea = get_object_or_404(Tarea, pk=pk)
     if tarea.estado != 'ok':
@@ -178,7 +175,6 @@ def publicar_tarea(request, pk):
         return redirect('detalle_tarea', pk=tarea.pk)
 
     destino_id = request.POST.get('destino_id')
-    proveedor = None
     destino = None
 
     if destino_id:
@@ -187,26 +183,16 @@ def publicar_tarea(request, pk):
         except DestinoPublicacion.DoesNotExist:
             messages.error(request, "El destino de publicación seleccionado no existe o está inactivo.")
             return redirect('detalle_tarea', pk=tarea.pk)
-    else:
-        # TODO C.8: retirar este fallback una vez todos los flujos de
-        # publicación usen DestinoPublicacion. No confundir credenciales de
-        # proveedores LLM con credenciales de integraciones
-        # (docs/estandares/seguridad.md §3).
-        if tarea.agente and tarea.agente.modelo:
-            proveedor = tarea.agente.modelo.proveedor
-        if not proveedor:
-            messages.error(request, "La tarea no tiene un proveedor configurado ni se especificó un destino de publicación.")
-            return redirect('detalle_tarea', pk=tarea.pk)
+
+    if not destino:
+        messages.error(request, "Debe configurar y seleccionar un Destino de Publicación válido en Integraciones antes de publicar.")
+        return redirect('detalle_tarea', pk=tarea.pk)
 
     try:
-        if destino is not None:
-            # Credenciales del destino de publicación (cifradas en BD,
-            # descifradas en memoria mediante EncryptedTextField).
-            api_key = f"{destino.usuario}:{destino.credenciales}"
-            base_url = destino.url
-        else:
-            api_key = proveedor.api_key
-            base_url = proveedor.base_url
+        # Credenciales del destino de publicación (cifradas en BD,
+        # descifradas en memoria mediante EncryptedTextField).
+        api_key = f"{destino.usuario}:{destino.credenciales}"
+        base_url = destino.url
         wp = WordPressProvider(api_key=api_key, base_url=base_url)
         meta = ultimo_artefacto.metadata or {}
         # Orden de precedencia: metadata estructurada -> payload -> fallback.
