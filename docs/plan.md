@@ -997,4 +997,25 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 - No se ejecutó `git push`.
 - Cambio retrocompatible: sin `habilidad_id` se usa el fallback a la primera habilidad del agente.
 
-**Estado general:** Pasos 0 a 25 y Bloque B (B.1 a B.10) completados. Bloque C: C.1a, C.1b, C.2, C.3a, C.3b, C.4, C.5a, C.5b, C.5c, C.6, C.7a, C.7b, C.7c+d, C.7e, C.8a, C.8b, C.8c, C.9a, C.9a-fix, C.9a-fix2, C.9b, C.10 Fase 2, C.10.3, C.10.5, C.10.6, C.11a, C.11b, C.11b.1, C.12a, C.12b y C.14 completados. Pendiente C.8 (retirar fallback temporal de proveedor LLM en publicación).
+## Paso C.13 - Reescribir prompts de habilidades para que incluyan ejemplo JSON con campos required — COMPLETADO
+
+**Objetivo:** Que los 10 prompts de `seed_demo.py` mencionen explícitamente los campos JSON que exige su esquema (`required`), para que el modelo sepa qué devolver.
+
+**Archivos tocados:**
+- `apps/core/management/commands/seed_demo.py`: reescrito el `plantilla_prompt` de 10 habilidades para incluir la instrucción de la tarea, un bloque de ejemplo JSON con los campos `required` y una breve descripción de cada uno, y la instrucción de no incluir texto fuera del JSON. Habilidades corregidas: `investigar_tema` (titulo, hallazgos), `metadatos_yoast` (titulo_seo, meta_descripcion, palabra_clave), `revision_calidad` (titulo, contenido), `corregir_ortografia` (contenido), `optimizar_seo` (titulo, contenido), `crear_titular` (titulo), `traducir_texto` (texto_traducido, idioma_destino), `generar_meta_descripcion` (meta_descripcion), `revisar_estilo` (contenido), `reescribir_editorial` (titulo, contenido).
+
+**Reglas respetadas:**
+- No se tocaron `esquema_salida`, `esquema_version` ni `permite_parcial`.
+- Se mantiene `INSTRUCCION_ROL` (lógica de appended al final preservada en las habilidades no listadas; las 10 corregidas incorporan la instrucción de no-texto-fuera-del-JSON de forma explícita).
+- No se modificó `models.py` ni se creó migración.
+- No se ejecutó `git push`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py seed_demo` → 13 habilidades actualizadas (incluidas las 10 corregidas), sin errores, idempotente.
+- `.venv\Scripts\python.exe -m pytest tests/test_engine.py -q` → `12 passed in 11.67s`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+
+**Impacto en contratos/datos:** SÍ datos persistidos (el `plantilla_prompt` de las 10 habilidades se actualiza en BD al ejecutar `seed_demo`). NO contratos de código, NO credenciales, NO permisos, NO tareas en cola. Retrocompatible.
+
+**Estado general:** Pasos 0 a 25 y Bloque B (B.1 a B.10) completados. Bloque C: C.1a, C.1b, C.2, C.3a, C.3b, C.4, C.5a, C.5b, C.5c, C.6, C.7a, C.7b, C.7c+d, C.7e, C.8a, C.8b, C.8c, C.9a, C.9a-fix, C.9a-fix2, C.9b, C.10 Fase 2, C.10.3, C.10.5, C.10.6, C.11a, C.11b, C.11b.1, C.12a, C.12b, C.13 y C.14 completados. Pendiente C.8 (retirar fallback temporal de proveedor LLM en publicación).

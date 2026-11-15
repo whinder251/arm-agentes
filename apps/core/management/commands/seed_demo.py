@@ -77,7 +77,13 @@ class Command(BaseCommand):
                 "esquema_version": "v1",
                 "permite_parcial": False,
                 "plantilla_prompt": (
-                    "Investiga a fondo el tema: {{ texto }}\n\n" + self.INSTRUCCION_ROL
+                    "Investiga a fondo el tema: {{ texto }}\n\n"
+                    "Debes responder estrictamente con un objeto JSON válido con la siguiente estructura:\n"
+                    "{\n"
+                    '  "titulo": "Título descriptivo del informe de investigación",\n'
+                    '  "hallazgos": ["Lista de hallazgos clave encontrados durante la investigación"]\n'
+                    "}\n\n"
+                    "No incluyas texto, explicaciones ni bloques de código markdown fuera del objeto JSON."
                 ),
                 "modo_ejecucion": "auto",
             },
@@ -121,7 +127,12 @@ class Command(BaseCommand):
                 "permite_parcial": False,
                 "plantilla_prompt": (
                     "Reescribe con tono editorial: {{ texto }}\n\n"
-                    + self.INSTRUCCION_ROL
+                    "Debes responder estrictamente con un objeto JSON válido con la siguiente estructura:\n"
+                    "{\n"
+                    '  "titulo": "Título del texto reescrito",\n'
+                    '  "contenido": "Texto reescrito con tono editorial"\n'
+                    "}\n\n"
+                    "No incluyas texto, explicaciones ni bloques de código markdown fuera del objeto JSON."
                 ),
                 "modo_ejecucion": "auto",
             },
@@ -142,7 +153,13 @@ class Command(BaseCommand):
                 "esquema_version": "v1",
                 "permite_parcial": False,
                 "plantilla_prompt": (
-                    "Revisa la calidad de: {{ texto }}\n\n" + self.INSTRUCCION_ROL
+                    "Revisa la calidad de: {{ texto }}\n\n"
+                    "Debes responder estrictamente con un objeto JSON válido con la siguiente estructura:\n"
+                    "{\n"
+                    '  "titulo": "Título de la revisión",\n'
+                    '  "contenido": "Resultado de la revisión de calidad"\n'
+                    "}\n\n"
+                    "No incluyas texto, explicaciones ni bloques de código markdown fuera del objeto JSON."
                 ),
                 "modo_ejecucion": "manual",
             },
@@ -163,7 +180,13 @@ class Command(BaseCommand):
                 "permite_parcial": False,
                 "plantilla_prompt": (
                     "Genera metadatos SEO para: {{ texto }}\n\n"
-                    + self.INSTRUCCION_ROL
+                    "Debes responder estrictamente con un objeto JSON válido con la siguiente estructura:\n"
+                    "{\n"
+                    '  "titulo_seo": "Título optimizado para SEO",\n'
+                    '  "meta_descripcion": "Descripción meta para motores de búsqueda",\n'
+                    '  "palabra_clave": "Palabra clave principal"\n'
+                    "}\n\n"
+                    "No incluyas texto, explicaciones ni bloques de código markdown fuera del objeto JSON."
                 ),
                 "modo_ejecucion": "auto",
             },
@@ -185,7 +208,11 @@ class Command(BaseCommand):
                 "permite_parcial": False,
                 "plantilla_prompt": (
                     "Corrige faltas de ortografía: {{ texto }}\n\n"
-                    + self.INSTRUCCION_ROL
+                    "Debes responder estrictamente con un objeto JSON válido con la siguiente estructura:\n"
+                    "{\n"
+                    '  "contenido": "Texto corregido sin faltas de ortografía"\n'
+                    "}\n\n"
+                    "No incluyas texto, explicaciones ni bloques de código markdown fuera del objeto JSON."
                 ),
                 "modo_ejecucion": "auto",
             },
@@ -206,7 +233,13 @@ class Command(BaseCommand):
                 "esquema_version": "v1",
                 "permite_parcial": False,
                 "plantilla_prompt": (
-                    "Optimiza para SEO: {{ texto }}\n\n" + self.INSTRUCCION_ROL
+                    "Optimiza para SEO: {{ texto }}\n\n"
+                    "Debes responder estrictamente con un objeto JSON válido con la siguiente estructura:\n"
+                    "{\n"
+                    '  "titulo": "Título optimizado para SEO",\n'
+                    '  "contenido": "Contenido optimizado para SEO"\n'
+                    "}\n\n"
+                    "No incluyas texto, explicaciones ni bloques de código markdown fuera del objeto JSON."
                 ),
                 "modo_ejecucion": "auto",
             },
@@ -228,7 +261,11 @@ class Command(BaseCommand):
                 "permite_parcial": False,
                 "plantilla_prompt": (
                     "Crea un titular atractivo para: {{ texto }}\n\n"
-                    + self.INSTRUCCION_ROL
+                    "Debes responder estrictamente con un objeto JSON válido con la siguiente estructura:\n"
+                    "{\n"
+                    '  "titulo": "Titular atractivo"\n'
+                    "}\n\n"
+                    "No incluyas texto, explicaciones ni bloques de código markdown fuera del objeto JSON."
                 ),
                 "modo_ejecucion": "auto",
             },
@@ -269,7 +306,13 @@ class Command(BaseCommand):
                 "esquema_version": "v1",
                 "permite_parcial": False,
                 "plantilla_prompt": (
-                    "Traduce al inglés: {{ texto }}\n\n" + self.INSTRUCCION_ROL
+                    "Traduce al inglés: {{ texto }}\n\n"
+                    "Debes responder estrictamente con un objeto JSON válido con la siguiente estructura:\n"
+                    "{\n"
+                    '  "texto_traducido": "Texto traducido al inglés",\n'
+                    '  "idioma_destino": "idioma de destino de la traducción"\n'
+                    "}\n\n"
+                    "No incluyas texto, explicaciones ni bloques de código markdown fuera del objeto JSON."
                 ),
                 "modo_ejecucion": "auto",
             },
@@ -289,7 +332,11 @@ class Command(BaseCommand):
                 "permite_parcial": False,
                 "plantilla_prompt": (
                     "Genera meta descripción para: {{ texto }}\n\n"
-                    + self.INSTRUCCION_ROL
+                    "Debes responder estrictamente con un objeto JSON válido con la siguiente estructura:\n"
+                    "{\n"
+                    '  "meta_descripcion": "Descripción meta optimizada para SEO"\n'
+                    "}\n\n"
+                    "No incluyas texto, explicaciones ni bloques de código markdown fuera del objeto JSON."
                 ),
                 "modo_ejecucion": "auto",
             },
@@ -310,7 +357,12 @@ class Command(BaseCommand):
                 "esquema_version": "v1",
                 "permite_parcial": False,
                 "plantilla_prompt": (
-                    "Revisa el estilo y tono: {{ texto }}\n\n" + self.INSTRUCCION_ROL
+                    "Revisa el estilo y tono: {{ texto }}\n\n"
+                    "Debes responder estrictamente con un objeto JSON válido con la siguiente estructura:\n"
+                    "{\n"
+                    '  "contenido": "Texto revisado con estilo y tono adecuados"\n'
+                    "}\n\n"
+                    "No incluyas texto, explicaciones ni bloques de código markdown fuera del objeto JSON."
                 ),
                 "modo_ejecucion": "manual",
             },
