@@ -52,84 +52,144 @@ class Command(BaseCommand):
             {
                 "slug": "investigar_tema",
                 "nombre": "Investigar tema",
-                "plantilla_prompt": "Investiga a fondo el tema: {{ texto }}\n\nResponde ÚNICAMENTE con un objeto JSON válido con esta estructura:\n{\n  \"titulo\": \"Título del tema investigado\",\n  \"slug\": \"slug-del-tema\",\n  \"contenido": "Cuerpo del informe de investigación en markdown\",\n  \"meta_description\": \"Resumen de 150-160 caracteres para SEO\",\n  \"focus_keyword\": \"palabra clave principal\"\n}\n\nNo incluyas texto fuera del JSON. No uses bloques de código markdown.",
+                "plantilla_prompt": """Investiga a fondo el tema: {{ texto }}
+
+Responde ÚNICAMENTE con un objeto JSON válido con esta estructura:
+{'titulo': 'Título del tema investigado', 'slug': 'slug-del-tema', 'contenido': 'Cuerpo del informe de investigación en markdown', 'meta_description': 'Resumen de 150-160 caracteres para SEO', 'focus_keyword': 'palabra clave principal'}
+
+No incluyas texto fuera del JSON. No uses bloques de código markdown.""",
                 "esquema_salida": {"titulo": "", "slug": "", "contenido": "", "meta_description": "", "focus_keyword": ""},
                 "modo_ejecucion": "auto",
             },
             {
                 "slug": "redactar_articulo",
                 "nombre": "Redactar artículo",
-                "plantilla_prompt": "Redacta un artículo basado en: {{ texto }}\n\nResponde ÚNICAMENTE con un objeto JSON válido con esta estructura:\n{\n  \"titulo\": \"Título atractivo del artículo\",\n  \"slug\": \"titulo-atractivo-del-articulo\",\n  \"contenido": "Cuerpo del artículo en markdown, con H2 y H3\",\n  \"meta_description\": \"Descripción de 150-160 caracteres para SEO\",\n  \"focus_keyword\": \"palabra clave principal\"\n}\n\nNo incluyas texto fuera del JSON. No uses bloques de código markdown.",
+                "plantilla_prompt": """Redacta un artículo basado en: {{ texto }}
+
+Responde ÚNICAMENTE con un objeto JSON válido con esta estructura:
+{'titulo': 'Título atractivo del artículo', 'slug': 'titulo-atractivo-del-articulo', 'contenido': 'Cuerpo del artículo en markdown, con H2 y H3', 'meta_description': 'Descripción de 150-160 caracteres para SEO', 'focus_keyword': 'palabra clave principal'}
+
+No incluyas texto fuera del JSON. No uses bloques de código markdown.""",
                 "esquema_salida": {"titulo": "", "slug": "", "contenido": "", "meta_description": "", "focus_keyword": ""},
                 "modo_ejecucion": "auto",
             },
             {
                 "slug": "reescribir_editorial",
                 "nombre": "Reescribir editorial",
-                "plantilla_prompt": "Reescribe con tono editorial: {{ texto }}\n\nResponde ÚNICAMENTE con un objeto JSON válido con esta estructura:\n{\n  \"titulo\": \"Título reescrito\",\n  \"slug\": \"titulo-reescrito\",\n  \"contenido": "Texto reescrito con tono editorial\",\n  \"meta_description\": \"Descripción de 150-160 caracteres para SEO\",\n  \"focus_keyword\": \"palabra clave principal\"\n}\n\nNo incluyas texto fuera del JSON. No uses bloques de código markdown.",
+                "plantilla_prompt": """Reescribe con tono editorial: {{ texto }}
+
+Responde ÚNICAMENTE con un objeto JSON válido con esta estructura:
+{'titulo': 'Título reescrito', 'slug': 'titulo-reescrito', 'contenido': 'Texto reescrito con tono editorial', 'meta_description': 'Descripción de 150-160 caracteres para SEO', 'focus_keyword': 'palabra clave principal'}
+
+No incluyas texto fuera del JSON. No uses bloques de código markdown.""",
                 "esquema_salida": {"titulo": "", "slug": "", "contenido": "", "meta_description": "", "focus_keyword": ""},
                 "modo_ejecucion": "auto",
             },
             {
                 "slug": "revision_calidad",
                 "nombre": "Revisión de calidad",
-                "plantilla_prompt": "Revisa la calidad de: {{ texto }}\n\nResponde ÚNICAMENTE con un objeto JSON válido con esta estructura:\n{\n  \"titulo\": \"Informe de revisión\",\n  \"slug\": \"informe-revision\",\n  \"contenido": "Observaciones y sugerencias de mejora en markdown\",\n  \"meta_description\": \"Resumen de la revisión de calidad\",\n  \"focus_keyword\": \"calidad\"\n}\n\nNo incluyas texto fuera del JSON. No uses bloques de código markdown.",
+                "plantilla_prompt": """Revisa la calidad de: {{ texto }}
+
+Responde ÚNICAMENTE con un objeto JSON válido con esta estructura:
+{'titulo': 'Informe de revisión', 'slug': 'informe-revision', 'contenido': 'Observaciones y sugerencias de mejora en markdown', 'meta_description': 'Resumen de la revisión de calidad', 'focus_keyword': 'calidad'}
+
+No incluyas texto fuera del JSON. No uses bloques de código markdown.""",
                 "esquema_salida": {"titulo": "", "slug": "", "contenido": "", "meta_description": "", "focus_keyword": ""},
                 "modo_ejecucion": "manual",
             },
             {
                 "slug": "metadatos_yoast",
                 "nombre": "Metadatos Yoast",
-                "plantilla_prompt": "Genera metadatos SEO para: {{ texto }}\n\nResponde ÚNICAMENTE con un objeto JSON válido con esta estructura:\n{\n  \"titulo\": \"Título SEO optimizado\",\n  \"slug\": \"titulo-seo-optimizado\",\n  \"contenido": "Texto optimizado para SEO\",\n  \"meta_description\": \"Descripción meta de 150-160 caracteres\",\n  \"focus_keyword\": \"palabra clave principal\"\n}\n\nNo incluyas texto fuera del JSON. No uses bloques de código markdown.",
+                "plantilla_prompt": """Genera metadatos SEO para: {{ texto }}
+
+Responde ÚNICAMENTE con un objeto JSON válido con esta estructura:
+{'titulo': 'Título SEO optimizado', 'slug': 'titulo-seo-optimizado', 'contenido': 'Texto optimizado para SEO', 'meta_description': 'Descripción meta de 150-160 caracteres', 'focus_keyword': 'palabra clave principal'}
+
+No incluyas texto fuera del JSON. No uses bloques de código markdown.""",
                 "esquema_salida": {"titulo": "", "slug": "", "contenido": "", "meta_description": "", "focus_keyword": ""},
                 "modo_ejecucion": "auto",
             },
             {
                 "slug": "corregir_ortografia",
                 "nombre": "Corregir ortografía",
-                "plantilla_prompt": "Corrige faltas de ortografía: {{ texto }}\n\nResponde ÚNICAMENTE con un objeto JSON válido con esta estructura:\n{\n  \"titulo\": \"Texto corregido\",\n  \"slug\": \"texto-corregido\",\n  \"contenido": "Texto con la ortografía corregida\",\n  \"meta_description\": \"Resumen del texto corregido\",\n  \"focus_keyword\": \"ortografía\"\n}\n\nNo incluyas texto fuera del JSON. No uses bloques de código markdown.",
+                "plantilla_prompt": """Corrige faltas de ortografía: {{ texto }}
+
+Responde ÚNICAMENTE con un objeto JSON válido con esta estructura:
+{'titulo': 'Texto corregido', 'slug': 'texto-corregido', 'contenido': 'Texto con la ortografía corregida', 'meta_description': 'Resumen del texto corregido', 'focus_keyword': 'ortografía'}
+
+No incluyas texto fuera del JSON. No uses bloques de código markdown.""",
                 "esquema_salida": {"titulo": "", "slug": "", "contenido": "", "meta_description": "", "focus_keyword": ""},
                 "modo_ejecucion": "auto",
             },
             {
                 "slug": "optimizar_seo",
                 "nombre": "Optimizar SEO",
-                "plantilla_prompt": "Optimiza para SEO: {{ texto }}\n\nResponde ÚNICAMENTE con un objeto JSON válido con esta estructura:\n{\n  \"titulo\": \"Título optimizado para SEO\",\n  \"slug\": \"titulo-seo\",\n  \"contenido": "Texto optimizado para motores de búsqueda\",\n  \"meta_description\": \"Descripción meta optimizada\",\n  \"focus_keyword\": \"palabra clave principal\"\n}\n\nNo incluyas texto fuera del JSON. No uses bloques de código markdown.",
+                "plantilla_prompt": """Optimiza para SEO: {{ texto }}
+
+Responde ÚNICAMENTE con un objeto JSON válido con esta estructura:
+{'titulo': 'Título optimizado para SEO', 'slug': 'titulo-seo', 'contenido': 'Texto optimizado para motores de búsqueda', 'meta_description': 'Descripción meta optimizada', 'focus_keyword': 'palabra clave principal'}
+
+No incluyas texto fuera del JSON. No uses bloques de código markdown.""",
                 "esquema_salida": {"titulo": "", "slug": "", "contenido": "", "meta_description": "", "focus_keyword": ""},
                 "modo_ejecucion": "auto",
             },
             {
                 "slug": "crear_titular",
                 "nombre": "Crear titular",
-                "plantilla_prompt": "Crea un titular atractivo para: {{ texto }}\n\nResponde ÚNICAMENTE con un objeto JSON válido con esta estructura:\n{\n  \"titulo\": \"Titular atractivo\",\n  \"slug\": \"titular-atractivo\",\n  \"contenido": "Desarrollo del titular en una frase\",\n  \"meta_description\": \"Descripción corta del titular\",\n  \"focus_keyword\": \"palabra clave del titular\"\n}\n\nNo incluyas texto fuera del JSON. No uses bloques de código markdown.",
+                "plantilla_prompt": """Crea un titular atractivo para: {{ texto }}
+
+Responde ÚNICAMENTE con un objeto JSON válido con esta estructura:
+{'titulo': 'Titular atractivo', 'slug': 'titular-atractivo', 'contenido': 'Desarrollo del titular en una frase', 'meta_description': 'Descripción corta del titular', 'focus_keyword': 'palabra clave del titular'}
+
+No incluyas texto fuera del JSON. No uses bloques de código markdown.""",
                 "esquema_salida": {"titulo": "", "slug": "", "contenido": "", "meta_description": "", "focus_keyword": ""},
                 "modo_ejecucion": "auto",
             },
             {
                 "slug": "resumir_contenido",
                 "nombre": "Resumir contenido",
-                "plantilla_prompt": "Resume el contenido: {{ texto }}\n\nResponde ÚNICAMENTE con un objeto JSON válido con esta estructura:\n{\n  \"titulo\": \"Resumen\",\n  \"slug\": \"resumen-contenido\",\n  \"contenido": "Resumen del contenido en markdown\",\n  \"meta_description\": \"Resumen ejecutivo de 150-160 caracteres\",\n  \"focus_keyword\": \"tema principal\"\n}\n\nNo incluyas texto fuera del JSON. No uses bloques de código markdown.",
+                "plantilla_prompt": """Resume el contenido: {{ texto }}
+
+Responde ÚNICAMENTE con un objeto JSON válido con esta estructura:
+{'titulo': 'Resumen', 'slug': 'resumen-contenido', 'contenido': 'Resumen del contenido en markdown', 'meta_description': 'Resumen ejecutivo de 150-160 caracteres', 'focus_keyword': 'tema principal'}
+
+No incluyas texto fuera del JSON. No uses bloques de código markdown.""",
                 "esquema_salida": {"titulo": "", "slug": "", "contenido": "", "meta_description": "", "focus_keyword": ""},
                 "modo_ejecucion": "manual",
             },
             {
                 "slug": "traducir_texto",
                 "nombre": "Traducir texto",
-                "plantilla_prompt": "Traduce al inglés: {{ texto }}\n\nResponde ÚNICAMENTE con un objeto JSON válido con esta estructura:\n{\n  \"titulo\": \"Título traducido\",\n  \"slug\": \"titulo-traducido\",\n  \"contenido": "Texto traducido al inglés\",\n  \"meta_description\": \"Descripción de la traducción\",\n  \"focus_keyword\": \"traducción\"\n}\n\nNo incluyas texto fuera del JSON. No uses bloques de código markdown.",
+                "plantilla_prompt": """Traduce al inglés: {{ texto }}
+
+Responde ÚNICAMENTE con un objeto JSON válido con esta estructura:
+{'titulo': 'Título traducido', 'slug': 'titulo-traducido', 'contenido': 'Texto traducido al inglés', 'meta_description': 'Descripción de la traducción', 'focus_keyword': 'traducción'}
+
+No incluyas texto fuera del JSON. No uses bloques de código markdown.""",
                 "esquema_salida": {"titulo": "", "slug": "", "contenido": "", "meta_description": "", "focus_keyword": ""},
                 "modo_ejecucion": "auto",
             },
             {
                 "slug": "generar_meta_descripcion",
                 "nombre": "Generar meta descripción",
-                "plantilla_prompt": "Genera meta descripción para: {{ texto }}\n\nResponde ÚNICAMENTE con un objeto JSON válido con esta estructura:\n{\n  \"titulo\": \"Título para meta\",\n  \"slug\": \"titulo-para-meta\",\n  \"contenido": "Contenido base para la meta descripción\",\n  \"meta_description\": \"Descripción meta de 150-160 caracteres\",\n  \"focus_keyword\": \"palabra clave para meta\"\n}\n\nNo incluyas texto fuera del JSON. No uses bloques de código markdown.",
+                "plantilla_prompt": """Genera meta descripción para: {{ texto }}
+
+Responde ÚNICAMENTE con un objeto JSON válido con esta estructura:
+{'titulo': 'Título para meta', 'slug': 'titulo-para-meta', 'contenido': 'Contenido base para la meta descripción', 'meta_description': 'Descripción meta de 150-160 caracteres', 'focus_keyword': 'palabra clave para meta'}
+
+No incluyas texto fuera del JSON. No uses bloques de código markdown.""",
                 "esquema_salida": {"titulo": "", "slug": "", "contenido": "", "meta_description": "", "focus_keyword": ""},
                 "modo_ejecucion": "auto",
             },
             {
                 "slug": "revisar_estilo",
                 "nombre": "Revisar estilo",
-                "plantilla_prompt": "Revisa el estilo y tono: {{ texto }}\n\nResponde ÚNICAMENTE con un objeto JSON válido con esta estructura:\n{\n  \"titulo\": \"Informe de estilo\",\n  \"slug\": \"informe-estilo\",\n  \"contenido": "Comentarios sobre estilo y tono en markdown\",\n  \"meta_description\": \"Resumen de la revisión de estilo\",\n  \"focus_keyword\": \"estilo\"\n}\n\nNo incluyas texto fuera del JSON. No uses bloques de código markdown.",
+                "plantilla_prompt": """Revisa el estilo y tono: {{ texto }}
+
+Responde ÚNICAMENTE con un objeto JSON válido con esta estructura:
+{'titulo': 'Informe de estilo', 'slug': 'informe-estilo', 'contenido': 'Comentarios sobre estilo y tono en markdown', 'meta_description': 'Resumen de la revisión de estilo', 'focus_keyword': 'estilo'}
+
+No incluyas texto fuera del JSON. No uses bloques de código markdown.""",
                 "esquema_salida": {"titulo": "", "slug": "", "contenido": "", "meta_description": "", "focus_keyword": ""},
                 "modo_ejecucion": "manual",
             },

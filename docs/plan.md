@@ -742,4 +742,26 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 
 **Impacto en contratos:** Cambia el contrato de salida de las habilidades de contenido (ahora JSON con claves nombradas cuando hay esquema_salida). `publicar_tarea` lee esas claves con fallback al comportamiento anterior.
 
-**Estado general:** Pasos 0 a 25 y Bloque B (B.1 a B.10) completados. Bloque C: C.1a, C.1b, C.2, C.3a, C.3b, C.4, C.5a, C.5b, C.5c, C.6, C.7a, C.7b, C.7c+d, C.7e, C.8a, C.8b, C.8c y C.9a completados. Pendiente C.8 (retirar fallback temporal de proveedor LLM en publicación).
+## Paso C.9a-fix2 - Reescritura completa de seed_demo.py para eliminar SyntaxError — COMPLETADO
+
+**Objetivo:** Eliminar definitivamente el `SyntaxError` en `apps/core/management/commands/seed_demo.py` reescribiendo el archivo completo con prompts en comillas triples y JSON interno en comillas simples, sin escapes complejos.
+
+**Archivos tocados:**
+- `apps/core/management/commands/seed_demo.py`: reescrito completo. Los 12 `plantilla_prompt` usan ahora `"""` (comillas triples dobles) y el ejemplo JSON interno usa comillas simples (`'titulo': '...'`), eliminando por completo la necesidad de `\"`. Los métodos `_siembrar_agentes`, `_siembrar_equipos`, `_siembrar_workflows` y `handle` se mantienen intactos.
+
+**Reglas respetadas:**
+- Solo se modificó `seed_demo.py` (1 archivo).
+- Reescritura completa del archivo, no parcheo parcial.
+- No se modificó `models.py`, `views.py`, `tasks.py`, `urls.py`, `forms.py` ni templates.
+- No se creó migración.
+- No se tocó credenciales, permisos, ni la cola de tareas.
+- No se ejecutó `git push`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py seed_demo` (1ª) → 12 habilidades, 6 agentes, 3 equipos, 4 workflows (todos ya existían desde C.7e).
+- `.venv\Scripts\python.exe manage.py seed_demo` (2ª) → idempotente, sin duplicados.
+- `.venv\Scripts\python.exe -m pytest tests/test_engine.py -q` → `6 passed`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+
+**Estado general:** Pasos 0 a 25 y Bloque B (B.1 a B.10) completados. Bloque C: C.1a, C.1b, C.2, C.3a, C.3b, C.4, C.5a, C.5b, C.5c, C.6, C.7a, C.7b, C.7c+d, C.7e, C.8a, C.8b, C.8c, C.9a, C.9a-fix y C.9a-fix2 completados. Pendiente C.8 (retirar fallback temporal de proveedor LLM en publicación).
