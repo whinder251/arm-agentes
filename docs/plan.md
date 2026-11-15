@@ -954,4 +954,27 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 
 **Impacto en contratos/datos:** SÍ datos persistidos (nuevo estado `ERROR` en choices del campo `estado` → migración 0014). NO credenciales, NO permisos, NO tareas en cola existentes, NO contratos de API. Retrocompatible: estados existentes (COLA, CURSO, REVISION, OK, FALLO) se mantienen.
 
-**Estado general:** Pasos 0 a 25 y Bloque B (B.1 a B.10) completados. Bloque C: C.1a, C.1b, C.2, C.3a, C.3b, C.4, C.5a, C.5b, C.5c, C.6, C.7a, C.7b, C.7c+d, C.7e, C.8a, C.8b, C.8c, C.9a, C.9a-fix, C.9a-fix2, C.9b, C.10 Fase 2, C.10.3, C.10.5, C.10.6, C.11a y C.11b completados. Pendiente C.8 (retirar fallback temporal de proveedor LLM en publicación).
+## Paso C.11b.1 - Corregir detección de modo manual en tareas sueltas — COMPLETADO
+
+**Objetivo:** Que `modo_ejecucion="manual"` se respete también cuando la tarea se crea de forma independiente (fuera de un workflow), no solo cuando es parte de un workflow (RB-010).
+
+**Archivos tocados:**
+- `apps/engine/tasks.py`: en `ejecutar_tarea`, `modo_manual` ahora se evalúa sobre `tarea.habilidad.modo_ejecucion` directamente, sin requerir `paso_workflow`. `paso` se conserva para el resto de la lógica de workflow (propagación y orquestación).
+- `tests/test_engine.py`: nueva prueba `test_tarea_manual_sin_workflow_queda_en_revision` que verifica una tarea independiente (sin `paso_workflow`) con modo manual queda en `Tarea.Estado.REVISION`.
+- `docs/plan.md`: esta sección y estado general actualizado.
+
+**Reglas respetadas:**
+- No se modificó `models.py` ni se creó migración (`makemigrations --check --dry-run` → No changes detected).
+- Máximo 2 archivos modificados (dentro del límite de 4).
+- Pruebas sin APIs reales; `respx` para simular HTTP.
+- `tarea.habilidad` ya viene precargada con `select_related` (línea 298), sin consultas extra.
+- No se ejecutó `git push`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_engine.py -q` → `11 passed in 9.69s` (incluye la prueba nueva).
+
+**Impacto en contratos/datos:** NO contratos de API, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola existentes. Solo cambia el comportamiento de ejecución: tareas sueltas con modo manual quedan en REVISION (antes quedaban en OK). Retrocompatible: modo `"auto"` (default) no se ve afectado.
+
+**Estado general:** Pasos 0 a 25 y Bloque B (B.1 a B.10) completados. Bloque C: C.1a, C.1b, C.2, C.3a, C.3b, C.4, C.5a, C.5b, C.5c, C.6, C.7a, C.7b, C.7c+d, C.7e, C.8a, C.8b, C.8c, C.9a, C.9a-fix, C.9a-fix2, C.9b, C.10 Fase 2, C.10.3, C.10.5, C.10.6, C.11a, C.11b y C.11b.1 completados. Pendiente C.8 (retirar fallback temporal de proveedor LLM en publicación).

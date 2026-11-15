@@ -412,3 +412,55 @@ def test_workflow_pasa_datos_entre_pasos(monkeypatch):
     assert resultado == "encolado"
     tarea2 = Tarea.objects.get(paso_workflow=paso2)
     assert tarea2.payload == {"hallazgos": ["dato1", "dato2"]}
+
+
+@pytest.mark.django_db
+@respx.mock
+def test_tarea_manual_sin_workflow_queda_en_revision():
+    """Una tarea independiente (sin paso_workflow) con modo_ejecucion='manual'
+    debe quedar en REVISION, cumpliendo RB-010 fuera de un workflow."""
+    proveedor = Proveedor.objects.create(
+        nombre="gemini",
+        base_url=GEMINI_BASE,
+        api_key="test-gemini-key",
+        limite_diario=100,
+    )
+    modelo = ModeloLLM.objects.create(
+        proveedor=proveedor,
+        model_id="gemini-2.0-flash",
+        prioridad=1,
+    )
+    habilidad_manual = Habilidad.objects.create(
+        nombre="Manual suelta",
+        slug="manual-suelta",
+        plantilla_prompt="Haz algo: {{ texto }}",
+        esquema_salida={"type": "object"},
+        modo_ejecucion="manual",
+    )
+    agente = Agente.objects.create(
+        nombre="Agente Manual Suelto",
+        rol="Eres un agente.",
+        modelo=modelo,
+        temperatura=0.3,
+    )
+
+    payload_json = json.dumps({"contenido": "resultado manual suelto"})
+    respx.post(GEMINI_CHAT).mock(return_value=httpx.Response(200, json={
+        "candidates": [{"content": {"parts": [{"text": payload_json}]}}],
+        "usageMetadata": {"promptTokenCount": 10, "candidatesTokenCount": 5},
+        "modelVersion": "gemini-2.0-flash",
+    }))
+
+    resultado = tasks.ejecutar_tarea.call_local(
+        Tarea.objects.create(
+            agente=agente,
+            habilidad=habilidad_manual,
+            payload={"texto": "x"},
+        ).pk
+    )
+
+    tarea = Tarea.objects.get(agente=agente, habilidad=habilidad_manual)
+    tarea.refresh_from_db()
+    assert resultado == "revision"
+    assert tarea.estado == Tarea.Estado.REVISION
+    assert tarea.paso_workflow is None

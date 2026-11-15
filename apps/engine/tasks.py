@@ -338,7 +338,7 @@ def ejecutar_tarea(tarea_id: int) -> str:
         _marcar_latido(tarea_id)
 
         paso = tarea.paso_workflow
-        modo_manual = paso is not None and paso.habilidad.modo_ejecucion == "manual"
+        modo_manual = tarea.habilidad.modo_ejecucion == "manual"
 
         # Leer el ResultadoAgente del artefacto recién creado para decidir el estado.
         ultimo_artefacto = (
