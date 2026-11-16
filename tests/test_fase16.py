@@ -1,5 +1,5 @@
-"""Pruebas del paso FASE1.6: recursos del sistema editables con restauración,
-herramientas plug & play y vista de API.
+"""Pruebas del paso FASE1.6 y C.2: recursos del sistema editables con restauración,
+herramientas plug & play, credenciales centralizadas y gestión de ARM API Key.
 
 Tests aislados de test_panel.py (que tiene un cuelgue preexistente de entorno).
 No llaman APIs reales.
@@ -11,7 +11,7 @@ from django.contrib.auth.models import User
 from django.core.management import call_command
 import unittest.mock
 
-from apps.core.models import Habilidad, FormatoSalida, Herramienta, Proveedor, ModeloLLM
+from apps.core.models import Habilidad, FormatoSalida, Herramienta, Proveedor, ModeloLLM, Credencial
 from apps.core import defaults
 
 
@@ -89,31 +89,84 @@ class TestRestaurarHabilidad(Fase16TestCase):
         self.assertEqual(response.status_code, 405)
 
 
-class TestConfiguracionApi(Fase16TestCase):
-    def test_configuracion_api_muestra_clave_enmascarada(self):
-        """La vista muestra la URL y la clave enmascarada por defecto;
-        la clave completa solo viaja en data-key para que el JS la revele al hacer clic."""
+class TestListaCredenciales(Fase16TestCase):
+    def test_lista_credenciales_render(self):
+        """La vista lista_credenciales renderiza correctamente con la ARM API Key."""
         from django.conf import settings
         api_key = getattr(settings, "ARM_API_KEY", "") or ""
         if not api_key:
             self.skipTest("ARM_API_KEY no configurada en el entorno de pruebas.")
 
-        url = reverse("configuracion_api")
+        url = reverse("lista_credenciales")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         html = response.content.decode("utf-8")
 
-        self.assertIn("/panel/configuracion/api/", html)  # URL base presente
-        # La clave enmascarada debe estar visible por defecto
+        # Título y subtítulo
+        self.assertIn("Credenciales y API", html)
+        self.assertIn("Almacén centralizado de secretos", html)
+
+        # ARM API Key del Sistema
+        self.assertIn("ARM API Key del Sistema", html)
         if len(api_key) > 16:
             masked = api_key[:8] + "****" + api_key[-4:]
         else:
             masked = "****"
         self.assertIn(masked, html)
-        # La clave completa NO debe mostrarse como texto visible (solo en data-key para el JS)
         self.assertIn('data-key="%s"' % api_key, html)
-        # El span inicial muestra la máscara, no la clave completa
-        self.assertIn('>%s<' % masked, html)
+        self.assertIn('id="display-arm-key"', html)
+        self.assertIn('id="btn-toggle-arm-key"', html)
+
+        # Botón rotar
+        self.assertIn("Rotar Clave del Sistema", html)
+        self.assertIn('btn-danger', html)
+
+        # Tabla de credenciales
+        self.assertIn("Credenciales Centralizadas", html)
+        self.assertIn("Añadir credencial", html)
+
+
+class TestRotarArmApiKeyDesdeCredenciales(Fase16TestCase):
+    def test_rotar_arm_api_key_requiere_autenticacion(self):
+        """Sin login, POST a rotar redirige a login."""
+        self.client.logout()
+        url = reverse("lista_credenciales")
+        response = self.client.post(url, {"rotar_arm_api_key": "1"})
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("login", response.url)
+
+    @unittest.mock.patch("apps.panel.views.set_key")
+    @unittest.mock.patch(
+        "apps.panel.views.secrets.token_urlsafe", return_value="tok-urlsafe-32"
+    )
+    def test_rotar_arm_api_key_genera_clave_y_redirige(self, mock_token, mock_set_key):
+        """POST rota la ARM API Key, llama a set_key y redirige con mensaje de éxito."""
+        url = reverse("lista_credenciales")
+        response = self.client.post(url, {"rotar_arm_api_key": "1"}, follow=True)
+        self.assertEqual(response.status_code, 200)
+        mock_set_key.assert_called_once()
+        args, _ = mock_set_key.call_args
+        self.assertEqual(args[1], "ARM_API_KEY")
+        self.assertTrue(str(args[2]).startswith("arm_"))
+        self.assertRedirects(response, reverse("lista_credenciales"))
+        mensajes = [str(m) for m in response.context["messages"]]
+        self.assertTrue(
+            any("ARM API Key renovada" in m for m in mensajes),
+            f"No se encontró mensaje de éxito en: {mensajes}",
+        )
+
+    def test_sidebar_tiene_unico_enlace_credenciales_y_api(self):
+        """El sidebar tiene un único enlace 'Credenciales y API'."""
+        url = reverse("lista_credenciales")
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode("utf-8")
+        # Verifica que el enlace activo esté presente
+        self.assertIn('href="%s"' % reverse("lista_credenciales"), html)
+        self.assertIn("Credenciales y API", html)
+        # No debe haber enlaces duplicados antiguos
+        self.assertNotIn("configuracion_api", html)
+        self.assertNotIn("rotar_api_key", html)
 
 
 class TestSeedHerramientasSistema(Fase16TestCase):
@@ -138,52 +191,68 @@ class TestSeedHerramientasSistema(Fase16TestCase):
             self.assertEqual(herramienta.configuracion, datos["configuracion"])
 
 
-class TestRotarApiKey(Fase16TestCase):
-    def test_rotar_api_key_requiere_autenticacion(self):
-        """Sin login, POST a rotar redirige a login."""
-        self.client.logout()
-        url = reverse("rotar_api_key")
+class TestCredencialCRUD(Fase16TestCase):
+    def test_crear_credencial(self):
+        """Crear una credencial funciona correctamente."""
+        url = reverse("crear_credencial")
+        response = self.client.post(url, {
+            "nombre": "Credencial Test",
+            "slug": "credencial-test",
+            "tipo": "api_key",
+            "secreto_cifrado": "sk-test-1234567890",
+            "metadata": '{"endpoint": "https://api.ejemplo.com"}',
+            "es_sistema": False,
+        })
+        self.assertEqual(response.status_code, 302)
+        credencial = Credencial.objects.get(slug="credencial-test")
+        self.assertEqual(credencial.nombre, "Credencial Test")
+        self.assertEqual(credencial.tipo, "api_key")
+
+    def test_editar_credencial_sistema_muestra_advertencia(self):
+        """Editar credencial de sistema muestra advertencia pero permite editar."""
+        credencial = Credencial.objects.create(
+            slug="credencial-sistema-test",
+            nombre="Credencial Sistema",
+            tipo="api_key",
+            secreto_cifrado="sk-original",
+            es_sistema=True,
+        )
+        url = reverse("editar_credencial", args=[credencial.pk])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode("utf-8")
+        self.assertIn("alerta-warning", html)
+        self.assertIn("Estás editando un recurso del sistema", html)
+        # No hay botón de restaurar para credenciales (no tienen defaults)
+        self.assertNotIn("Restaurar valores de fábrica", html)
+
+    def test_eliminar_credencial_sistema_bloqueada(self):
+        """Eliminar credencial de sistema está bloqueado."""
+        credencial = Credencial.objects.create(
+            slug="credencial-sistema-del",
+            nombre="Credencial Sistema Delete",
+            tipo="api_key",
+            secreto_cifrado="sk-test",
+            es_sistema=True,
+        )
+        url = reverse("eliminar_credencial", args=[credencial.pk])
         response = self.client.post(url)
         self.assertEqual(response.status_code, 302)
-        self.assertIn("login", response.url)
+        self.assertTrue(Credencial.objects.filter(pk=credencial.pk).exists())
+        messages = [str(m) for m in response.wsgi_request._messages] if hasattr(response, 'wsgi_request') else []
+        # Verificar que no se borró
+        self.assertTrue(Credencial.objects.filter(pk=credencial.pk).exists())
 
-    @unittest.mock.patch("apps.panel.views.set_key")
-    @unittest.mock.patch(
-        "apps.panel.views.secrets.token_urlsafe", return_value="tok-urlsafe-32"
-    )
-    def test_rotar_api_key_genera_clave_y_redirige(self, mock_token, mock_set_key):
-        """POST rota la clave, llama a set_key y redirige con mensaje de éxito."""
-        url = reverse("rotar_api_key")
-        response = self.client.post(url, follow=True)
-        self.assertEqual(response.status_code, 200)
-        mock_set_key.assert_called_once()
-        args, _ = mock_set_key.call_args
-        self.assertEqual(args[1], "ARM_API_KEY")
-        self.assertTrue(str(args[2]).startswith("arm_"))
-        self.assertRedirects(response, reverse("configuracion_api"))
-        mensajes = [str(m) for m in response.context["messages"]]
-        self.assertTrue(
-            any("Clave API renovada" in m for m in mensajes),
-            f"No se encontró mensaje de éxito en: {mensajes}",
+    def test_eliminar_credencial_usuario_funciona(self):
+        """Eliminar credencial de usuario funciona."""
+        credencial = Credencial.objects.create(
+            slug="credencial-usuario-del",
+            nombre="Credencial Usuario Delete",
+            tipo="api_key",
+            secreto_cifrado="sk-test",
+            es_sistema=False,
         )
-
-    def test_sidebar_integraciones_y_api_webhooks_distintos(self):
-        """El sidebar tiene enlaces 'Integraciones' y 'API y Webhooks' distintos."""
-        url = reverse("configuracion_api")
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 200)
-        html = response.content.decode("utf-8")
-        self.assertIn("Integraciones", html)
-        self.assertIn("API y Webhooks", html)
-        self.assertNotIn("API / Integraciones", html)
-
-    def test_configuracion_api_tiene_formulario_rotar(self):
-        """La vista de API renderiza el formulario de rotación y el botón."""
-        url = reverse("configuracion_api")
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 200)
-        html = response.content.decode("utf-8")
-        self.assertIn('action="%s"' % reverse("rotar_api_key"), html)
-        self.assertIn("Generar nueva clave", html)
-        self.assertIn("btn-danger", html)
-        self.assertIn('data-key="', html)
+        url = reverse("eliminar_credencial", args=[credencial.pk])
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Credencial.objects.filter(pk=credencial.pk).exists())

@@ -1,0 +1,132 @@
+{% extends "panel/base.html" %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Credenciales y API</h1>
+        <p class="subtitulo">Almacén centralizado de secretos (estilo n8n) para herramientas e integraciones.</p>
+    </div>
+</div>
+
+{% if nueva_clave_arm %}
+<div class="alerta-error">
+    <strong>Copia esta clave ahora. No se volverá a mostrar.</strong>
+</div>
+<div class="api-key-fila">
+    <input type="text" class="input" value="{{ nueva_clave_arm }}" readonly>
+    <button type="button" class="btn-secondary btn-sm" onclick="copiarTextoDesdeInput(this)">Copiar</button>
+</div>
+{% endif %}
+
+<div class="tarjeta bloque">
+    <h2>ARM API Key del Sistema</h2>
+    <p class="subtexto">Clave para autenticar peticiones a la API REST de ARM. Se muestra enmascarada por defecto.</p>
+
+    <div class="api-key-fila">
+        <span id="display-arm-key" class="api-key-masked" data-key="{{ api_key_full }}" data-masked="{{ api_key_masked }}">{{ api_key_masked }}</span>
+        <button type="button" class="btn-secondary btn-sm" id="btn-toggle-arm-key">Mostrar</button>
+        <button type="button" class="btn-secondary btn-sm" onclick="copiarTextoDesdeElemento('display-arm-key', this)">Copiar</button>
+    </div>
+    <p class="ayuda">La clave completa se revela solo por 10 segundos y luego vuelve a ocultarse.</p>
+
+    <form method="post" action="{% url 'lista_credenciales' %}" onsubmit="return confirm('¿Generar una nueva ARM API Key? Esto invalidará la clave anterior y deberás actualizar tus servicios externos.');">
+        {% csrf_token %}
+        <button type="submit" name="rotar_arm_api_key" value="1" class="btn-danger btn-sm">Rotar Clave del Sistema</button>
+    </form>
+</div>
+
+<div class="tarjeta">
+    <div class="page-header" style="margin-bottom: var(--space-md);">
+        <h2>Credenciales Centralizadas</h2>
+        <div class="acciones-encabezado">
+            <a href="{% url 'crear_credencial' %}" class="btn-primary">Añadir credencial</a>
+        </div>
+    </div>
+
+    {% if credenciales %}
+    <table class="tabla">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Slug</th>
+                <th>Tipo</th>
+                <th>Origen</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for credencial in credenciales %}
+            <tr>
+                <td>{{ credencial.nombre }}</td>
+                <td class="slug">{{ credencial.slug }}</td>
+                <td>{{ credencial.get_tipo_display }}</td>
+                <td>
+                    {% if credencial.es_sistema %}
+                    <span class="badge badge-info">Sistema</span>
+                    {% else %}
+                    <span class="badge">Usuario</span>
+                    {% endif %}
+                </td>
+                <td class="acciones">
+                    <a href="{% url 'editar_credencial' credencial.pk %}" class="enlace-editar">Editar</a>
+                    <form method="post" action="{% url 'eliminar_credencial' credencial.pk %}" class="form-eliminar" onsubmit="return confirm('¿Estás seguro de que quieres eliminar esta credencial?');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-danger-sm">Eliminar</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="vacio">No hay credenciales registradas.</div>
+    {% endif %}
+</div>
+
+<script>
+function copiarTextoDesdeElemento(elementId, btn) {
+    const el = document.getElementById(elementId);
+    const texto = el.getAttribute('data-key') || el.textContent;
+    navigator.clipboard.writeText(texto).then(function() {
+        const original = btn.textContent;
+        btn.textContent = 'Copiado';
+        setTimeout(function() { btn.textContent = original; }, 1500);
+    });
+}
+
+function copiarTextoDesdeInput(btn) {
+    const input = btn.previousElementSibling;
+    navigator.clipboard.writeText(input.value).then(function() {
+        const original = btn.textContent;
+        btn.textContent = 'Copiado';
+        setTimeout(function() { btn.textContent = original; }, 1500);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const btnMostrar = document.getElementById('btn-toggle-arm-key');
+    const display = document.getElementById('display-arm-key');
+    if (!btnMostrar || !display) return;
+
+    const claveCompleta = display.getAttribute('data-key');
+    const claveEnmascarada = display.getAttribute('data-masked');
+    let temporizador = null;
+
+    function enmascarar() {
+        if (temporizador) {
+            clearTimeout(temporizador);
+            temporizador = null;
+        }
+        display.textContent = claveEnmascarada;
+        btnMostrar.textContent = 'Mostrar';
+    }
+
+    btnMostrar.addEventListener('click', function() {
+        enmascarar();
+        display.textContent = claveCompleta;
+        btnMostrar.textContent = 'Ocultar';
+        temporizador = setTimeout(enmascarar, 10000);
+    });
+});
+</script>
+{% endblock %}

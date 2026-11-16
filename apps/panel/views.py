@@ -17,12 +17,13 @@ from pathlib import Path
 from dotenv import set_key
 from apps.core.models import (
     Tarea, Proveedor, ModeloLLM, Habilidad, FormatoSalida, Herramienta, Agente, Equipo,
-    Workflow, PasoWorkflow, Ejecucion, IntegracionConfig, DestinoPublicacion,
+    Workflow, PasoWorkflow, Ejecucion, IntegracionConfig, DestinoPublicacion, Credencial,
 )
 from apps.engine.tasks import ejecutar_tarea, continuar_workflow
 from apps.providers.wordpress import WordPressProvider
 from apps.panel.forms import (
     AgenteForm,
+    CredencialForm,
     DestinoPublicacionForm,
     FormatoSalidaForm,
     HabilidadForm,
@@ -636,33 +637,88 @@ def restaurar_herramienta(request, pk):
 
 
 @login_required
-def configuracion_api(request):
-    """Muestra la URL base del webhook y la ARM_API_KEY enmascarada."""
+def lista_credenciales(request):
+    """Lista de credenciales centralizadas con gestión de ARM API Key."""
+    credenciales = Credencial.objects.all().order_by("nombre")
+
+    if request.method == "POST":
+        if request.POST.get("rotar_arm_api_key"):
+            new_key = f"arm_{secrets.token_urlsafe(32)}"
+            env_path = settings.BASE_DIR / '.env'
+            set_key(env_path, 'ARM_API_KEY', new_key)
+            settings.ARM_API_KEY = new_key
+            messages.success(
+                request,
+                "ARM API Key renovada exitosamente. Actualiza tus servicios externos con la nueva clave."
+            )
+            return redirect("lista_credenciales")
+
     api_key = getattr(settings, "ARM_API_KEY", "") or ""
     if len(api_key) > 16:
         api_key_masked = api_key[:8] + "****" + api_key[-4:]
     else:
         api_key_masked = "****"
-    return render(request, "panel/configuracion_api.html", {
-        "url_webhook": request.build_absolute_uri("/api/webhook/"),
+
+    return render(request, "panel/lista_credenciales.html", {
+        "credenciales": credenciales,
         "api_key_masked": api_key_masked,
         "api_key_full": api_key,
+        "url_webhook": request.build_absolute_uri("/api/webhook/"),
     })
 
 
 @login_required
+def crear_credencial(request):
+    """Crea una credencial centralizada."""
+    if request.method == "POST":
+        form = CredencialForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Credencial creada correctamente.")
+            return redirect("lista_credenciales")
+    else:
+        form = CredencialForm()
+    return render(request, "panel/credencial_form.html", {"form": form, "accion": "Crear"})
+
+
+@login_required
+def editar_credencial(request, pk):
+    """Edita una credencial existente."""
+    credencial = get_object_or_404(Credencial, pk=pk)
+    if credencial.es_sistema:
+        messages.warning(
+            request,
+            "Estás editando un recurso del sistema. Usa Restaurar para volver a los valores de fábrica."
+        )
+    if request.method == "POST":
+        form = CredencialForm(request.POST, instance=credencial)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Credencial actualizada.")
+            return redirect("lista_credenciales")
+    else:
+        form = CredencialForm(instance=credencial)
+    return render(request, "panel/credencial_form.html", {"form": form, "accion": "Editar", "credencial_editar": credencial})
+
+
+@login_required
 @require_POST
-def rotar_api_key(request):
-    """Regenera la ARM_API_KEY: la guarda en .env y la actualiza en memoria."""
-    new_key = f"arm_{secrets.token_urlsafe(32)}"
-    env_path = settings.BASE_DIR / '.env'
-    set_key(env_path, 'ARM_API_KEY', new_key)
-    settings.ARM_API_KEY = new_key
-    messages.success(
-        request,
-        "Clave API renovada exitosamente. Actualiza tus servicios externos con la nueva clave.",
-    )
-    return redirect('configuracion_api')
+def eliminar_credencial(request, pk):
+    """Elimina una credencial con protecciones."""
+    credencial = get_object_or_404(Credencial, pk=pk)
+    if credencial.es_sistema:
+        messages.error(request, "No se pueden modificar recursos del sistema.")
+        return redirect("lista_credenciales")
+    try:
+        credencial.delete()
+    except ProtectedError:
+        messages.error(
+            request,
+            "No se puede eliminar: está siendo utilizada por herramientas."
+        )
+        return redirect("lista_credenciales")
+    messages.success(request, f"Credencial '{credencial.nombre}' eliminada.")
+    return redirect("lista_credenciales")
 
 
 @login_required

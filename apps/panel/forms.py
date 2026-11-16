@@ -1,6 +1,6 @@
 from django import forms
 
-from apps.core.models import Agente, FormatoSalida, Habilidad, Herramienta, Proveedor, ModeloLLM, DestinoPublicacion
+from apps.core.models import Agente, Credencial, FormatoSalida, Habilidad, Herramienta, Proveedor, ModeloLLM, DestinoPublicacion
 
 
 class ProveedorForm(forms.ModelForm):
@@ -58,16 +58,26 @@ class FormatoSalidaForm(forms.ModelForm):
 class HerramientaForm(forms.ModelForm):
     class Meta:
         model = Herramienta
-        fields = ["nombre", "slug", "tipo", "descripcion", "configuracion", "es_sistema"]
+        fields = ["nombre", "slug", "tipo", "descripcion", "configuracion", "credencial", "es_sistema"]
         widgets = {
             "descripcion": forms.Textarea(attrs={"rows": 3}),
             "configuracion": forms.Textarea(attrs={"rows": 6}),
+            "credencial": forms.Select(attrs={"class": "input"}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field_name, field in self.fields.items():
-            field.widget.attrs.update({'class': 'input'})
+            if field_name != "credencial":
+                field.widget.attrs.update({'class': 'input'})
+        if "credencial" in self.fields:
+            self.fields["credencial"].queryset = Credencial.objects.all().order_by("nombre")
+            self.fields["credencial"].empty_label = "— Sin credencial —"
+            self.fields["credencial"].help_text = (
+                "Selecciona una credencial centralizada. "
+                "La configuración JSON a continuación solo debe contener parámetros de comportamiento "
+                "(endpoints, params), nunca secretos."
+            )
 
 
 class AgenteForm(forms.ModelForm):
@@ -90,6 +100,24 @@ class AgenteForm(forms.ModelForm):
         self.fields["modelo"].widget = forms.RadioSelect(
             choices=self.fields["modelo"].choices
         )
+
+
+class CredencialForm(forms.ModelForm):
+    class Meta:
+        model = Credencial
+        fields = ["nombre", "slug", "tipo", "secreto_cifrado", "metadata", "es_sistema"]
+        widgets = {
+            "secreto_cifrado": forms.PasswordInput,
+            "metadata": forms.Textarea(attrs={"rows": 4}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name, field in self.fields.items():
+            field.widget.attrs.update({'class': 'input'})
+        if self.instance and self.instance.pk and self.instance.secreto_cifrado:
+            self.initial['secreto_cifrado'] = f"****{self.instance.secreto_cifrado[-4:]}"
+            self.fields['secreto_cifrado'].widget.attrs.update({'readonly': 'readonly'})
 
 
 class DestinoPublicacionForm(forms.ModelForm):

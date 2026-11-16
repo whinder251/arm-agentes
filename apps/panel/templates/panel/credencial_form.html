@@ -1,0 +1,38 @@
+{% extends "panel/base.html" %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>{{ accion }} credencial</h1>
+        <p class="subtitulo">Almacena secretos de forma centralizada para uso en herramientas e integraciones.</p>
+    </div>
+</div>
+
+{% if credencial_editar and credencial_editar.es_sistema %}
+<div class="alerta-warning">
+    Estás editando un recurso del sistema. No hay valores de fábrica predefinidos para restaurar.
+</div>
+{% endif %}
+
+<div class="tarjeta">
+    <form method="post" class="form-edicion">
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="form-group">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.errors %}
+            <ul class="errorlist">
+                {% for error in field.errors %}<li>{{ error }}</li>{% endfor %}
+            </ul>
+            {% endif %}
+            {% if field.help_text %}<p class="ayuda">{{ field.help_text }}</p>{% endif %}
+        </div>
+        {% endfor %}
+        <div class="acciones-formulario">
+            <button type="submit" class="btn-primary">Guardar cambios</button>
+            <a href="{% url 'lista_credenciales' %}" class="btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
