@@ -41,4 +41,5 @@ urlpatterns = [
     path('destinos/<int:pk>/editar/', views.editar_destino, name='editar_destino'),
     path('destinos/<int:pk>/eliminar/', views.eliminar_destino, name='eliminar_destino'),
     path('ejecuciones/', views.lista_ejecuciones, name='lista_ejecuciones'),
+    path('ejecuciones/lote/', views.acciones_lote_ejecuciones, name='acciones_lote_ejecuciones'),
 ]

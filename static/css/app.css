@@ -591,3 +591,78 @@ h4 { font-size: var(--text-base); font-weight: var(--font-weight-semibold); marg
   color: var(--text-secondary);
   font-style: italic;
 }
+
+/* ============================================================
+   Paso PULIDO-FINAL: Barra de acciones por lote
+   ============================================================ */
+.form-lote {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+  margin-bottom: var(--space-md);
+  padding: var(--space-sm);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.form-lote select {
+  min-width: 200px;
+}
+
+/* ============================================================
+   Paso PULIDO-FINAL: Paginación limpia y minimalista
+   ============================================================ */
+.paginacion {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+  font-size: var(--text-sm);
+  margin-top: var(--space-lg);
+  flex-wrap: wrap;
+}
+
+.paginacion span {
+  color: var(--text-secondary);
+}
+
+.paginacion a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+}
+
+.paginacion a:hover {
+  color: var(--accent-primary);
+  background: var(--bg-surface-hover);
+}
+
+.paginacion .active {
+  color: var(--accent-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* ============================================================
+   Paso PULIDO-FINAL: Checkboxes alineados en tablas
+   ============================================================ */
+td input[type="checkbox"] {
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+/* ============================================================
+   Paso PULIDO-FINAL: Secuencia de pasos en workflows
+   ============================================================ */
+.workflow-secuencia {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  align-items: center;
+}
+
+.workflow-secuencia .separador {
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+}

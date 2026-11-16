@@ -7,9 +7,18 @@
 </div>
 <p class="subtitulo">Auditoría de consumo y rendimiento</p>
 
+<form method="post" action="{% url 'acciones_lote_ejecuciones' %}" class="form-lote">
+    {% csrf_token %}
+    <select name="action" class="input">
+        <option value="eliminar">Eliminar seleccionadas</option>
+    </select>
+    <button type="submit" class="btn-danger" onclick="return confirm('¿Eliminar las ejecuciones seleccionadas? Esta acción no se puede deshacer.');">Eliminar</button>
+</form>
+
 <table class="tabla">
     <thead>
         <tr>
+            <th><input type="checkbox" id="select-all-executions"></th>
             <th>Fecha/Hora</th>
             <th>Tarea (ID)</th>
             <th>Proveedor</th>
@@ -21,6 +30,7 @@
     <tbody>
         {% for ejecucion in page_obj %}
         <tr>
+            <td><input type="checkbox" name="ejecucion_ids" value="{{ ejecucion.pk }}"></td>
             <td class="fecha">{{ ejecucion.tarea.actualizado_en|date:"d/m/Y H:i" }}</td>
             <td class="mono">#{{ ejecucion.tarea.pk }}</td>
             <td>{{ ejecucion.tarea.agente.modelo.proveedor.nombre|default:"-" }}</td>
@@ -36,7 +46,7 @@
         </tr>
         {% empty %}
         <tr>
-            <td colspan="6" class="vacio">No hay ejecuciones registradas.</td>
+            <td colspan="7" class="vacio">No hay ejecuciones registradas.</td>
         </tr>
         {% endfor %}
     </tbody>
@@ -44,13 +54,22 @@
 
 <div class="paginacion">
     {% if page_obj.has_previous %}
-        <a href="?page=1" class="btn-secondary">&laquo; Primera</a>
-        <a href="?page={{ page_obj.previous_page_number }}" class="btn-secondary">Anterior</a>
+        <a href="?page=1">Primera</a>
+        <a href="?page={{ page_obj.previous_page_number }}">Anterior</a>
     {% endif %}
-    <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+    <span class="active">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
     {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}" class="btn-secondary">Siguiente</a>
-        <a href="?page={{ page_obj.paginator.num_pages }}" class="btn-secondary">Última &raquo;</a>
+        <a href="?page={{ page_obj.next_page_number }}">Siguiente</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}">Última</a>
     {% endif %}
 </div>
+
+<script>
+    const selectAll = document.getElementById('select-all-executions');
+    if (selectAll) {
+        selectAll.addEventListener('change', function(e) {
+            document.querySelectorAll('input[name="ejecucion_ids"]').forEach(cb => cb.checked = e.target.checked);
+        });
+    }
+</script>
 {% endblock %}

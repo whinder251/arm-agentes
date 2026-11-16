@@ -22,7 +22,16 @@
         {% for workflow in workflows %}
         <tr>
             <td>{{ workflow.nombre }}</td>
-            <td>{{ workflow.descripcion|default:"Sin descripci&oacute;n" }}</td>
+            <td>
+                <div class="workflow-secuencia">
+                    {% for paso in workflow.pasos.all|dictsort:"orden" %}
+                        <span class="badge badge-info">Paso {{ paso.orden }}: {{ paso.habilidad.nombre }}</span>
+                        {% if not forloop.last %}<span class="separador">→</span>{% endif %}
+                    {% empty %}
+                        <span class="vacio">Sin pasos</span>
+                    {% endfor %}
+                </div>
+            </td>
             <td>
                 <span class="badge {% if workflow.estado == 'en_ejecucion' %}badge-info{% elif workflow.estado == 'completado' %}badge-success{% elif workflow.estado == 'fallido' %}badge-error{% endif %}">
                     {{ workflow.get_estado_display }}

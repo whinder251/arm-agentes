@@ -1070,3 +1070,28 @@ class TestPanel(TestCase):
         assert response.status_code == 200
         content = response.content.decode('utf-8')
         assert 'Página 2 de 2' in content
+
+    def test_acciones_lote_ejecuciones_eliminar(self):
+        """Acción por lote: eliminar varias ejecuciones."""
+        self.client.login(username='testuser', password='testpass123')
+        e1 = Ejecucion.objects.create(
+            tarea=Tarea.objects.create(agente=self.agente, habilidad=self.habilidad, estado='ok', payload={'texto': 'e1'}),
+            modelo_usado='gemini-flash', tokens_in=10, tokens_out=20, ms=500,
+        )
+        e2 = Ejecucion.objects.create(
+            tarea=Tarea.objects.create(agente=self.agente, habilidad=self.habilidad, estado='ok', payload={'texto': 'e2'}),
+            modelo_usado='gemini-flash', tokens_in=10, tokens_out=20, ms=500,
+        )
+        e3 = Ejecucion.objects.create(
+            tarea=Tarea.objects.create(agente=self.agente, habilidad=self.habilidad, estado='ok', payload={'texto': 'e3'}),
+            modelo_usado='gemini-flash', tokens_in=10, tokens_out=20, ms=500,
+        )
+        url = reverse('acciones_lote_ejecuciones')
+        response = self.client.post(url, {
+            'action': 'eliminar',
+            'ejecucion_ids': [e1.pk, e3.pk],
+        })
+        assert response.status_code == 302
+        assert not Ejecucion.objects.filter(pk=e1.pk).exists()
+        assert Ejecucion.objects.filter(pk=e2.pk).exists()  # e2 no seleccionada
+        assert not Ejecucion.objects.filter(pk=e3.pk).exists()

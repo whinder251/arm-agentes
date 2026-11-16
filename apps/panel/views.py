@@ -198,6 +198,24 @@ def acciones_lote_tareas(request):
 
 @login_required
 @require_POST
+def acciones_lote_ejecuciones(request):
+    """Borra por lote las ejecuciones seleccionadas (solo acción 'eliminar')."""
+    action = request.POST.get('action')
+    ejecucion_ids = request.POST.getlist('ejecucion_ids')
+    if not ejecucion_ids:
+        messages.warning(request, "No se seleccionó ninguna ejecución.")
+        return redirect('lista_ejecuciones')
+
+    if action == 'eliminar':
+        count, _ = Ejecucion.objects.filter(pk__in=ejecucion_ids).delete()
+        messages.success(request, f"{count} ejecución(es) eliminada(s).")
+    else:
+        messages.warning(request, "Acción no válida.")
+    return redirect('lista_ejecuciones')
+
+
+@login_required
+@require_POST
 def publicar_tarea(request, pk):
     """Envía el último artefacto de una tarea aprobada a WordPress como borrador.
 

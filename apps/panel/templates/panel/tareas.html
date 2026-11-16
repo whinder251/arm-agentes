@@ -99,7 +99,7 @@
 
     <form method="post" action="{% url 'acciones_lote_tareas' %}" class="form-lote">
         {% csrf_token %}
-        <select name="action" class="input" style="width: auto;">
+        <select name="action" class="input">
             <option value="aprobar">Aprobar seleccionadas</option>
             <option value="eliminar">Eliminar seleccionadas</option>
         </select>
@@ -131,13 +131,13 @@
 
     <div class="paginacion">
         {% if page_obj.has_previous %}
-            <a href="?page=1{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}" class="btn-secondary">&laquo; Primera</a>
-            <a href="?page={{ page_obj.previous_page_number }}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}" class="btn-secondary">Anterior</a>
+            <a href="?page=1{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}">Primera</a>
+            <a href="?page={{ page_obj.previous_page_number }}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}">Anterior</a>
         {% endif %}
-        <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+        <span class="active">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
         {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}" class="btn-secondary">Siguiente</a>
-            <a href="?page={{ page_obj.paginator.num_pages }}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}" class="btn-secondary">Última &raquo;</a>
+            <a href="?page={{ page_obj.next_page_number }}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}">Siguiente</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}">Última</a>
         {% endif %}
     </div>
 

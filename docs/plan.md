@@ -1234,3 +1234,32 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 - `.venv\Scripts\python.exe -m pytest tests/test_engine.py tests/test_integraciones.py tests/test_publicacion.py -q` → `25 passed`.
 
 **Impacto en contratos/datos:** SÍ contratos (nueva URL `acciones_lote_tareas`, parámetros POST `action` + `task_ids[]`). NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Retrocompatible: paginación opcional, acciones lote nuevas.
+
+## Paso PULIDO-FINAL - Rediseño UI de paginación/lote, borrado de ejecuciones y claridad en workflows — COMPLETADO
+
+**Objetivo:** Corregir el diseño visual de paginación y selección (reglas ARM Flow estrictas), añadir borrado por lote de ejecuciones y cerrar deuda de auditoría en la descripción de workflows.
+
+**Archivos tocados (7):**
+- `static/css/app.css`: añadido `.form-lote` (barra de herramientas integrada), `.paginacion` (enlaces de texto con hover sutil, estado activo con `var(--accent-primary)`), `td input[type="checkbox"]` (alineación vertical), `.workflow-secuencia` (flex-wrap con gap y separador). Sin estilos inline, sin gradientes, sin emojis.
+- `apps/panel/templates/panel/tareas.html`: eliminado `style="width: auto;"` del `<select>` del formulario lote; paginación reescrita con `.paginacion` limpia (enlaces de texto sin clases `.btn-secondary`), span de página actual con clase `active`.
+- `apps/panel/templates/panel/lista_ejecuciones.html`: añadida columna de checkboxes en thead/tbody; formulario `.form-lote` arriba de la tabla (solo opción "Eliminar seleccionadas"); paginación reescrita con `.paginacion`; script "select all" con guard `if (selectAll)`.
+- `apps/panel/views.py`: nueva vista `acciones_lote_ejecuciones` (`@login_required`, `@require_POST`) que procesa `action='eliminar'` y `ejecucion_ids`, borra de forma segura y retorna mensajes vía `messages`.
+- `apps/panel/urls.py`: ruta `path('ejecuciones/lote/', views.acciones_lote_ejecuciones, name='acciones_lote_ejecuciones')` añadida.
+- `apps/panel/templates/panel/lista_workflows.html`: columna de descripción reemplazada por visualización de secuencia de pasos (`workflow.pasos.all|dictsort:"orden"`) con badges `.badge badge-info` y separador "→".
+- `tests/test_panel.py`: nueva prueba `test_acciones_lote_ejecuciones_eliminar` (borrado masivo, verifica no seleccionadas permanecen).
+
+**Reglas respetadas:**
+- No se modificó `models.py` ni se creó migración (`makemigrations --check --dry-run` → No changes detected).
+- Cero estilos inline en los templates modificados.
+- Uso exclusivo de variables CSS de ARM Flow (`var(--space-sm)`, `var(--border-subtle)`, `var(--accent-primary)`, etc.).
+- Confirmación JS (`onsubmit="return confirm(...)"`) en el borrado por lote.
+- Máximo 6 archivos de implementación + 1 archivo de prueba.
+- No se ejecutó `git push`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "lote or ejecuciones" -q` → `6 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "tareas or ejecuciones or lote or workflows or sidebar or dashboard or integraciones or detalle or aprobar or editar_destino" -q` → `22 passed`.
+
+**Impacto en contratos/datos:** SÍ contratos (nueva URL `acciones_lote_ejecuciones`, parámetros POST `action` + `ejecucion_ids[]`). NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Retrocompatible: solo añade funcionalidad de borrado masivo y mejora visual.
