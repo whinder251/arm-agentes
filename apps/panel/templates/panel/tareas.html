@@ -104,7 +104,6 @@
             <option value="eliminar">Eliminar seleccionadas</option>
         </select>
         <button type="submit" class="btn-primary" onclick="return confirm('¿Aplicar esta acción a las tareas seleccionadas?');">Aplicar</button>
-    </form>
 
     <table class="tabla">
         <thead>
@@ -128,6 +127,7 @@
             {% endfor %}
         </tbody>
     </table>
+    </form>
 
     <div class="paginacion">
         {% if page_obj.has_previous %}

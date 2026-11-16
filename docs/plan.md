@@ -1263,3 +1263,26 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "tareas or ejecuciones or lote or workflows or sidebar or dashboard or integraciones or detalle or aprobar or editar_destino" -q` → `22 passed`.
 
 **Impacto en contratos/datos:** SÍ contratos (nueva URL `acciones_lote_ejecuciones`, parámetros POST `action` + `ejecucion_ids[]`). NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Retrocompatible: solo añade funcionalidad de borrado masivo y mejora visual.
+
+## Paso FIX-FORM-Lote - Mover cierre de formulario para incluir checkboxes en acciones por lote — COMPLETADO
+
+**Objetivo:** Corregir el error estructural donde el `<form>` de acciones por lote se cerraba antes de la `<table>`, impidiendo que los checkboxes viajen en el POST.
+
+**Archivos tocados (2):**
+- `apps/panel/templates/panel/tareas.html`: movido `</form>` de después del botón "Aplicar" a justo después de `</table>` y antes de `<div class="paginacion">`.
+- `apps/panel/templates/panel/lista_ejecuciones.html`: movido `</form>` de después del botón "Eliminar" a justo después de `</table>` y antes de `<div class="paginacion">`.
+- `docs/plan.md`: esta sección.
+
+**Reglas respetadas:**
+- No se modificó `views.py`, `urls.py`, `fila_tarea.html`, `app.css` ni ningún archivo Python.
+- No se modificó el JavaScript ni los estilos CSS.
+- Máximo 2 archivos de implementación (dentro del límite de 4).
+- No se ejecutó `git push`.
+- Commit: "FIX: Mover cierre de form para incluir checkboxes en acciones por lote".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "tareas or ejecuciones or lote" -q` → `8 passed`.
+- Estructura HTML resultante: `<form ...> ... <table> ... </table> </form> <div class="paginacion">`.
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo reordenamiento de etiquetas HTML en templates. La lógica de vistas ya era correcta (`@require_POST`, `getlist('task_ids')` / `getlist('ejecucion_ids')`).
