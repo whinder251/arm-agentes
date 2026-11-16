@@ -1286,3 +1286,27 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 - Estructura HTML resultante: `<form ...> ... <table> ... </table> </form> <div class="paginacion">`.
 
 **Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo reordenamiento de etiquetas HTML en templates. La lógica de vistas ya era correcta (`@require_POST`, `getlist('task_ids')` / `getlist('ejecucion_ids')`).
+
+## Paso FIX-LAYOUT-LOTE - Reparar layout de acciones por lote — COMPLETADO
+
+**Objetivo:** Separar el contenedor del formulario (block) de la barra de acciones (flex `.form-lote`) para que la tabla no quede atrapada dentro de un contexto flex y recupere su ancho completo, manteniendo los checkboxes dentro del `<form>`.
+
+**Archivos tocados (2):**
+- `apps/panel/templates/panel/tareas.html`: el `<form>` perdió la clase `.form-lote`; select y botón quedaron envueltos en `<div class="form-lote">`; la tabla queda dentro del form pero fuera del div flex.
+- `apps/panel/templates/panel/lista_ejecuciones.html`: mismo patrón exacto.
+- `docs/plan.md`: esta sección.
+
+**Reglas respetadas:**
+- No se modificó `views.py`, `urls.py`, `fila_tarea.html`, `app.css` ni ningún archivo Python.
+- No se modificó el JavaScript ni los estilos CSS.
+- Los checkboxes siguen dentro del `<form>`, por lo que el envío POST sigue intacto.
+- Máximo 2 archivos de implementación (dentro del límite de 4).
+- No se ejecutó `git push`.
+- Commit: "FIX: Reparar layout de acciones por lote separando form y barra flex".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "lote" -q` → `4 passed`.
+- Estructura HTML resultante: `<form ...> ... <div class="form-lote"><select>...</select><button>...</button></div> <table>...</table> </form> <div class="paginacion">`.
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo reestructuración de HTML dentro del form para separar el contexto flex de la barra de acciones.

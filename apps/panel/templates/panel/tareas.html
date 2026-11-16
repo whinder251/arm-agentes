@@ -97,13 +97,15 @@
         <a class="{% if estado_filtro == 'fallo' %}btn-primary{% else %}btn-secondary{% endif %}" href="?estado=fallo">Fallo</a>
     </nav>
 
-    <form method="post" action="{% url 'acciones_lote_tareas' %}" class="form-lote">
+    <form method="post" action="{% url 'acciones_lote_tareas' %}">
         {% csrf_token %}
-        <select name="action" class="input">
-            <option value="aprobar">Aprobar seleccionadas</option>
-            <option value="eliminar">Eliminar seleccionadas</option>
-        </select>
-        <button type="submit" class="btn-primary" onclick="return confirm('¿Aplicar esta acción a las tareas seleccionadas?');">Aplicar</button>
+        <div class="form-lote">
+            <select name="action" class="input">
+                <option value="aprobar">Aprobar seleccionadas</option>
+                <option value="eliminar">Eliminar seleccionadas</option>
+            </select>
+            <button type="submit" class="btn-primary" onclick="return confirm('¿Aplicar esta acción a las tareas seleccionadas?');">Aplicar</button>
+        </div>
 
     <table class="tabla">
         <thead>

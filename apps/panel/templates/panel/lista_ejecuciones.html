@@ -7,12 +7,14 @@
 </div>
 <p class="subtitulo">Auditoría de consumo y rendimiento</p>
 
-<form method="post" action="{% url 'acciones_lote_ejecuciones' %}" class="form-lote">
+<form method="post" action="{% url 'acciones_lote_ejecuciones' %}">
     {% csrf_token %}
+    <div class="form-lote">
     <select name="action" class="input">
         <option value="eliminar">Eliminar seleccionadas</option>
     </select>
     <button type="submit" class="btn-danger" onclick="return confirm('¿Eliminar las ejecuciones seleccionadas? Esta acción no se puede deshacer.');">Eliminar</button>
+    </div>
 
 <table class="tabla">
     <thead>
