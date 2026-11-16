@@ -129,4 +129,4 @@ class TestWorkflow(TestCase):
         self.assertEqual(tarea2.habilidad, self.habilidad)
         self.assertEqual(tarea2.estado, Tarea.Estado.COLA)
         self.assertEqual(tarea2.paso_workflow, paso2)
-        mock_ejecutar.delay.assert_called_once_with(tarea2.pk)
+        mock_ejecutar.assert_called_once_with(tarea2.pk)

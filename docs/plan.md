@@ -1123,3 +1123,26 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 **Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Retrocompatible.
 
 **Pendientes:** actualizar los 4 tests obsoletos en un paso separado (FIX-3).
+
+## Paso FIX-3 - Corregir pipeline slug y tests fallantes de pipeline/workflow — COMPLETADO
+
+**Objetivo:** Dejar el suite de pruebas 100% en verde arreglando los 4 tests fallantes y el desajuste de slug en el pipeline editorial.
+
+**Archivos tocados (3):**
+- `apps/engine/pipelines.py`: búsqueda de la habilidad SEO cambiada de `slug="seo"` a `slug="optimizar_seo"` (coincide con lo que crea `seed_demo.py`).
+- `tests/test_pipeline.py`: mocks de `respx` devuelven JSON válido (no texto plano) para que el normalizador no falle con `respuesta_no_json`/`campos_faltantes`; habilidad SEO creada con `slug="optimizar_seo"`; helper `_tarea_seo()` filtra por `slug="optimizar_seo"`.
+- `tests/test_workflow.py`: `mock_ejecutar.delay.assert_called_once_with(...)` → `mock_ejecutar.assert_called_once_with(tarea2.pk)` (desde C.8a `continuar_workflow` llama a `ejecutar_tarea` directamente).
+
+**Reglas respetadas:**
+- No se modificó `models.py` ni se creó migración (`makemigrations --check --dry-run` → No changes detected).
+- Máximo 3 archivos modificados (dentro del límite de 4).
+- Pruebas sin APIs reales; `respx` para simular HTTP.
+- No se ejecutó `git push`.
+- Commit pendiente: "FIX-3: Corregir pipeline slug y tests fallantes de pipeline/workflow".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe -m pytest tests/test_pipeline.py tests/test_workflow.py -q` → `8 passed`.
+- `.venv\Scripts\python.exe -m pytest -q` → `180 passed, 2 warnings` (warnings preexistentes de Django, no relacionados).
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo consulta de habilidad en `pipelines.py` y ajustes de tests. Retrocompatible.

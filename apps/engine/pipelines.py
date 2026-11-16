@@ -128,9 +128,9 @@ def pipeline_editorial(tarea_id: int) -> dict:
     if artefacto_principal is None:
         raise ValueError(f"La tarea {tarea_id} terminó en ok sin artefacto.")
 
-    habilidad_seo = Habilidad.objects.filter(slug="seo").first()
+    habilidad_seo = Habilidad.objects.filter(slug="optimizar_seo").first()
     if habilidad_seo is None:
-        raise ValueError("Falta la habilidad con slug 'seo' para el pipeline.")
+        raise ValueError("Falta la habilidad con slug 'optimizar_seo' para el pipeline.")
 
     tarea_seo = Tarea.objects.create(
         agente=tarea.agente,

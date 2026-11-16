@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import httpx
 import pytest
 import respx
@@ -90,7 +92,7 @@ def _crear_escenario(texto_original: str) -> Tarea:
     )
     Habilidad.objects.create(
         nombre="SEO",
-        slug="seo",
+        slug="optimizar_seo",
         plantilla_prompt="Optimiza este artículo: {{ texto }}",
         esquema_salida={"type": "object"},
     )
@@ -114,7 +116,7 @@ def _crear_escenario(texto_original: str) -> Tarea:
 
 
 def _tarea_seo() -> Tarea:
-    return Tarea.objects.get(habilidad__slug="seo")
+    return Tarea.objects.get(habilidad__slug="optimizar_seo")
 
 
 @pytest.mark.django_db
@@ -125,8 +127,10 @@ def test_pipeline_exitoso_termina_en_ok_con_dos_artefactos():
     )
     ruta = respx.post(GEMINI_CHAT).mock(
         side_effect=[
-            _respuesta_gemini("Borrador uno: la energía solar en el hogar."),
-            _respuesta_gemini(TEXTO_SEO),
+            _respuesta_gemini(
+                json.dumps({"titulo": "Título de prueba", "contenido": "Contenido de prueba"})
+            ),
+            _respuesta_gemini(json.dumps({"titulo": "Título SEO", "contenido": TEXTO_SEO})),
         ]
     )
 
@@ -158,8 +162,12 @@ def test_pipeline_con_palabra_vetada_termina_en_revision():
     )
     respx.post(GEMINI_CHAT).mock(
         side_effect=[
-            _respuesta_gemini("Borrador dos: la energía solar en la casa."),
-            _respuesta_gemini(TEXTO_SEO_CON_VETADA),
+            _respuesta_gemini(
+                json.dumps({"titulo": "Título de prueba", "contenido": "Contenido de prueba"})
+            ),
+            _respuesta_gemini(
+                json.dumps({"titulo": "Título SEO", "contenido": TEXTO_SEO_CON_VETADA})
+            ),
         ]
     )
 
@@ -185,8 +193,10 @@ def test_tarea_seo_depende_de_la_principal():
     )
     respx.post(GEMINI_CHAT).mock(
         side_effect=[
-            _respuesta_gemini("Borrador tres: la energía solar en el tejado."),
-            _respuesta_gemini(TEXTO_SEO),
+            _respuesta_gemini(
+                json.dumps({"titulo": "Título de prueba", "contenido": "Contenido de prueba"})
+            ),
+            _respuesta_gemini(json.dumps({"titulo": "Título SEO", "contenido": TEXTO_SEO})),
         ]
     )
 
