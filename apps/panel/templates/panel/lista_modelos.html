@@ -38,8 +38,8 @@
                 {% endif %}
             </td>
             <td class="acciones">
-                <a href="#" class="enlace-editar">Editar</a>
-                <form method="post" action="#" class="form-eliminar" onsubmit="return confirm('¿Estás seguro de que quieres eliminar este modelo?');">
+                <a href="{% url 'editar_modelo' modelo.pk %}" class="enlace-editar">Editar</a>
+                <form method="post" action="{% url 'eliminar_modelo' modelo.pk %}" class="form-eliminar" onsubmit="return confirm('¿Estás seguro de que quieres eliminar este modelo?');">
                     {% csrf_token %}
                     <button type="submit" class="btn-danger-sm">Eliminar</button>
                 </form>
@@ -50,5 +50,38 @@
 </table>
 {% else %}
 <div class="vacio">No hay modelos registrados.</div>
+{% endif %}
+
+{% if form and modelo_editar %}
+<div class="tarjeta" style="margin-top: 24px;">
+    <h3>Editar modelo: {{ modelo_editar.model_id }}</h3>
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="id_proveedor">Proveedor</label>
+            {{ form.proveedor }}
+        </div>
+        <div class="form-group">
+            <label for="id_model_id">Model ID</label>
+            {{ form.model_id }}
+        </div>
+        <div class="form-group">
+            <label for="id_prioridad">Prioridad</label>
+            {{ form.prioridad }}
+        </div>
+        <div class="form-group">
+            <label for="id_json_nativo">JSON nativo</label>
+            {{ form.json_nativo }}
+        </div>
+        <div class="form-group">
+            <label for="id_activo">Activo</label>
+            {{ form.activo }}
+        </div>
+        <div class="acciones-formulario">
+            <button type="submit" class="btn-primary">Guardar cambios</button>
+            <a href="{% url 'lista_modelos' %}" class="btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
 {% endif %}
 {% endblock %}

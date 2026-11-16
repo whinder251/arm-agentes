@@ -42,7 +42,7 @@
             </td>
             <td class="acciones">
                 <a href="{% url 'editar_proveedor' proveedor.pk %}" class="enlace-editar">Editar</a>
-                <form method="post" action="#" class="form-eliminar" onsubmit="return confirm('¿Estás seguro de que quieres eliminar este proveedor?');">
+                <form method="post" action="{% url 'eliminar_proveedor' proveedor.pk %}" class="form-eliminar" onsubmit="return confirm('¿Estás seguro de que quieres eliminar este proveedor?');">
                     {% csrf_token %}
                     <button type="submit" class="btn-danger-sm">Eliminar</button>
                 </form>

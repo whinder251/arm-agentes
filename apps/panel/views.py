@@ -738,3 +738,82 @@ def lista_ejecuciones(request):
         .order_by('-id')[:100]
     )
     return render(request, 'panel/lista_ejecuciones.html', {'ejecuciones': ejecuciones})
+
+
+@login_required
+def editar_modelo(request, pk):
+    """Edita un modelo LLM existente, reutilizando ModeloLLMForm."""
+    modelo = get_object_or_404(ModeloLLM, pk=pk)
+    if request.method == "POST":
+        form = ModeloLLMForm(request.POST, instance=modelo)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Modelo '{modelo.model_id}' actualizado.")
+            return redirect("lista_modelos")
+    else:
+        form = ModeloLLMForm(instance=modelo)
+    return render(request, "panel/lista_modelos.html", {
+        "modelos": (
+            ModeloLLM.objects.select_related('proveedor')
+            .order_by('proveedor__nombre', 'model_id')
+        ),
+        "form": form,
+        "modelo_editar": modelo,
+    })
+
+
+@login_required
+@require_POST
+def eliminar_modelo(request, pk):
+    """Elimina un modelo con protección contra ProtectedError."""
+    modelo = get_object_or_404(ModeloLLM, pk=pk)
+    modelo_id = modelo.model_id
+    try:
+        modelo.delete()
+    except ProtectedError:
+        messages.error(
+            request,
+            "No se puede eliminar: tiene agentes o tareas asociadas."
+        )
+        return redirect("lista_modelos")
+    messages.success(request, f"Modelo '{modelo_id}' eliminado.")
+    return redirect("lista_modelos")
+
+
+@login_required
+@require_POST
+def eliminar_proveedor(request, pk):
+    """Elimina un proveedor con protección contra ProtectedError."""
+    proveedor = get_object_or_404(Proveedor, pk=pk)
+    nombre = proveedor.nombre
+    try:
+        proveedor.delete()
+    except ProtectedError:
+        messages.error(
+            request,
+            "No se puede eliminar: tiene modelos asociados."
+        )
+        return redirect("lista_proveedores")
+    messages.success(request, f"Proveedor '{nombre}' eliminado.")
+    return redirect("lista_proveedores")
+
+
+@login_required
+@require_POST
+def eliminar_workflow(request, pk):
+    """Elimina un workflow con validación de estado y protección contra ProtectedError."""
+    workflow = get_object_or_404(Workflow, pk=pk)
+    if workflow.estado == "en_ejecucion":
+        messages.error(request, "No se puede eliminar un workflow en ejecución.")
+        return redirect("lista_workflows")
+    nombre = workflow.nombre
+    try:
+        workflow.delete()
+    except ProtectedError:
+        messages.error(
+            request,
+            "No se puede eliminar: tiene pasos o tareas asociadas."
+        )
+        return redirect("lista_workflows")
+    messages.success(request, f"Workflow '{nombre}' eliminado.")
+    return redirect("lista_workflows")

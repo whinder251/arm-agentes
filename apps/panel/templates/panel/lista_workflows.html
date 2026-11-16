@@ -37,6 +37,10 @@
                     <button class="btn-primary" type="submit">Ejecutar</button>
                 </form>
                 {% endif %}
+                <form method="post" action="{% url 'eliminar_workflow' workflow.pk %}" class="form-eliminar" style="display:inline;" onsubmit="return confirm('¿Eliminar este workflow y todos sus pasos? Esta acción no se puede deshacer.');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-danger-sm">Eliminar</button>
+                </form>
             </td>
         </tr>
         {% empty %}

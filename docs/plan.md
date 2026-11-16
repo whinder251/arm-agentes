@@ -1146,3 +1146,62 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 - `.venv\Scripts\python.exe -m pytest -q` → `180 passed, 2 warnings` (warnings preexistentes de Django, no relacionados).
 
 **Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo consulta de habilidad en `pipelines.py` y ajustes de tests. Retrocompatible.
+
+## Paso UX-Markdown - Renderizar contenido de artefactos como HTML formateado — COMPLETADO
+
+**Objetivo:** Que el contenido de los artefactos en el panel se muestre como texto formateado (Markdown renderizado a HTML) en lugar de texto crudo dentro de una etiqueta `<pre>`.
+
+**Archivos tocados (4):**
+- `apps/panel/templatetags/__init__.py` (nuevo, vacío): obligatorio para que Django reconozca la carpeta de etiquetas.
+- `apps/panel/templatetags/markdown_tags.py` (nuevo): filtro `markdownify` que usa `markdown.markdown(text, extensions=['fenced_code', 'tables'])` y `mark_safe` para evitar escape del HTML resultante.
+- `apps/panel/templates/panel/tareas.html`: carga `{% load markdown_tags %}` y reemplaza `<pre>{{ ultimo_artefacto.contenido }}</pre>` por `<div class="markdown-content">{{ ultimo_artefacto.contenido | markdownify }}</div>`.
+- `static/css/app.css`: añade la clase `.markdown-content` con estilos de legibilidad (line-height, color, márgenes para h1-h6, p, ul/ol, strong, code, pre, table, blockquote) reutilizando tokens ARM Flow. Cero estilos inline, cero bloques `<style>`.
+
+**Reglas respetadas:**
+- No se modificó `models.py` ni se creó migración (`makemigrations --check --dry-run` → No changes detected).
+- Máximo 4 archivos modificados.
+- No se ejecutó `git push`.
+- Commit: `c41e253` "UX: Renderizar contenido de artefactos como Markdown formateado".
+- Estilo ARM Flow estricto: clases centrales en `app.css`, cero CSS embebido/inline.
+- Riesgo XSS con `mark_safe` documentado: el contenido proviene del propio modelo (controlado por prompts); pendiente de auditoría si se abren usuarios externos.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py::TestPanel::test_detalle_tarea_autenticado -q` → `1 passed` (renderiza `tareas.html` con el nuevo filtro).
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "publicar or integraciones or sidebar or detalle or editar_destino" -q` → `14 passed`.
+- Nota: `pytest tests/test_panel.py -q` completo se cuelga en un test preexistente de entorno (no relacionado con este cambio), documentado en pasos C.2/C.3a/C.4/C.9b.
+
+**Impacto en contratos/datos:** NO contratos de API, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola. Solo presentación de plantilla. Retrocompatible: contenido sin Markdown se renderiza como párrafo HTML normal.
+
+## Paso FIX-BUTTONS - Implementar edición/eliminación de Modelos, Proveedores y Workflows — COMPLETADO
+
+**Objetivo:** Hacer funcionales los botones de Editar/Eliminar Modelo, Eliminar Proveedor y Eliminar Workflow, conectando URLs, vistas y templates correctamente, con manejo seguro de errores (ProtectedError).
+
+**Archivos tocados (6):**
+- `apps/panel/urls.py`: añadidas 4 rutas (`editar_modelo`, `eliminar_modelo`, `eliminar_proveedor`, `eliminar_workflow`).
+- `apps/panel/views.py`: 4 vistas nuevas:
+  - `editar_modelo(request, pk)`: reutiliza `ModeloLLMForm` existente; GET muestra formulario, POST guarda y redirige a `lista_modelos`.
+  - `eliminar_modelo(request, pk)`: `@login_required`, `@require_POST`, `get_object_or_404(ModeloLLM)`, try/except `ProtectedError` con mensaje "No se puede eliminar: tiene agentes o tareas asociadas."
+  - `eliminar_proveedor(request, pk)`: `@login_required`, `@require_POST`, `get_object_or_404(Proveedor)`, try/except `ProtectedError` con mensaje "No se puede eliminar: tiene modelos asociados."
+  - `eliminar_workflow(request, pk)`: `@login_required`, `@require_POST`, `get_object_or_404(Workflow)`, valida `estado != 'en_ejecucion'`, try/except `ProtectedError` con mensaje "No se puede eliminar: tiene pasos o tareas asociadas."
+- `apps/panel/templates/panel/lista_modelos.html`: corregidas URLs de editar/eliminar (líneas 41-45); añadido bloque de formulario de edición condicional (líneas 54-76) al estilo de `lista_proveedores.html`.
+- `apps/panel/templates/panel/lista_proveedores.html`: corregida URL de eliminar (línea 45) a `{% url 'eliminar_proveedor' proveedor.pk %}`.
+- `apps/panel/templates/panel/lista_workflows.html`: añadido formulario de eliminación en columna Acciones (líneas 33-40) con confirmación JS.
+
+**Reglas respetadas:**
+- No se modificó `models.py` ni se creó migración (`makemigrations --check --dry-run` → No changes detected).
+- Reutilizado `ModeloLLMForm` existente en `forms.py` (líneas 25-29), sin código duplicado.
+- Vistas de eliminación decoradas con `@login_required` y `@require_POST`; CSRF en templates; manejo explícito de `ProtectedError` con `messages.error` + redirect (nunca 500).
+- Estilo ARM Flow estricto: clases `.btn-danger-sm`, `.form-eliminar`, `.enlace-editar`, `.tarjeta`, `.form-group`, `.acciones-formulario`.
+- Máximo 6 archivos modificados (dentro del límite aprobado).
+- No se ejecutó `git push`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- URLs resueltas correctamente: `/panel/modelos/1/editar/`, `/panel/modelos/1/eliminar/`, `/panel/proveedores/1/eliminar/`, `/panel/workflows/1/eliminar/`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py tests/test_engine.py -q` → `73 passed` (incluye tests de render lista_modelos, lista_proveedores, lista_workflows, editar_proveedor, eliminar_destino, aprobar_workflow, etc.).
+- `.venv\Scripts\python.exe -m pytest tests/test_integraciones.py tests/test_api.py tests/test_models.py tests/test_publicacion.py -q` → `30 passed`.
+- Test suite completo (excluyendo 4 tests preexistentes rotos en test_pipeline.py/test_workflow.py): `172 passed, 2 warnings`.
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Retrocompatible: solo añade funcionalidad CRUD faltante.
