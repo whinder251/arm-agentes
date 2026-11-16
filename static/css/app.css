@@ -424,6 +424,7 @@ p {
 .errores, .errorlist { color: var(--error); font-size: var(--text-sm); margin: 0 0 8px 0; }
 .errores ul, ul.errorlist { color: var(--error); margin: 0 0 8px 0; padding-left:18px; font-size: var(--text-sm); }
 .alerta-error { background: var(--error-subtle); border:1px solid var(--error); border-radius: var(--radius-md); color: var(--error); font-size: var(--text-sm); line-height:1.5; margin-bottom: var(--space-md); padding: 12px 16px; }
+.alerta-warning { background: var(--warning-subtle); border:1px solid var(--warning); border-radius: var(--radius-md); color: var(--warning); font-size: var(--text-sm); line-height:1.5; margin-bottom: var(--space-md); padding: 12px 16px; }
 .mensaje-exito { background: var(--success-subtle); border:1px solid var(--success); border-left:4px solid var(--success); border-radius: var(--radius-lg); color: var(--text-primary); font-size: var(--text-sm); margin-bottom: var(--space-md); padding: 12px 16px; }
 .detalle { margin-top: var(--space-md); }
 .bloque { background: var(--bg-surface); border:1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-lg); margin-top: var(--space-md); box-shadow: var(--shadow-sm); }
@@ -666,3 +667,10 @@ td input[type="checkbox"] {
   font-size: var(--text-sm);
   font-weight: var(--font-weight-medium);
 }
+
+/* ============================================================
+   Paso FASE1.6: Botón pequeño y clave API enmascarada
+   ============================================================ */
+.btn-sm { padding: 6px 12px; font-size: var(--text-xs); }
+
+.api-key-masked { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--text-primary); }

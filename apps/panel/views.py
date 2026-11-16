@@ -7,6 +7,7 @@ from django.views.decorators.http import require_POST
 from django import forms
 from django.conf import settings
 from django.db import models
+from apps.core import defaults
 from django.db.models import Sum, ProtectedError
 from django.core.paginator import Paginator
 from django.forms import inlineformset_factory
@@ -407,8 +408,10 @@ def lista_habilidades(request):
 def editar_habilidad(request, pk):
     habilidad = get_object_or_404(Habilidad, pk=pk)
     if habilidad.es_sistema:
-        messages.error(request, "No se pueden modificar recursos del sistema.")
-        return redirect("lista_habilidades")
+        messages.warning(
+            request,
+            "Estás editando un recurso del sistema. Usa Restaurar para volver a los valores de fábrica.",
+        )
     if request.method == "POST":
         form = HabilidadForm(request.POST, instance=habilidad)
         if form.is_valid():
@@ -463,11 +466,13 @@ def crear_formato(request):
 
 @login_required
 def editar_formato(request, pk):
-    """Edita un formato de salida existente (protegido si es del sistema)."""
+    """Edita un formato de salida existente."""
     formato = get_object_or_404(FormatoSalida, pk=pk)
     if formato.es_sistema:
-        messages.error(request, "No se pueden modificar recursos del sistema.")
-        return redirect("lista_formatos")
+        messages.warning(
+            request,
+            "Estás editando un recurso del sistema. Usa Restaurar para volver a los valores de fábrica.",
+        )
     if request.method == "POST":
         form = FormatoSalidaForm(request.POST, instance=formato)
         if form.is_valid():
@@ -522,11 +527,13 @@ def crear_herramienta(request):
 
 @login_required
 def editar_herramienta(request, pk):
-    """Edita una herramienta existente (protegida si es del sistema)."""
+    """Edita una herramienta existente."""
     herramienta = get_object_or_404(Herramienta, pk=pk)
     if herramienta.es_sistema:
-        messages.error(request, "No se pueden modificar recursos del sistema.")
-        return redirect("lista_herramientas")
+        messages.warning(
+            request,
+            "Estás editando un recurso del sistema. Usa Restaurar para volver a los valores de fábrica.",
+        )
     if request.method == "POST":
         form = HerramientaForm(request.POST, instance=herramienta)
         if form.is_valid():
@@ -556,6 +563,88 @@ def eliminar_herramienta(request, pk):
         return redirect("lista_herramientas")
     messages.success(request, f"Herramienta '{herramienta.nombre}' eliminada.")
     return redirect("lista_herramientas")
+
+
+@login_required
+@require_POST
+def restaurar_habilidad(request, pk):
+    """Restaura los valores de fábrica de una habilidad del sistema."""
+    habilidad = get_object_or_404(Habilidad, pk=pk)
+    if not habilidad.es_sistema:
+        messages.error(request, "Este recurso no es del sistema.")
+        return redirect("lista_habilidades")
+    default = defaults.HABILIDADES_SISTEMA.get(habilidad.slug)
+    if default is None:
+        messages.error(request, "No hay valores por defecto para este recurso.")
+        return redirect("editar_habilidad", pk=habilidad.pk)
+    habilidad.nombre = default["nombre"]
+    habilidad.instrucciones = default["instrucciones"]
+    habilidad.modo_ejecucion = default["modo_ejecucion"]
+    habilidad.save(update_fields=["nombre", "instrucciones", "modo_ejecucion"])
+    messages.success(request, "Valores de fábrica restaurados correctamente.")
+    return redirect("editar_habilidad", pk=habilidad.pk)
+
+
+@login_required
+@require_POST
+def restaurar_formato(request, pk):
+    """Restaura los valores de fábrica de un formato del sistema."""
+    formato = get_object_or_404(FormatoSalida, pk=pk)
+    if not formato.es_sistema:
+        messages.error(request, "Este recurso no es del sistema.")
+        return redirect("lista_formatos")
+    default = defaults.FORMATOS_SISTEMA.get(formato.slug)
+    if default is None:
+        messages.error(request, "No hay valores por defecto para este recurso.")
+        return redirect("editar_formato", pk=formato.pk)
+    formato.nombre = default["nombre"]
+    formato.descripcion = default["descripcion"]
+    formato.esquema = default["esquema"]
+    formato.version = default["version"]
+    formato.permite_parcial = default["permite_parcial"]
+    formato.plantilla_formato = default["plantilla_formato"]
+    formato.save(update_fields=[
+        "nombre", "descripcion", "esquema", "version",
+        "permite_parcial", "plantilla_formato",
+    ])
+    messages.success(request, "Valores de fábrica restaurados correctamente.")
+    return redirect("editar_formato", pk=formato.pk)
+
+
+@login_required
+@require_POST
+def restaurar_herramienta(request, pk):
+    """Restaura los valores de fábrica de una herramienta del sistema."""
+    herramienta = get_object_or_404(Herramienta, pk=pk)
+    if not herramienta.es_sistema:
+        messages.error(request, "Este recurso no es del sistema.")
+        return redirect("lista_herramientas")
+    default = defaults.HERRAMIENTAS_SISTEMA.get(herramienta.slug)
+    if default is None:
+        messages.error(request, "No hay valores por defecto para este recurso.")
+        return redirect("editar_herramienta", pk=herramienta.pk)
+    herramienta.nombre = default["nombre"]
+    herramienta.tipo = default["tipo"]
+    herramienta.descripcion = default["descripcion"]
+    herramienta.configuracion = default["configuracion"]
+    herramienta.save(update_fields=["nombre", "tipo", "descripcion", "configuracion"])
+    messages.success(request, "Valores de fábrica restaurados correctamente.")
+    return redirect("editar_herramienta", pk=herramienta.pk)
+
+
+@login_required
+def configuracion_api(request):
+    """Muestra la URL base del webhook y la ARM_API_KEY enmascarada."""
+    api_key = getattr(settings, "ARM_API_KEY", "") or ""
+    if len(api_key) > 16:
+        api_key_masked = api_key[:8] + "****" + api_key[-4:]
+    else:
+        api_key_masked = "****"
+    return render(request, "panel/configuracion_api.html", {
+        "url_webhook": request.build_absolute_uri("/api/webhook/"),
+        "api_key_masked": api_key_masked,
+        "api_key_full": api_key,
+    })
 
 
 @login_required

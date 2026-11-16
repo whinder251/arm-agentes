@@ -50,4 +50,8 @@ urlpatterns = [
     path('destinos/<int:pk>/eliminar/', views.eliminar_destino, name='eliminar_destino'),
     path('ejecuciones/', views.lista_ejecuciones, name='lista_ejecuciones'),
     path('ejecuciones/lote/', views.acciones_lote_ejecuciones, name='acciones_lote_ejecuciones'),
+    path('configuracion/habilidades/<int:pk>/restaurar/', views.restaurar_habilidad, name='restaurar_habilidad'),
+    path('configuracion/formatos/<int:pk>/restaurar/', views.restaurar_formato, name='restaurar_formato'),
+    path('configuracion/herramientas/<int:pk>/restaurar/', views.restaurar_herramienta, name='restaurar_herramienta'),
+    path('configuracion/api/', views.configuracion_api, name='configuracion_api'),
 ]

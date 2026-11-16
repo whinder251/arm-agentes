@@ -8,6 +8,16 @@
     </div>
 </div>
 
+{% if herramienta_editar and herramienta_editar.es_sistema %}
+<div class="alerta-warning">
+    Estás editando un recurso del sistema. Usa <strong>Restaurar valores de fábrica</strong> para volver a los valores originales.
+</div>
+<form method="post" action="{% url 'restaurar_herramienta' herramienta_editar.pk %}" class="form-eliminar" onsubmit="return confirm('¿Restaurar los valores de fábrica? Esta acción sobrescribirá tus cambios.')">
+    {% csrf_token %}
+    <button type="submit" class="btn-secondary">Restaurar valores de fábrica</button>
+</form>
+{% endif %}
+
 <div class="tarjeta">
     <form method="post" class="form-edicion">
         {% csrf_token %}

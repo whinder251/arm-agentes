@@ -31,17 +31,14 @@ class TestEsSistemaHabilidad(TestCase):
     def login(self):
         self.client.login(username="testuser", password="testpass123")
 
-    def test_editar_habilidad_sistema_redirect(self):
+    def test_editar_habilidad_sistema_muestra_advertencia(self):
         self.login()
         response = self.client.get(self.editar_sistema)
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, self.lista_url)
-        # Mensaje almacenado en sesion, visible en la pagina de lista
-        response2 = self.client.get(self.lista_url)
-        msgs = [str(m) for m in response2.context.get("messages", [])]
-        assert any(
-            "No se pueden modificar recursos del sistema." in m for m in msgs
-        ), msgs
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode("utf-8")
+        self.assertIn("alerta-warning", html)
+        self.assertIn("Restaurar valores de fábrica", html)
+        self.assertIn("Estás editando un recurso del sistema", html)
 
     def test_eliminar_habilidad_sistema_no_borra(self):
         self.login()
@@ -101,7 +98,7 @@ class TestCRUDFormatoSalida(TestCase):
         self.assertEqual(response.status_code, 302)
         assert FormatoSalida.objects.filter(slug="formato-prueba").exists()
 
-    def test_editar_formato_sistema_bloqueado(self):
+    def test_editar_formato_sistema_permitido_con_advertencia(self):
         formato = FormatoSalida.objects.create(
             nombre="F Sistema",
             slug="f-sistema",
@@ -110,19 +107,13 @@ class TestCRUDFormatoSalida(TestCase):
         )
         self.login()
         editar_url = reverse("editar_formato", args=[formato.pk])
-        response = self.client.post(editar_url, {
-            "nombre": "F Sistema editado",
-            "slug": "f-sistema",
-            "esquema": "{}",
-            "version": "v1",
-            "permite_parcial": False,
-            "plantilla_formato": "",
-            "es_sistema": True,
-        })
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, self.lista_url)
-        formato.refresh_from_db()
-        assert formato.nombre == "F Sistema"
+        response = self.client.get(editar_url)
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode("utf-8")
+        self.assertIn("alerta-warning", html)
+        self.assertIn("Restaurar valores de fábrica", html)
+        self.assertIn("Estás editando un recurso del sistema", html)
+        # Ya no hay bloqueo: la vista renderiza el formulario en lugar de redirectar
 
 
 @pytest.mark.django_db

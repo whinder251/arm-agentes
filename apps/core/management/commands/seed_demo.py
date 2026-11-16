@@ -13,11 +13,13 @@ import sys
 
 from django.core.management.base import BaseCommand
 
+from apps.core import defaults
 from apps.core.models import (
     Agente,
     Equipo,
     FormatoSalida,
     Habilidad,
+    Herramienta,
     ModeloLLM,
     PasoWorkflow,
     Proveedor,
@@ -151,6 +153,30 @@ Si suena a 'plantilla gen�rica de IA', reescribe la estructura para que sea as
             agente.formato_salida = formato
             agente.save()
         agente.habilidades.set([habilidad])
+
+    def _sembrar_herramientas_sistema(self):
+        """Sembrar herramientas del sistema (Plug & Play)."""
+        creadas = 0
+        actualizadas = 0
+        for slug, datos in defaults.HERRAMIENTAS_SISTEMA.items():
+            obj, created = Herramienta.objects.update_or_create(
+                slug=slug,
+                defaults={
+                    "nombre": datos["nombre"],
+                    "tipo": datos["tipo"],
+                    "descripcion": datos["descripcion"],
+                    "configuracion": datos["configuracion"],
+                    "es_sistema": True,
+                },
+            )
+            if created:
+                creadas += 1
+            else:
+                actualizadas += 1
+        self.stdout.write(
+            f"  Herramientas: {creadas} creadas, {actualizadas} actualizadas, 0 sin cambios."
+        )
+        return creadas, actualizadas
 
     FORMATOS_SALIDA = [
         {
@@ -759,6 +785,8 @@ Si suena a 'plantilla gen�rica de IA', reescribe la estructura para que sea as
         )
 
         self._sembrar_skills_sistema(modelo)
+
+        self._sembrar_herramientas_sistema()
 
         h_creadas, h_exist, h_actualizadas, formatos_creados = (
             self._siembrar_habilidades()

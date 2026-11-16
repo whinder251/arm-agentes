@@ -1371,3 +1371,43 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 - Suite completo `pytest -q` tiene un cuelgue preexistente de entorno (documentado en pasos C.2/C.3a/C.4), no relacionado con este cambio.
 
 **Impacto en contratos/datos:** SÍ datos persistidos (nueva columna `es_sistema` en 3 tablas → migración 0017). NO credenciales, NO permisos nuevos, NO tareas en cola, NO contratos de API. Retrocompatible (`default=False`). El criterio de protección de recursos del sistema se verifica en `test_skills_sistema.py`.
+
+## Paso FASE1.6-FLEXIBILIDAD - Recursos del sistema editables con restauración, herramientas plug&play y vista de API — COMPLETADO
+
+**Objetivo:**
+1) Permitir la edición de Habilidades, Formatos y Herramientas con `es_sistema=True`, añadiendo una advertencia y un botón "Restaurar valores de fábrica".
+2) Actualizar `seed_demo.py` con la biblioteca de herramientas "Plug & Play" (Tavily, WordPress, Google Sheets, Supabase).
+3) Crear una vista en el panel para mostrar la URL Base de la API y la `ARM_API_KEY` enmascarada para integraciones externas.
+
+**Archivos tocados (9):**
+- `apps/core/defaults.py` (nuevo): diccionarios `HABILIDADES_SISTEMA`, `FORMATOS_SISTEMA`, `HERRAMIENTAS_SISTEMA` como única fuente de verdad para valores de restauración y seed.
+- `apps/panel/views.py`: `editar_habilidad`/`editar_formato`/`editar_herramienta` quitan el bloqueo `if es_sistema: return redirect` y añaden `messages.warning` cuando `es_sistema=True`. Nuevas vistas `restaurar_habilidad`, `restaurar_formato`, `restaurar_herramienta` (`@login_required`, `@require_POST`) que sobrescriben con valores de `apps.core.defaults` y `update_fields`. Nueva vista `configuracion_api` (`@login_required`) que muestra URL base del webhook y `ARM_API_KEY` enmascarada (revelable 10s por JS).
+- `apps/panel/urls.py`: rutas `restaurar_habilidad`, `restaurar_formato`, `restaurar_herramienta` y `configuracion_api`.
+- `apps/panel/templates/panel/lista_habilidades.html`: si `habilidad.es_sistema`, div `.alerta-warning` + form POST con botón "Restaurar valores de fábrica" (`.btn-secondary`, `onsubmit confirm`).
+- `apps/panel/templates/panel/formato_form.html`: mismo patrón si `formato_editar.es_sistema`.
+- `apps/panel/templates/panel/herramienta_form.html`: mismo patrón si `herramienta_editar.es_sistema`.
+- `apps/panel/templates/panel/configuracion_api.html` (nuevo): URL base y ARM API Key enmascarada por defecto, botón "Mostrar" (revela 10s y oculta) y botón copiar, cero estilos inline.
+- `apps/panel/templates/panel/base.html`: enlace "API / Integraciones" en sección Configuración con icono SVG (llave).
+- `static/css/app.css`: añadido `.alerta-warning` (patrón de `.alerta-error`), `.btn-sm`, `.api-key-masked`.
+- `apps/core/management/commands/seed_demo.py`: importa de `apps.core.defaults`; nuevo método `_sembrar_herramientas_sistema` que crea las 4 herramientas con `es_sistema=True` y JSON plug&play con marcadores `TU_API_KEY_AQUI`; llamado desde `handle()`.
+- `tests/test_fase16.py` (nuevo): 5 pruebas aisladas (editar sistema muestra advertencia, restaurar revierte default, restaurar solo POST, configuracion_api enmascarada, seed crea 4 herramientas).
+- `tests/test_skills_sistema.py`: 2 tests actualizados para reflejar que ahora se permite editar recursos del sistema con advertencia (ya no bloquea con redirect).
+
+**Reglas respetadas:**
+- No se modificó `models.py` ni se creó migración (`makemigrations --check --dry-run` → No changes detected).
+- Los valores de restauración están hardcodeados en `apps/core/defaults.py` (una sola fuente de verdad), no en vistas.
+- Las vistas `restaurar_*` son `@require_POST` (cambian estado), no GET.
+- No se permite eliminación (`eliminar_xxx`) de recursos con `es_sistema=True` (bloqueo previo mantenido).
+- Cero estilos inline, cero bloques `<style>`; clases de `app.css`.
+- `configuracion_api` requiere `@login_required`; la clave completa viaja solo en `data-key` para el JS, no como texto visible por defecto.
+- No se ejecutó `git push`.
+- Commit: "FASE1.6: Recursos del sistema editables con restauración, herramientas plug&play y vista de API".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_fase16.py -q` → `5 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_skills_sistema.py -q` → `10 passed`.
+- `.venv\Scripts\python.exe manage.py seed_demo` → "Herramientas: 4 creadas, 0 actualizadas, 0 sin cambios." (idempotente).
+
+**Impacto en contratos/datos:** SÍ datos persistidos (seed_demo crea/actualiza 4 herramientas en BD; idempotente). SÍ credenciales de ejemplo (marcadores `TU_API_KEY_AQUI`, no reales). SÍ permisos de UI (botón restaurar y advertencia solo para recursos del sistema). NO modelos, NO migraciones, NO tareas en cola, NO contratos de API. Retrocompatible: URLs existentes sin cambios; `eliminar_xxx` sigue bloqueado para `es_sistema=True`.
