@@ -1,0 +1,52 @@
+{% extends "panel/base.html" %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Herramientas</h1>
+        <p class="subtitulo">Acciones externas disponibles para los agentes</p>
+    </div>
+    <div class="acciones-encabezado">
+        <a href="{% url 'crear_herramienta' %}" class="btn-primary">Añadir herramienta</a>
+    </div>
+</div>
+
+{% if herramientas %}
+<table class="tabla">
+    <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>Slug</th>
+            <th>Tipo</th>
+            <th>Origen</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for herramienta in herramientas %}
+        <tr>
+            <td>{{ herramienta.nombre }}</td>
+            <td class="slug">{{ herramienta.slug }}</td>
+            <td>{{ herramienta.get_tipo_display }}</td>
+            <td>
+                {% if herramienta.es_sistema %}
+                <span class="badge badge-info">Sistema</span>
+                {% else %}
+                <span class="badge">Usuario</span>
+                {% endif %}
+            </td>
+            <td class="acciones">
+                <a href="{% url 'editar_herramienta' herramienta.pk %}" class="enlace-editar">Editar</a>
+                <form method="post" action="{% url 'eliminar_herramienta' herramienta.pk %}" class="form-eliminar" onsubmit="return confirm('¿Estás seguro de que quieres eliminar esta herramienta?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-danger-sm">Eliminar</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div class="vacio">No hay herramientas registradas.</div>
+{% endif %}
+{% endblock %}

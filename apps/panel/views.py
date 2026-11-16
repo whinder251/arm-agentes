@@ -12,15 +12,17 @@ from django.core.paginator import Paginator
 from django.forms import inlineformset_factory
 import markdown
 from apps.core.models import (
-    Tarea, Proveedor, ModeloLLM, Habilidad, Agente, Equipo, Workflow, PasoWorkflow,
-    Ejecucion, IntegracionConfig, DestinoPublicacion,
+    Tarea, Proveedor, ModeloLLM, Habilidad, FormatoSalida, Herramienta, Agente, Equipo,
+    Workflow, PasoWorkflow, Ejecucion, IntegracionConfig, DestinoPublicacion,
 )
 from apps.engine.tasks import ejecutar_tarea, continuar_workflow
 from apps.providers.wordpress import WordPressProvider
 from apps.panel.forms import (
     AgenteForm,
     DestinoPublicacionForm,
+    FormatoSalidaForm,
     HabilidadForm,
+    HerramientaForm,
     ModeloLLMForm,
     ProveedorForm,
 )
@@ -404,6 +406,9 @@ def lista_habilidades(request):
 @login_required
 def editar_habilidad(request, pk):
     habilidad = get_object_or_404(Habilidad, pk=pk)
+    if habilidad.es_sistema:
+        messages.error(request, "No se pueden modificar recursos del sistema.")
+        return redirect("lista_habilidades")
     if request.method == "POST":
         form = HabilidadForm(request.POST, instance=habilidad)
         if form.is_valid():
@@ -421,6 +426,9 @@ def editar_habilidad(request, pk):
 @require_POST
 def eliminar_habilidad(request, pk):
     habilidad = get_object_or_404(Habilidad, pk=pk)
+    if habilidad.es_sistema:
+        messages.error(request, "No se pueden modificar recursos del sistema.")
+        return redirect("lista_habilidades")
     try:
         habilidad.delete()
     except ProtectedError:
@@ -430,6 +438,124 @@ def eliminar_habilidad(request, pk):
         )
         return redirect("lista_habilidades")
     return redirect("lista_habilidades")
+
+
+@login_required
+def lista_formatos(request):
+    """Listado de formatos de salida."""
+    formatos = FormatoSalida.objects.order_by("nombre")
+    return render(request, "panel/lista_formatos.html", {"formatos": formatos})
+
+
+@login_required
+def crear_formato(request):
+    """Crea un formato de salida."""
+    if request.method == "POST":
+        form = FormatoSalidaForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Formato de salida creado.")
+            return redirect("lista_formatos")
+    else:
+        form = FormatoSalidaForm()
+    return render(request, "panel/formato_form.html", {"form": form, "accion": "Crear"})
+
+
+@login_required
+def editar_formato(request, pk):
+    """Edita un formato de salida existente (protegido si es del sistema)."""
+    formato = get_object_or_404(FormatoSalida, pk=pk)
+    if formato.es_sistema:
+        messages.error(request, "No se pueden modificar recursos del sistema.")
+        return redirect("lista_formatos")
+    if request.method == "POST":
+        form = FormatoSalidaForm(request.POST, instance=formato)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Formato de salida actualizado.")
+            return redirect("lista_formatos")
+    else:
+        form = FormatoSalidaForm(instance=formato)
+    return render(request, "panel/formato_form.html", {"form": form, "accion": "Editar", "formato_editar": formato})
+
+
+@login_required
+@require_POST
+def eliminar_formato(request, pk):
+    """Elimina un formato de salida con protecciones."""
+    formato = get_object_or_404(FormatoSalida, pk=pk)
+    if formato.es_sistema:
+        messages.error(request, "No se pueden modificar recursos del sistema.")
+        return redirect("lista_formatos")
+    try:
+        formato.delete()
+    except ProtectedError:
+        messages.error(
+            request,
+            "No se puede eliminar: está siendo utilizado por agentes o tareas.",
+        )
+        return redirect("lista_formatos")
+    messages.success(request, f"Formato '{formato.nombre}' eliminado.")
+    return redirect("lista_formatos")
+
+
+@login_required
+def lista_herramientas(request):
+    """Listado de herramientas externas."""
+    herramientas = Herramienta.objects.order_by("nombre")
+    return render(request, "panel/lista_herramientas.html", {"herramientas": herramientas})
+
+
+@login_required
+def crear_herramienta(request):
+    """Crea una herramienta externa."""
+    if request.method == "POST":
+        form = HerramientaForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Herramienta creada.")
+            return redirect("lista_herramientas")
+    else:
+        form = HerramientaForm()
+    return render(request, "panel/herramienta_form.html", {"form": form, "accion": "Crear"})
+
+
+@login_required
+def editar_herramienta(request, pk):
+    """Edita una herramienta existente (protegida si es del sistema)."""
+    herramienta = get_object_or_404(Herramienta, pk=pk)
+    if herramienta.es_sistema:
+        messages.error(request, "No se pueden modificar recursos del sistema.")
+        return redirect("lista_herramientas")
+    if request.method == "POST":
+        form = HerramientaForm(request.POST, instance=herramienta)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Herramienta actualizada.")
+            return redirect("lista_herramientas")
+    else:
+        form = HerramientaForm(instance=herramienta)
+    return render(request, "panel/herramienta_form.html", {"form": form, "accion": "Editar", "herramienta_editar": herramienta})
+
+
+@login_required
+@require_POST
+def eliminar_herramienta(request, pk):
+    """Elimina una herramienta con protecciones."""
+    herramienta = get_object_or_404(Herramienta, pk=pk)
+    if herramienta.es_sistema:
+        messages.error(request, "No se pueden modificar recursos del sistema.")
+        return redirect("lista_herramientas")
+    try:
+        herramienta.delete()
+    except ProtectedError:
+        messages.error(
+            request,
+            "No se puede eliminar: está siendo utilizada por agentes.",
+        )
+        return redirect("lista_herramientas")
+    messages.success(request, f"Herramienta '{herramienta.nombre}' eliminada.")
+    return redirect("lista_herramientas")
 
 
 @login_required

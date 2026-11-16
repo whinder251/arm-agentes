@@ -1,0 +1,32 @@
+{% extends "panel/base.html" %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>{{ accion }} herramienta</h1>
+        <p class="subtitulo">Configura una acción externa que un agente pueda invocar.</p>
+    </div>
+</div>
+
+<div class="tarjeta">
+    <form method="post" class="form-edicion">
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="form-group">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.errors %}
+            <ul class="errorlist">
+                {% for error in field.errors %}<li>{{ error }}</li>{% endfor %}
+            </ul>
+            {% endif %}
+            {% if field.help_text %}<p class="ayuda">{{ field.help_text }}</p>{% endif %}
+        </div>
+        {% endfor %}
+        <div class="acciones-formulario">
+            <button type="submit" class="btn-primary">Guardar cambios</button>
+            <a href="{% url 'lista_herramientas' %}" class="btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

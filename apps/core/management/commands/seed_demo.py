@@ -59,7 +59,98 @@ class Command(BaseCommand):
         "Debes responder estrictamente con un objeto JSON válido que cumpla "
         "el esquema de salida solicitado. No incluyas texto, explicaciones ni "
         "bloques de código markdown fuera del JSON."
+
     )
+    def _sembrar_skills_sistema(self, modelo):
+        """Sembra los recursos del sistema: FormatoSalida y Habilidad de
+        Dise�o UI/UX, m�s el Agente UI/UX que los consume por defecto.
+
+        Es idempotente: get_or_create + update de campos si ya exist�an.
+        """
+        esquema_componente_ui = {
+            "type": "object",
+            "properties": {
+                "nombre_componente": {"type": "string"},
+                "tag_raiz": {
+                    "type": "string",
+                    "enum": ["section", "article", "aside", "div"],
+                },
+                "clases_arm_flow": {"type": "string"},
+                "estructura_html": {"type": "string"},
+                "justificacion_diseno": {"type": "string"},
+            },
+            "required": [
+                "nombre_componente",
+                "tag_raiz",
+                "clases_arm_flow",
+                "estructura_html",
+            ],
+        }
+
+        instrucciones_ui_ux = """Eres un dise�ador frontend senior experto en el sistema de dise�o 'ARM Flow'. Tu objetivo es traducir conceptos en componentes web sem�nticos, accesibles y visualmente coherentes.
+REGLAS OBLIGATORIAS:
+1. Cero estilos inline: Nunca uses el atributo style='...'. Usa exclusivamente las clases y variables CSS de ARM Flow.
+2. Paleta intencional: M�ximo 3-4 colores con un acento definido. Prohibido gradientes p�rpura/azul gen�ricos o efectos 'glow' sin prop�sito.
+3. Estructura sem�ntica: Usa <article>, <section>, <aside> en lugar de <div> gen�ricos.
+4. Iconograf�a: Usa sets de iconos SVG profesionales. Nunca uses emojis como iconos de navegaci�n principal.
+5. Contenedores con prop�sito: Usa 'cards' solo para agrupar informaci�n relacionada, nunca por decoraci�n.
+Si suena a 'plantilla gen�rica de IA', reescribe la estructura para que sea asim�trica y con prop�sito humano."""
+
+        formato, creado = FormatoSalida.objects.get_or_create(
+            slug="componente-ui-arm",
+            defaults={
+                "nombre": "Componente UI Estructurado",
+                "descripcion": "Estructura de salida para componentes UI del sistema de dise�o ARM Flow.",
+                "esquema": esquema_componente_ui,
+                "version": "v1",
+                "permite_parcial": False,
+                "plantilla_formato": "",
+                "es_sistema": True,
+            },
+        )
+        if not creado:
+            formato.nombre = "Componente UI Estructurado"
+            formato.descripcion = "Estructura de salida para componentes UI del sistema de dise�o ARM Flow."
+            formato.esquema = esquema_componente_ui
+            formato.version = "v1"
+            formato.permite_parcial = False
+            formato.es_sistema = True
+            formato.save()
+
+        habilidad, creado = Habilidad.objects.get_or_create(
+            slug="experto-ui-ux-arm",
+            defaults={
+                "nombre": "Experto UI/UX ARM Flow",
+                "instrucciones": instrucciones_ui_ux,
+                "modo_ejecucion": "auto",
+                "es_sistema": True,
+            },
+        )
+        if not creado:
+            habilidad.nombre = "Experto UI/UX ARM Flow"
+            habilidad.instrucciones = instrucciones_ui_ux
+            habilidad.modo_ejecucion = "auto"
+            habilidad.es_sistema = True
+            habilidad.save()
+
+        agente, creado = Agente.objects.get_or_create(
+            nombre="UI/UX",
+            defaults={
+                "rol": "Eres un dise�ador frontend senior experto en el sistema de dise�o 'ARM Flow'.",
+                "temperatura": 0.6,
+                "modelo": modelo,
+                "formato_salida": formato,
+            },
+        )
+        if not creado:
+            agente.rol = (
+                "Eres un dise�ador frontend senior experto en el sistema de dise�o 'ARM Flow'."
+            )
+            agente.temperatura = 0.6
+            agente.modelo = modelo
+            agente.formato_salida = formato
+            agente.save()
+        agente.habilidades.set([habilidad])
 
     FORMATOS_SALIDA = [
         {
@@ -286,7 +377,7 @@ class Command(BaseCommand):
             "nombre": "Redactar artículo",
             "instrucciones": (
                 "Redacta un artículo basado en: {{ texto }}\n\n"
-                + self.INSTRUCCION_ROL
+                +    " Entregas siempre el resultado en el formato exacto que declare la instrucción de la tarea, sin prosa adicional."
             ),
             "modo_ejecucion": "auto",
             "formato_slug": "articulo-seo",
@@ -361,7 +452,7 @@ class Command(BaseCommand):
             "slug": "resumir_contenido",
             "nombre": "Resumir contenido",
             "instrucciones": (
-                "Resume el contenido: {{ texto }}\n\n" + self.INSTRUCCION_ROL
+                "Resume el contenido: {{ texto }}\n\n" +    " Entregas siempre el resultado en el formato exacto que declare la instrucción de la tarea, sin prosa adicional."
             ),
             "modo_ejecucion": "manual",
             "formato_slug": "resumen",
@@ -404,7 +495,7 @@ class Command(BaseCommand):
             "nombre": "Reescritura",
             "instrucciones": (
                 "Reescribe el siguiente texto aplicando las reglas editoriales: {{ texto }}. "
-                + self.INSTRUCCION_ROL
+                +    " Entregas siempre el resultado en el formato exacto que declare la instrucción de la tarea, sin prosa adicional."
             ),
             "modo_ejecucion": "auto",
             "formato_slug": "texto-reescrito",
@@ -666,6 +757,8 @@ class Command(BaseCommand):
                 f"Usando modelo: {modelo.proveedor.nombre} / {modelo.model_id}"
             )
         )
+
+        self._sembrar_skills_sistema(modelo)
 
         h_creadas, h_exist, h_actualizadas, formatos_creados = (
             self._siembrar_habilidades()

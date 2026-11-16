@@ -1340,3 +1340,34 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 - Datos antiguos de esquemas JSON migrados a `FormatoSalida` y vinculados a `Agente`.
 
 **Impacto en contratos/datos:** SÍ datos persistidos (renombro/eliminación de columnas de `Habilidad`, nuevas tablas `FormatoSalida`/`Herramienta`, nuevas FK en `Agente` y `Tarea`). SÍ contratos de código (`tasks.py`, `forms.py`, `seed_demo.py`, tests). NO credenciales, NO permisos, NO tareas en cola existentes. NO retrocompatible sin actualizar consumidores de `Habilidad.plantilla_prompt` / `habilidad.esquema_salida`.
+
+## Paso FASE1.5-SKILLS — COMPLETADO
+
+**Objetivo:**
+1) Diferenciar habilidades del sistema de las del usuario mediante el campo `es_sistema`.
+2) Sembrar la Skill "Experto UI/UX ARM Flow" en `seed_demo.py`.
+3) Bloquear edición/eliminación de recursos del sistema en el panel.
+4) Crear vistas CRUD básicas para `FormatoSalida` y `Herramienta`.
+
+**Archivos tocados:**
+- `apps/core/models.py`: campo `es_sistema = models.BooleanField(default=False, help_text="...")` añadido a `Habilidad`, `FormatoSalida` y `Herramienta`.
+- `apps/core/management/commands/seed_demo.py`: nueva función `_sembrar_skills_sistema(modelo)` llamada al inicio de `handle()`; crea con `get_or_create` un `FormatoSalida` (slug `componente-ui-arm`, esquema JSON de componente UI, `es_sistema=True`) y una `Habilidad` (slug `experto-ui-ux-arm`, instrucciones de diseñador UI/UX, `es_sistema=True`), más un Agente "UI/UX" con esa habilidad y formato asignados.
+- `apps/core/migrations/0017_formatosalida_es_sistema_habilidad_es_sistema_and_more.py`: migración nueva (3 campos `es_sistema`).
+- `apps/panel/forms.py`: `HerramientaForm` nuevo; `FormatoSalidaForm` incluye `es_sistema`.
+- `apps/panel/views.py`: protección `es_sistema` en `editar_habilidad` y `eliminar_habilidad` (mensaje de error + redirect a `lista_habilidades`); 8 vistas CRUD nuevas (`lista_formatos`, `crear_formato`, `editar_formato`, `eliminar_formato`, `lista_herramientas`, `crear_herramienta`, `editar_herramienta`, `eliminar_herramienta`) con protección `es_sistema` y `ProtectedError`.
+- `apps/panel/urls.py`: 8 rutas nuevas bajo `configuracion/formatos/` y `configuracion/herramientas/`.
+- `apps/panel/templates/panel/lista_formatos.html`, `formato_form.html`, `lista_herramientas.html`, `herramienta_form.html` (nuevos, estilo ARM Flow, cero `<style>`).
+- `apps/panel/templates/panel/base.html`: enlaces "Formatos" y "Herramientas" en la sección "Configuración" del sidebar con iconos SVG.
+- `tests/test_skills_sistema.py` (nuevo): 10 pruebas (protección sistema/usuario, CRUD formatos, CRUD herramientas, recursos del sistema).
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py makemigrations core` → migración `0017_...` creada.
+- `.venv\Scripts\python.exe manage.py migrate` → `Applying core.0017... OK`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py seed_demo` → FormatoSalida/Habilidad/Agente UI/UX creados (idempotente).
+- `.venv\Scripts\python.exe -m pytest tests/test_skills_sistema.py -q` → `10 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_models.py tests/test_core.py tests/test_checks.py tests/test_api.py tests/test_integraciones.py tests/test_publicacion.py tests/test_providers.py tests/test_router.py tests/test_quota.py tests/test_engine.py tests/test_panel_auth.py -q` → suites en verde.
+- Suite completo `pytest -q` tiene un cuelgue preexistente de entorno (documentado en pasos C.2/C.3a/C.4), no relacionado con este cambio.
+
+**Impacto en contratos/datos:** SÍ datos persistidos (nueva columna `es_sistema` en 3 tablas → migración 0017). NO credenciales, NO permisos nuevos, NO tareas en cola, NO contratos de API. Retrocompatible (`default=False`). El criterio de protección de recursos del sistema se verifica en `test_skills_sistema.py`.

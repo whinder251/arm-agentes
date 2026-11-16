@@ -1,0 +1,52 @@
+{% extends "panel/base.html" %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Formatos de salida</h1>
+        <p class="subtitulo">Estructuras de salida para las habilidades</p>
+    </div>
+    <div class="acciones-encabezado">
+        <a href="{% url 'crear_formato' %}" class="btn-primary">Añadir formato</a>
+    </div>
+</div>
+
+{% if formatos %}
+<table class="tabla">
+    <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>Slug</th>
+            <th>Versión</th>
+            <th>Tipo</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for formato in formatos %}
+        <tr>
+            <td>{{ formato.nombre }}</td>
+            <td class="slug">{{ formato.slug }}</td>
+            <td>{{ formato.version }}</td>
+            <td>
+                {% if formato.es_sistema %}
+                <span class="badge badge-info">Sistema</span>
+                {% else %}
+                <span class="badge">Usuario</span>
+                {% endif %}
+            </td>
+            <td class="acciones">
+                <a href="{% url 'editar_formato' formato.pk %}" class="enlace-editar">Editar</a>
+                <form method="post" action="{% url 'eliminar_formato' formato.pk %}" class="form-eliminar" onsubmit="return confirm('¿Estás seguro de que quieres eliminar este formato?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-danger-sm">Eliminar</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div class="vacio">No hay formatos de salida registrados.</div>
+{% endif %}
+{% endblock %}

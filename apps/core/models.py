@@ -139,6 +139,10 @@ class FormatoSalida(models.Model):
         blank=True,
         help_text="Plantilla de ejemplo JSON que se inyecta en el prompt del modelo.",
     )
+    es_sistema = models.BooleanField(
+        default=False,
+        help_text="Recurso predefinido por el sistema, protegido de edición/eliminación.",
+    )
 
     class Meta:
         verbose_name = "formato de salida"
@@ -167,6 +171,10 @@ class Herramienta(models.Model):
         default=dict,
         help_text="Parámetros específicos del tipo (selector, endpoint, query, etc.).",
     )
+    es_sistema = models.BooleanField(
+        default=False,
+        help_text="Recurso predefinido por el sistema, protegido de edición/eliminación.",
+    )
 
     class Meta:
         verbose_name = "herramienta"
@@ -187,6 +195,10 @@ class Habilidad(models.Model):
         max_length=10,
         choices=[("auto", "Automático"), ("manual", "Requiere aprobación")],
         default="auto",
+    )
+    es_sistema = models.BooleanField(
+        default=False,
+        help_text="Recurso predefinido por el sistema, protegido de edición/eliminación.",
     )
 
     class Meta:

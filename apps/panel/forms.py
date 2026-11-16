@@ -1,6 +1,6 @@
 from django import forms
 
-from apps.core.models import Agente, FormatoSalida, Habilidad, Proveedor, ModeloLLM, DestinoPublicacion
+from apps.core.models import Agente, FormatoSalida, Habilidad, Herramienta, Proveedor, ModeloLLM, DestinoPublicacion
 
 
 class ProveedorForm(forms.ModelForm):
@@ -47,12 +47,27 @@ class HabilidadForm(forms.ModelForm):
 class FormatoSalidaForm(forms.ModelForm):
     class Meta:
         model = FormatoSalida
-        fields = ["nombre", "slug", "descripcion", "esquema", "version", "permite_parcial", "plantilla_formato"]
+        fields = ["nombre", "slug", "descripcion", "esquema", "version", "permite_parcial", "plantilla_formato", "es_sistema"]
         widgets = {
             "descripcion": forms.Textarea(attrs={"rows": 3}),
             "esquema": forms.Textarea(attrs={"rows": 6}),
             "plantilla_formato": forms.Textarea(attrs={"rows": 6}),
         }
+
+
+class HerramientaForm(forms.ModelForm):
+    class Meta:
+        model = Herramienta
+        fields = ["nombre", "slug", "tipo", "descripcion", "configuracion", "es_sistema"]
+        widgets = {
+            "descripcion": forms.Textarea(attrs={"rows": 3}),
+            "configuracion": forms.Textarea(attrs={"rows": 6}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name, field in self.fields.items():
+            field.widget.attrs.update({'class': 'input'})
 
 
 class AgenteForm(forms.ModelForm):
