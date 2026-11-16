@@ -30,8 +30,16 @@ from apps.core.models import (
 )
 from apps.core.schemas import ErrorEstructurado, ResultadoAgente
 from apps.providers.router import Router
+from apps.engine.tool_executor import (
+    _ejecutar_herramienta_http,
+    _obtener_configuracion_ejecucion,
+    _sanitizar_config,
+)
 
 logger = logging.getLogger(__name__)
+
+# C.3: Infraestructura de herramientas disponible.
+# Integración con orquestador en Fase 4.
 
 LATIDO_SEGUNDOS = 30
 UMBRAL_HUERFANA = timedelta(minutes=5)

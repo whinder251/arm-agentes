@@ -1472,3 +1472,29 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 - Verificación BD: tabla `core_credencial` con 5 registros (4 sistema + 1 preexistente); `Herramienta.credencial_id` poblada; `configuracion` limpio de `api_key`, `app_password`, `credentials_json`, `token`, etc.
 
 **Impacto en contratos/datos:** SÍ datos persistidos (nueva tabla `core_credencial`, FK `Herramienta.credencial`, JSON `configuracion` limpiado). SÍ credenciales (secretos movidos de JSON plano a `EncryptedTextField` cifrado). NO contratos de API, NO permisos, NO tareas en cola. Retrocompatible: FK nullable, código existente que lea `configuracion` sigue funcionando (claves de comportamiento intactas).
+
+## Paso C.3-EXECUTION-ENGINE - Resolver e inyectar credenciales desencriptadas en tiempo de ejecución — COMPLETADO
+
+**Objetivo:** Crear la infraestructura de ejecución de herramientas que fusione la `configuracion` de `Herramienta` con el `secreto_cifrado` de su `Credencial` vinculada en tiempo de ejecución, garantizando que el secreto NUNCA se guarde ni se loguee en texto plano.
+
+**Archivos tocados (3):**
+- `apps/engine/tool_executor.py` (NUEVO): Módulo con funciones `_sanitizar_config()`, `_validar_endpoint_seguro()`, `_obtener_configuracion_ejecucion()`, `_ejecutar_herramienta_http()`. Incluye validación SSRF (bloquea rangos IPv4/IPv6 privados, loopback, link-local, metadatos de nube), timeout obligatorio (default 30s), construcción de headers según tipo de credencial (Bearer, API Key, Basic), y log sanitizado recursivo que enmascara claves sensibles y valores tipo `Bearer ...`, `Basic ...`.
+- `apps/engine/tasks.py`: Importa las funciones nuevas (`_ejecutar_herramienta_http`, `_obtener_configuracion_ejecucion`, `_sanitizar_config`) con comentario de integración pendiente en Fase 4.
+- `tests/test_tool_executor.py` (NUEVO): 27 pruebas cubriendo fusión metadata+config+secreto, ejecución sin credencial, error si credencial vacía, sanitizado recursivo (incluye headers), SSRF (localhost, 169.254, 10.x, 172.16-31, 192.168, ::1, fc00::/7), ejecución HTTP con mock (inyecta secreto en header, log sanitizado), esquemas de auth (bearer, api_key, basic), inyección en body, timeout default 30s, métodos personalizados, error sin endpoint/base_url.
+
+**Reglas respetadas:**
+- NO se modificó `models.py` ni se crearon migraciones (estructura ya existente: `Herramienta.credencial` FK, `Credencial.secreto_cifrado` con `EncryptedTextField`).
+- NO `print`/`logger` de secretos; sanitizado recursivo probado en test.
+- SSRF validado con `socket.getaddrinfo` + `ipaddress` (IPv4 e IPv6).
+- Tests sin APIs reales; `unittest.mock.patch` para `requests.request` y `socket.getaddrinfo`.
+- Dependencia `requests` instalada (ya requerida por `apps/providers/`).
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_tool_executor.py -q` → `27 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_engine.py tests/test_fase16.py tests/test_skills_sistema.py tests/test_models.py tests/test_core.py tests/test_providers.py tests/test_router.py tests/test_quota.py tests/test_checks.py -q` → `127 passed`.
+
+**Impacto en contratos/datos:** NO modifica modelos ni migraciones. SÍ añade nuevo contrato interno (módulo `tool_executor.py`). NO afecta credenciales existentes, permisos, tareas en cola ni compatibilidad. Retrocompatible: integración con orquestador pendiente en Fase 4.
+
+**Pendiente conocido:** Tests `test_api.py::test_webhook_crear_tarea_exitoso` y `test_consultar_tarea_exitoso` fallan por discrepancia de `ARM_API_KEY` en `.env` vs fallback de test (`dev-api-key-123`); es problema preexistente de entorno, no introducido por este cambio.
