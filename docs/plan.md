@@ -1442,3 +1442,33 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "integraciones or sidebar or configuracion" -q` → `7 passed`.
 
 **Impacto en contratos/datos:** SÍ credenciales (`ARM_API_KEY` se regenera en `.env` y en memoria; la clave anterior queda invalidada — los servicios externos deben actualizarse). NO modelos, NO migraciones, NO permisos, NO tareas en cola, NO contratos de API. Retrocompatible: la URL `configuracion_api` se mantiene; solo se añade la nueva URL `rotar_api_key`.
+
+## Paso C.1-CREDENTIAL-STORE — COMPLETADO
+
+**Objetivo:** Establecer la base del Credential Store (estilo n8n). Crear el modelo `Credencial` con cifrado reversible, vincularlo a `Herramienta`, y migrar los secretos existentes desde los JSON actuales hacia registros cifrados, limpiando el JSON de la herramienta.
+
+**Archivos tocados:**
+- `apps/core/models.py`: Creado modelo `Credencial` (nombre, slug, tipo, secreto_cifrado, metadata, es_sistema). Añadido FK `credencial` a `Herramienta` (SET_NULL, nullable).
+- `apps/core/migrations/0018_credencial_alter_herramienta_configuracion_and_more.py` (nueva): `CreateModel Credencial`, `AddField credencial` a `Herramienta`, `RunPython` para migrar secretos desde `Herramienta.configuracion` → `Credencial.secreto_cifrado` + `metadata`, limpiando el JSON. Idempotente usando slug `auto-gen-{herramienta.slug}`.
+- `apps/core/defaults.py`: `HERRAMIENTAS_SISTEMA` actualizado — JSON `configuracion` ya no incluye `TU_API_KEY_AQUI` ni secretos; solo configuración de comportamiento (endpoint, params, etc.).
+- `apps/core/management/commands/seed_demo.py`: `_sembrar_herramientas_sistema` usa los nuevos JSON limpios de `defaults.py`.
+
+**Reglas respetadas:**
+- No se ejecutó `git push`.
+- Migración de datos idempotente: solo crea `Credencial` si hay secretos; `get_or_create` por slug derivado; `transaction.atomic()` por herramienta.
+- FK nullable (`null=True, blank=True`) para no romper herramientas sin credencial.
+- Cifrado reversible reutiliza `EncryptedTextField` existente (mismo `_fernet` que `DestinoPublicacion` y `Proveedor`).
+- `defaults.py` como única fuente de verdad para seed y restauración.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py makemigrations core` → migración `0018_...` creada.
+- `.venv\Scripts\python.exe manage.py migrate` → `Applying core.0018... OK`.
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe manage.py seed_demo` → "Herramientas: 0 creadas, 4 actualizadas, 0 sin cambios." (idempotente).
+- `.venv\Scripts\python.exe -m pytest tests/test_skills_sistema.py::TestCRUDHerramienta -q` → `2 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_fase16.py -q` → `9 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_models.py tests/test_core.py tests/test_engine.py -q` → `29 passed`.
+- Verificación BD: tabla `core_credencial` con 5 registros (4 sistema + 1 preexistente); `Herramienta.credencial_id` poblada; `configuracion` limpio de `api_key`, `app_password`, `credentials_json`, `token`, etc.
+
+**Impacto en contratos/datos:** SÍ datos persistidos (nueva tabla `core_credencial`, FK `Herramienta.credencial`, JSON `configuracion` limpiado). SÍ credenciales (secretos movidos de JSON plano a `EncryptedTextField` cifrado). NO contratos de API, NO permisos, NO tareas en cola. Retrocompatible: FK nullable, código existente que lea `configuracion` sigue funcionando (claves de comportamiento intactas).

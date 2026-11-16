@@ -153,6 +153,39 @@ class FormatoSalida(models.Model):
         return self.nombre
 
 
+class Credencial(models.Model):
+    """Almacén centralizado de secretos (estilo n8n). Cifrado reversible para uso en runtime."""
+
+    class Tipo(models.TextChoices):
+        API_KEY = "api_key", "API Key"
+        BASIC = "basic", "Basic Auth (usuario:contraseña)"
+        BEARER = "bearer", "Bearer Token"
+        JSON = "json", "JSON Credenciales (Google, etc.)"
+
+    nombre = models.CharField(max_length=100)
+    slug = models.SlugField(max_length=100, unique=True)
+    tipo = models.CharField(max_length=20, choices=Tipo.choices)
+    secreto_cifrado = EncryptedTextField(
+        help_text="Secretos cifrados de forma reversible. Usar la misma importación que DestinoPublicacion."
+    )
+    metadata = models.JSONField(
+        default=dict,
+        help_text="Datos no sensibles como base_url, endpoint, username, etc."
+    )
+    es_sistema = models.BooleanField(
+        default=False,
+        help_text="Recurso predefinido por el sistema, protegido de edición/eliminación."
+    )
+
+    class Meta:
+        verbose_name = "credencial"
+        verbose_name_plural = "credenciales"
+        ordering = ["nombre"]
+
+    def __str__(self):
+        return self.nombre
+
+
 class Herramienta(models.Model):
     """Acción externa que puede invocar un agente (scraping, búsqueda, DB, API, Python)."""
 
@@ -169,7 +202,15 @@ class Herramienta(models.Model):
     descripcion = models.TextField(blank=True)
     configuracion = models.JSONField(
         default=dict,
-        help_text="Parámetros específicos del tipo (selector, endpoint, query, etc.).",
+        help_text="Parámetros específicos del tipo (selector, endpoint, query, etc.). No incluir secretos aquí.",
+    )
+    credencial = models.ForeignKey(
+        Credencial,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="herramientas",
+        help_text="Credencial centralizada para esta herramienta."
     )
     es_sistema = models.BooleanField(
         default=False,

@@ -56,7 +56,6 @@ HERRAMIENTAS_SISTEMA = {
         "descripcion": "Búsqueda web mediante la API de Tavily.",
         "configuracion": {
             "endpoint": "https://api.tavily.com/search",
-            "api_key": "TU_API_KEY_AQUI",
             "search_depth": "advanced",
             "max_results": 5,
             "include_answer": True,
@@ -69,8 +68,6 @@ HERRAMIENTAS_SISTEMA = {
         "descripcion": "Publica contenidos en WordPress mediante su API REST.",
         "configuracion": {
             "base_url": "https://tudominio.com/wp-json/wp/v2",
-            "username": "TU_USUARIO_WP",
-            "app_password": "TU_APP_PASSWORD_WP",
             "estado_defecto": "draft",
         },
     },
@@ -82,7 +79,6 @@ HERRAMIENTAS_SISTEMA = {
         "configuracion": {
             "spreadsheet_id": "ID_DE_TU_HOJA",
             "sheet_name": "Hoja 1",
-            "credentials_json": "PEGA_AQUI_EL_JSON_DE_GOOGLE",
             "accion_defecto": "append",
         },
     },
@@ -93,7 +89,6 @@ HERRAMIENTAS_SISTEMA = {
         "descripcion": "Ejecuta consultas contra una base de datos Supabase.",
         "configuracion": {
             "project_url": "https://TU_PROYECTO.supabase.co",
-            "api_key": "TU_SUPABASE_KEY",
             "tabla_defecto": "nombre_tabla",
         },
     },
