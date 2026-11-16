@@ -3,7 +3,7 @@
 {% block content %}
 <div class="page-header">
     <div>
-        <h1>API / Integraciones</h1>
+        <h1>API y Webhooks</h1>
         <p class="subtitulo">Credenciales para conectar sistemas externos al panel ARM.</p>
     </div>
 </div>
@@ -26,6 +26,11 @@
         <button type="button" class="btn-secondary btn-sm" onclick="copiarTexto('api-key-display', this)">Copiar</button>
     </div>
     <p class="ayuda">La clave completa se revela solo por 10 segundos y luego vuelve a ocultarse.</p>
+    <form method="post" action="{% url 'rotar_api_key' %}">
+        {% csrf_token %}
+        <button type="button" class="btn-secondary btn-sm" id="btn-mostrar-api">Mostrar</button>
+        <button type="submit" class="btn-danger btn-sm" onclick="return confirm('¿Generar una nueva clave API? Esto invalidará la clave anterior y deberás actualizar tus servicios externos.')">Generar nueva clave</button>
+    </form>
 </div>
 
 <script>
@@ -46,14 +51,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const claveEnmascarada = display.getAttribute('data-masked');
     let temporizador = null;
 
+    function enmascarar() {
+        if (temporizador) {
+            clearTimeout(temporizador);
+            temporizador = null;
+        }
+        display.textContent = claveEnmascarada;
+        if (btnMostrar) {
+            btnMostrar.textContent = 'Mostrar';
+        }
+    }
+
     btnMostrar.addEventListener('click', function() {
-        if (temporizador) clearTimeout(temporizador);
+        enmascarar();
         display.textContent = claveCompleta;
         btnMostrar.textContent = 'Ocultar';
-        temporizador = setTimeout(function() {
-            display.textContent = claveEnmascarada;
-            btnMostrar.textContent = 'Mostrar';
-        }, 10000);
+        temporizador = setTimeout(enmascarar, 10000);
     });
 });
 </script>

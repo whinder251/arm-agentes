@@ -54,4 +54,5 @@ urlpatterns = [
     path('configuracion/formatos/<int:pk>/restaurar/', views.restaurar_formato, name='restaurar_formato'),
     path('configuracion/herramientas/<int:pk>/restaurar/', views.restaurar_herramienta, name='restaurar_herramienta'),
     path('configuracion/api/', views.configuracion_api, name='configuracion_api'),
+    path('configuracion/api/rotar/', views.rotar_api_key, name='rotar_api_key'),
 ]

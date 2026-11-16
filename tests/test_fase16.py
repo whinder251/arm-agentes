@@ -9,6 +9,7 @@ from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
 from django.core.management import call_command
+import unittest.mock
 
 from apps.core.models import Habilidad, FormatoSalida, Herramienta, Proveedor, ModeloLLM
 from apps.core import defaults
@@ -135,3 +136,54 @@ class TestSeedHerramientasSistema(Fase16TestCase):
             self.assertEqual(herramienta.nombre, datos["nombre"])
             self.assertEqual(herramienta.tipo, datos["tipo"])
             self.assertEqual(herramienta.configuracion, datos["configuracion"])
+
+
+class TestRotarApiKey(Fase16TestCase):
+    def test_rotar_api_key_requiere_autenticacion(self):
+        """Sin login, POST a rotar redirige a login."""
+        self.client.logout()
+        url = reverse("rotar_api_key")
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("login", response.url)
+
+    @unittest.mock.patch("apps.panel.views.set_key")
+    @unittest.mock.patch(
+        "apps.panel.views.secrets.token_urlsafe", return_value="tok-urlsafe-32"
+    )
+    def test_rotar_api_key_genera_clave_y_redirige(self, mock_token, mock_set_key):
+        """POST rota la clave, llama a set_key y redirige con mensaje de éxito."""
+        url = reverse("rotar_api_key")
+        response = self.client.post(url, follow=True)
+        self.assertEqual(response.status_code, 200)
+        mock_set_key.assert_called_once()
+        args, _ = mock_set_key.call_args
+        self.assertEqual(args[1], "ARM_API_KEY")
+        self.assertTrue(str(args[2]).startswith("arm_"))
+        self.assertRedirects(response, reverse("configuracion_api"))
+        mensajes = [str(m) for m in response.context["messages"]]
+        self.assertTrue(
+            any("Clave API renovada" in m for m in mensajes),
+            f"No se encontró mensaje de éxito en: {mensajes}",
+        )
+
+    def test_sidebar_integraciones_y_api_webhooks_distintos(self):
+        """El sidebar tiene enlaces 'Integraciones' y 'API y Webhooks' distintos."""
+        url = reverse("configuracion_api")
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode("utf-8")
+        self.assertIn("Integraciones", html)
+        self.assertIn("API y Webhooks", html)
+        self.assertNotIn("API / Integraciones", html)
+
+    def test_configuracion_api_tiene_formulario_rotar(self):
+        """La vista de API renderiza el formulario de rotación y el botón."""
+        url = reverse("configuracion_api")
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode("utf-8")
+        self.assertIn('action="%s"' % reverse("rotar_api_key"), html)
+        self.assertIn("Generar nueva clave", html)
+        self.assertIn("btn-danger", html)
+        self.assertIn('data-key="', html)

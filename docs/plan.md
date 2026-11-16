@@ -1411,3 +1411,34 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 - `.venv\Scripts\python.exe manage.py seed_demo` → "Herramientas: 4 creadas, 0 actualizadas, 0 sin cambios." (idempotente).
 
 **Impacto en contratos/datos:** SÍ datos persistidos (seed_demo crea/actualiza 4 herramientas en BD; idempotente). SÍ credenciales de ejemplo (marcadores `TU_API_KEY_AQUI`, no reales). SÍ permisos de UI (botón restaurar y advertencia solo para recursos del sistema). NO modelos, NO migraciones, NO tareas en cola, NO contratos de API. Retrocompatible: URLs existentes sin cambios; `eliminar_xxx` sigue bloqueado para `es_sistema=True`.
+
+## Paso FIX-INCONSISTENCIAS - Corregir menú duplicado, toggle de API key y añadir rotación de clave — COMPLETADO
+
+**Objetivo:** Resolver 3 inconsistencias reportadas en la Fase 1.6:
+1) Eliminar la duplicidad visual en el sidebar renombrando el enlace "API / Integraciones" a "API y Webhooks" para diferenciarlo del enlace existente de "Integraciones".
+2) Reparar el botón Mostrar/Ocultar de la ARM API Key para que funcione con toggle explícito y temporizador de 10 segundos (clearTimeout al ocultar manualmente).
+3) Añadir funcionalidad para rotar/regenerar la ARM_API_KEY desde la interfaz, actualizando el archivo `.env` y la configuración en memoria.
+
+**Archivos tocados (4):**
+- `apps/panel/templates/panel/base.html`: enlace del sidebar renombrado de "API / Integraciones" a "API y Webhooks" (icono SVG mantenido, clase `activo` condicional por `url_name == 'configuracion_api'`).
+- `apps/panel/templates/panel/configuracion_api.html`: título `<h1>` cambiado a "API y Webhooks"; reescrito `<script>` del toggle con función `enmascarar()` que usa `clearTimeout` y `setTimeout(10000)`; botón alterna texto "Mostrar"/"Ocultar"; añadido formulario POST con botón `.btn-danger` "Generar nueva clave" que apunta a `rotar_api_key` con `confirm()` de advertencia. Cero estilos inline, cero bloques `<style>`.
+- `apps/panel/views.py`: importados `secrets`, `Path` (pathlib) y `set_key` (dotenv); nueva vista `rotar_api_key` (`@login_required`, `@require_POST`) que genera `arm_{secrets.token_urlsafe(32)}`, ejecuta `set_key(env_path, 'ARM_API_KEY', new_key)` sobre `settings.BASE_DIR / '.env'`, actualiza `settings.ARM_API_KEY` en memoria, añade `messages.success` y redirige a `configuracion_api`.
+- `apps/panel/urls.py`: ruta `path('configuracion/api/rotar/', views.rotar_api_key, name='rotar_api_key')` añadida tras `configuracion_api`.
+- `tests/test_fase16.py`: 5 pruebas nuevas (`test_rotar_api_key_requiere_autenticacion`, `test_rotar_api_key_genera_clave_y_redirige`, `test_sidebar_integraciones_y_api_webhooks_distintos`, `test_configuracion_api_tiene_formulario_rotar`, más las ya existentes de Fase 1.6).
+
+**Reglas respetadas:**
+- No se modificó `models.py` ni se creó migración (`makemigrations --check --dry-run` → No changes detected).
+- Cero estilos inline en el HTML; exclusivamente clases de `app.css` (`.btn-secondary`, `.btn-danger`, `.btn-sm`, `.api-key-masked`).
+- `btn-danger` usado para la acción destructiva de rotación (no existe `.btn-warning` en app.css).
+- Todas las vistas requieren `@login_required`; rotación usa `@require_POST` y CSRF.
+- La clave completa viaja solo en `data-key` para el JS; no se registra ni expone como texto visible por defecto.
+- No se ejecutó `git push`.
+- Commit: "FIX: Corregir inconsistencias de menú, toggle de API key y añadir rotación de clave".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_fase16.py -q` → `9 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "integraciones or sidebar or configuracion" -q` → `7 passed`.
+
+**Impacto en contratos/datos:** SÍ credenciales (`ARM_API_KEY` se regenera en `.env` y en memoria; la clave anterior queda invalidada — los servicios externos deben actualizarse). NO modelos, NO migraciones, NO permisos, NO tareas en cola, NO contratos de API. Retrocompatible: la URL `configuracion_api` se mantiene; solo se añade la nueva URL `rotar_api_key`.

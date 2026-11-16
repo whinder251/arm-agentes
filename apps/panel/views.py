@@ -12,6 +12,9 @@ from django.db.models import Sum, ProtectedError
 from django.core.paginator import Paginator
 from django.forms import inlineformset_factory
 import markdown
+import secrets
+from pathlib import Path
+from dotenv import set_key
 from apps.core.models import (
     Tarea, Proveedor, ModeloLLM, Habilidad, FormatoSalida, Herramienta, Agente, Equipo,
     Workflow, PasoWorkflow, Ejecucion, IntegracionConfig, DestinoPublicacion,
@@ -645,6 +648,21 @@ def configuracion_api(request):
         "api_key_masked": api_key_masked,
         "api_key_full": api_key,
     })
+
+
+@login_required
+@require_POST
+def rotar_api_key(request):
+    """Regenera la ARM_API_KEY: la guarda en .env y la actualiza en memoria."""
+    new_key = f"arm_{secrets.token_urlsafe(32)}"
+    env_path = settings.BASE_DIR / '.env'
+    set_key(env_path, 'ARM_API_KEY', new_key)
+    settings.ARM_API_KEY = new_key
+    messages.success(
+        request,
+        "Clave API renovada exitosamente. Actualiza tus servicios externos con la nueva clave.",
+    )
+    return redirect('configuracion_api')
 
 
 @login_required
