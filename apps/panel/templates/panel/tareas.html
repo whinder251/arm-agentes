@@ -1,4 +1,5 @@
 {% extends "panel/base.html" %}
+{% load markdown_tags %}
 
 {% block content %}
 
@@ -37,7 +38,9 @@
                   </div>
                 {% endif %}
                 <p><strong>Contenido:</strong></p>
-                <pre>{{ ultimo_artefacto.contenido }}</pre>
+                <div class="markdown-content">
+                    {{ ultimo_artefacto.contenido | markdownify }}
+                </div>
             {% else %}
                 <p>No hay artefactos registrados.</p>
             {% endif %}
