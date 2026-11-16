@@ -25,8 +25,7 @@ class TestPanel(TestCase):
         self.habilidad = Habilidad.objects.create(
             nombre='Reescritura', 
             slug='reescritura', 
-            plantilla_prompt='test', 
-            esquema_salida={}
+            instrucciones='test', 
         )
         self.agente = Agente.objects.create(
             nombre='Editor', 
@@ -196,8 +195,7 @@ class TestPanel(TestCase):
         seo = Habilidad.objects.create(
             nombre='SEO',
             slug='seo',
-            plantilla_prompt='test seo',
-            esquema_salida={}
+            instrucciones='test seo',
         )
         self.agente.habilidades.add(seo)
         self.client.login(username='testuser', password='testpass123')
@@ -225,8 +223,7 @@ class TestPanel(TestCase):
         seo = Habilidad.objects.create(
             nombre='SEO',
             slug='seo',
-            plantilla_prompt='test seo',
-            esquema_salida={}
+            instrucciones='test seo',
         )
         self.agente.habilidades.add(seo)
         self.client.login(username='testuser', password='testpass123')
@@ -722,14 +719,12 @@ class TestPanel(TestCase):
         nueva_h1 = Habilidad.objects.create(
             nombre='Investigación',
             slug='investigacion',
-            plantilla_prompt='test',
-            esquema_salida={},
+            instrucciones='test',
         )
         nueva_h2 = Habilidad.objects.create(
             nombre='Redacción',
             slug='redaccion',
-            plantilla_prompt='test',
-            esquema_salida={},
+            instrucciones='test',
         )
         url = reverse('editar_agente', args=[self.agente.pk])
         response = self.client.post(url, {

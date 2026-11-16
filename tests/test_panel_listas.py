@@ -15,7 +15,7 @@ class TestPanelListaHabilidades(TestCase):
         self.habilidad = Habilidad.objects.create(
             nombre="Reescritura",
             slug="reescritura",
-            plantilla_prompt="Reescribe el texto sin inventar datos.",
+            instrucciones="Reescribe el texto sin inventar datos.",
         )
         self.lista_url = reverse("lista_habilidades")
         self.editar_url = reverse("editar_habilidad", args=[self.habilidad.pk])
@@ -48,8 +48,7 @@ class TestPanelListaHabilidades(TestCase):
         response = self.client.post(self.editar_url, {
             "nombre": "Reescritura editorial",
             "slug": "reescritura-editorial",
-            "plantilla_prompt": "Reescribe el texto con cuidado.",
-            "esquema_salida": '{"texto": "string"}',
+            "instrucciones": "Reescribe el texto con cuidado.",
         })
         assert response.status_code == 302
         assert response.url == self.lista_url
@@ -93,12 +92,12 @@ class TestPanelListaAgentes(TestCase):
         self.habilidad_uno = Habilidad.objects.create(
             nombre="Reescritura",
             slug="reescritura",
-            plantilla_prompt="Reescribe el texto sin inventar datos.",
+            instrucciones="Reescribe el texto sin inventar datos.",
         )
         self.habilidad_dos = Habilidad.objects.create(
             nombre="SEO",
             slug="seo",
-            plantilla_prompt="Redacta un título y una meta.",
+            instrucciones="Redacta un título y una meta.",
         )
         self.agente = Agente.objects.create(
             nombre="Agente Test",

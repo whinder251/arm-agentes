@@ -1310,3 +1310,33 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 - Estructura HTML resultante: `<form ...> ... <div class="form-lote"><select>...</select><button>...</button></div> <table>...</table> </form> <div class="paginacion">`.
 
 **Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo reestructuración de HTML dentro del form para separar el contexto flex de la barra de acciones.
+
+## Paso FASE1-MODELOS - Separar FormatoSalida y Herramienta de Habilidad, migrar datos existentes — COMPLETADO
+
+**Objetivo:** Refactorizar modelos para separar "comportamiento" (Habilidad.instrucciones) de "formato de salida" (FormatoSalida.esquema), creando nuevos modelos `FormatoSalida` y `Herramienta`, y vinculándolos a `Agente` y `Tarea` con una migración de datos `RunPython` que preserva la configuración existente.
+
+**Archivos tocados (6):**
+- `apps/core/models.py`: Creado modelo `FormatoSalida` (nombre, slug, descripcion, esquema JSONField, version, permite_parcial, plantilla_formato). Creado modelo `Herramienta` (nombre, slug, tipo con choices scraping/busqueda/database/api/python, descripcion, configuracion JSONField). Modificado `Habilidad`: renombrado `plantilla_prompt`→`instrucciones`, eliminados `esquema_salida`, `esquema_version`, `permite_parcial`. Modificado `Agente`: añadido FK `formato_salida` (SET_NULL, null=True) y M2M `herramientas`. Modificado `Tarea`: añadido FK opcional `formato_salida` (override del agente).
+- `apps/core/migrations/0015_formato_salida_herramienta_migracion.py` (nueva): `CreateModel` de `FormatoSalida` y `Herramienta`, `AddField` de `formato_salida`/`herramientas` en `Agente`, `AddField` de `formato_salida` en `Tarea`, `RunPython` para migrar `Habilidad.esquema_salida`→`FormatoSalida` y asignar a `Agente`, `RemoveField` de los 3 campos eliminados de `Habilidad`, `RenameField` `plantilla_prompt`→`instrucciones`.
+- `apps/core/migrations/0016_alter_herramienta_configuracion.py` (nueva): añade `help_text` a `Herramienta.configuracion`.
+- `apps/engine/tasks.py`: `_construir_mensajes` usa `tarea.habilidad.instrucciones`; `_normalizar_respuesta` recibe `FormatoSalida` en vez de `Habilidad` y lee `formato_salida.esquema` / `formato_salida.permite_parcial`; nuevo `_obtener_formato_salida(tarea)` resuelve override de tarea → formato del agente → None; `select_related` incluye `agente__formato_salida` y `formato_salida`.
+- `apps/panel/forms.py`: `HabilidadForm` usa `instrucciones` y elimina campos de esquema; creado `FormatoSalidaForm` con todos los campos del nuevo modelo.
+- `apps/core/management/commands/seed_demo.py`: reescrito para crear `FormatoSalida` primero (12 formatos), luego `Habilidad` con `instrucciones` y `formato_slug`, y `Agente` con `formato_salida` asignado.
+- `tests/`: actualizadas referencias a campos eliminados en `test_api.py`, `test_core.py`, `test_engine.py`, `test_models.py`, `test_panel.py`, `test_panel_agente.py`, `test_panel_listas.py`, `test_pipeline.py`, `test_workflow.py` (`plantilla_prompt`→`instrucciones`, eliminado `esquema_salida`/`esquema_version`/`permite_parcial`).
+
+**Reglas respetadas:**
+- No se editaron migraciones ya aplicadas; se crearon 0015 y 0016 nuevas.
+- Migración de datos con `RunPython` manejando `esquema_salida` vacío/nulo (no crea FormatoSalida en ese caso).
+- `transaction.atomic()` implícito en `RunPython` de Django.
+- No se modificó `models.py` de otras apps.
+- No se ejecutó `git push`.
+- Se ajustó `config/settings.py` para forzar SQLite bajo pytest (evita fallos de conexión a Supabase en desarrollo local).
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest -q` → `187 passed, 2 warnings` (suite completa en verde).
+- Migración aplicada: `core.0015` y `core.0016` aplicadas correctamente en SQLite de desarrollo.
+- Datos antiguos de esquemas JSON migrados a `FormatoSalida` y vinculados a `Agente`.
+
+**Impacto en contratos/datos:** SÍ datos persistidos (renombro/eliminación de columnas de `Habilidad`, nuevas tablas `FormatoSalida`/`Herramienta`, nuevas FK en `Agente` y `Tarea`). SÍ contratos de código (`tasks.py`, `forms.py`, `seed_demo.py`, tests). NO credenciales, NO permisos, NO tareas en cola existentes. NO retrocompatible sin actualizar consumidores de `Habilidad.plantilla_prompt` / `habilidad.esquema_salida`.

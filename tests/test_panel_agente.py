@@ -22,7 +22,7 @@ class TestPanelAgente(TestCase):
         Habilidad.objects.create(
             nombre="Reescritura",
             slug="reescritura",
-            plantilla_prompt="Reescribe el texto.",
+            instrucciones="Reescribe el texto.",
         )
         response = self.client.get(self.crear_agente_url)
         assert response.status_code == 200
@@ -33,8 +33,7 @@ class TestPanelAgente(TestCase):
         response = self.client.post(self.crear_habilidad_url, {
             "nombre": "Reescritura",
             "slug": "reescritura",
-            "plantilla_prompt": "Reescribe el texto sin inventar datos.",
-            "esquema_salida": '{"texto": "string"}',
+            "instrucciones": "Reescribe el texto sin inventar datos.",
         })
         assert response.status_code == 302
         assert Habilidad.objects.filter(slug="reescritura").exists()
@@ -55,12 +54,12 @@ class TestPanelAgente(TestCase):
         reescritura = Habilidad.objects.create(
             nombre="Reescritura",
             slug="reescritura",
-            plantilla_prompt="Reescribe el texto.",
+            instrucciones="Reescribe el texto.",
         )
         seo = Habilidad.objects.create(
             nombre="SEO",
             slug="seo",
-            plantilla_prompt="Revisa el SEO.",
+            instrucciones="Revisa el SEO.",
         )
         response = self.client.post(self.crear_agente_url, {
             "nombre": "Redactor",

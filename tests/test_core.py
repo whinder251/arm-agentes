@@ -15,7 +15,7 @@ class TestCamposPaso15a(TestCase):
         h = Habilidad.objects.create(
             nombre="Habilidad prueba",
             slug="habilidad-prueba",
-            plantilla_prompt="Prompt de prueba",
+            instrucciones="Prompt de prueba",
         )
         self.assertEqual(h.modo_ejecucion, "auto")
 

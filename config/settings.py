@@ -9,13 +9,18 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
+import os
 from dotenv import load_dotenv
 from pathlib import Path
+
+# Preservar SUPABASE_DATABASE_URL si ya está seteada en el entorno (p. ej. vacío para forzar SQLite en tests).
+# load_dotenv con override=False no debería sobrescribirla, pero lo garantizamos explícitamente.
+_supabase_db_url_preserved = os.environ.get("SUPABASE_DATABASE_URL")
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+if _supabase_db_url_preserved is not None:
+    os.environ["SUPABASE_DATABASE_URL"] = _supabase_db_url_preserved
 
-import os
-
-from pathlib import Path
+from urllib.parse import urlparse
 
 from huey import SqliteHuey
 
@@ -88,12 +93,57 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# 1. Leer la variable de entorno
+DATABASE_URL = os.environ.get("SUPABASE_DATABASE_URL", "").strip()
+
+# En entorno de pruebas (pytest) forzar SQLite independientemente de SUPABASE_DATABASE_URL.
+# Esto evita fallos de conexión cuando no hay Supabase disponible en desarrollo local.
+import sys as _sys
+if "pytest" in _sys.modules:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
     }
-}
+elif DATABASE_URL:
+    try:
+        url = urlparse(DATABASE_URL)
+    except Exception:
+        url = None
+    if url and url.scheme and url.hostname:
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.postgresql',
+                'NAME': url.path[1:],  # Quita la barra inicial '/'
+                'USER': url.username,
+                'PASSWORD': url.password,
+                'HOST': url.hostname,
+                'PORT': url.port or 5432,
+                'OPTIONS': {
+                    'sslmode': 'require',  # Supabase exige conexión SSL
+                },
+                # CONN_MAX_AGE permite reutilizar la conexión dentro del mismo request,
+                # pero la cierra al final, dejando que el pooler de Supabase la gestione.
+                # 60 segundos es un valor seguro y eficiente.
+                'CONN_MAX_AGE': 60,
+            }
+        }
+    else:
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': BASE_DIR / 'db.sqlite3',
+            }
+        }
+else:
+    # Fallback a SQLite solo para desarrollo local si no hay URL configurada
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Cola Huey sobre el mismo SQLite del proyecto. Comparte archivo con Django:

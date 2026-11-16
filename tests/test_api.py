@@ -25,8 +25,7 @@ def _crear_entorno():
     habilidad = Habilidad.objects.create(
         nombre="Reescritura",
         slug="reescritura",
-        plantilla_prompt="Reescribe: {{ texto }}",
-        esquema_salida={},
+        instrucciones="Reescribe: {{ texto }}",
     )
     agente = Agente.objects.create(
         nombre="Agente prueba",

@@ -28,7 +28,7 @@ class TestWorkflow(TestCase):
         self.habilidad = Habilidad.objects.create(
             nombre="Habilidad prueba",
             slug="habilidad-prueba",
-            plantilla_prompt="Prompt de prueba",
+            instrucciones="Prompt de prueba",
         )
         self.agente = Agente.objects.create(
             nombre="Agente prueba",

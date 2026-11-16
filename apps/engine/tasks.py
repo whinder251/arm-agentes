@@ -20,6 +20,7 @@ from apps.core.models import (
     Agente,
     Artefacto,
     Ejecucion,
+    FormatoSalida,
     Habilidad,
     ModeloLLM,
     PasoWorkflow,
@@ -89,7 +90,7 @@ def _construir_mensajes(tarea: Tarea) -> list[dict[str, str]]:
     mensajes.append(
         {
             "role": "user",
-            "content": _renderizar(tarea.habilidad.plantilla_prompt, tarea.payload),
+            "content": _renderizar(tarea.habilidad.instrucciones, tarea.payload),
         }
     )
     return mensajes
@@ -127,7 +128,7 @@ def _extraer_json_bloque(texto: str) -> str | None:
 
 
 def _normalizar_respuesta(
-    texto: str, habilidad: Habilidad
+    texto: str, formato_salida: FormatoSalida | None
 ) -> tuple[ResultadoAgente, dict[str, Any] | None, str]:
     """Normaliza la respuesta del proveedor usando el contrato Pydantic.
 
@@ -171,8 +172,8 @@ def _normalizar_respuesta(
 
     datos = candidato
 
-    # Validación ligera contra el esquema de la habilidad si existe.
-    esquema = habilidad.esquema_salida
+    # Validación ligera contra el esquema de formato de salida si existe.
+    esquema = formato_salida.esquema if formato_salida else {}
     if esquema:
         try:
             required = (
@@ -180,7 +181,7 @@ def _normalizar_respuesta(
             )
             faltantes = [k for k in required if k not in datos]
             if faltantes:
-                if habilidad.permite_parcial:
+                if formato_salida and formato_salida.permite_parcial:
                     status = "partial"
                     success = True
                     error = ErrorEstructurado(
@@ -210,6 +211,15 @@ def _normalizar_respuesta(
     return resultado, datos, texto
 
 
+def _obtener_formato_salida(tarea: Tarea) -> FormatoSalida | None:
+    """Resuelve el FormatoSalida: override de la tarea, luego del agente, luego None."""
+    if tarea.formato_salida_id:
+        return tarea.formato_salida
+    if tarea.agente_id and tarea.agente.formato_salida_id:
+        return tarea.agente.formato_salida
+    return None
+
+
 def _guardar_artefacto(
     tarea: Tarea, respuesta, ejecucion: Ejecucion
 ) -> Artefacto:
@@ -225,7 +235,8 @@ def _guardar_artefacto(
         "tokens_out": respuesta.tokens_out,
         "ejecucion": ejecucion.pk,
     }
-    resultado, datos, crudo = _normalizar_respuesta(respuesta.texto, tarea.habilidad)
+    formato_salida = _obtener_formato_salida(tarea)
+    resultado, datos, crudo = _normalizar_respuesta(respuesta.texto, formato_salida)
     metadata["resultado"] = resultado.model_dump()
     if datos:
         # Extraer texto plano con prioridad cuando el JSON no cumple el esquema:
@@ -295,7 +306,11 @@ def ejecutar_tarea(tarea_id: int) -> str:
 
     tarea = (
         Tarea.objects.select_related(
-            "agente__modelo", "habilidad", "paso_workflow__habilidad"
+            "agente__modelo",
+            "agente__formato_salida",
+            "habilidad",
+            "formato_salida",
+            "paso_workflow__habilidad",
         )
         .filter(pk=tarea_id)
         .first()

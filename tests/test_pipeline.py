@@ -87,14 +87,12 @@ def _crear_escenario(texto_original: str) -> Tarea:
     reescritura = Habilidad.objects.create(
         nombre="Reescritura",
         slug="reescritura",
-        plantilla_prompt="Reescribe este artículo: {{ texto }}",
-        esquema_salida={"type": "object"},
+        instrucciones="Reescribe este artículo: {{ texto }}",
     )
     Habilidad.objects.create(
         nombre="SEO",
         slug="optimizar_seo",
-        plantilla_prompt="Optimiza este artículo: {{ texto }}",
-        esquema_salida={"type": "object"},
+        instrucciones="Optimiza este artículo: {{ texto }}",
     )
     agente = Agente.objects.create(
         nombre="Redactor",

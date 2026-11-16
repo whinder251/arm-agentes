@@ -1,6 +1,6 @@
 from django import forms
 
-from apps.core.models import Agente, Habilidad, Proveedor, ModeloLLM, DestinoPublicacion
+from apps.core.models import Agente, FormatoSalida, Habilidad, Proveedor, ModeloLLM, DestinoPublicacion
 
 
 class ProveedorForm(forms.ModelForm):
@@ -38,10 +38,20 @@ class HabilidadForm(forms.ModelForm):
 
     class Meta:
         model = Habilidad
-        fields = ["nombre", "slug", "modo_ejecucion", "plantilla_prompt", "esquema_salida"]
+        fields = ["nombre", "slug", "modo_ejecucion", "instrucciones"]
         widgets = {
-            "plantilla_prompt": forms.Textarea(attrs={"rows": 6}),
-            "esquema_salida": forms.Textarea(attrs={"rows": 4}),
+            "instrucciones": forms.Textarea(attrs={"rows": 6}),
+        }
+
+
+class FormatoSalidaForm(forms.ModelForm):
+    class Meta:
+        model = FormatoSalida
+        fields = ["nombre", "slug", "descripcion", "esquema", "version", "permite_parcial", "plantilla_formato"]
+        widgets = {
+            "descripcion": forms.Textarea(attrs={"rows": 3}),
+            "esquema": forms.Textarea(attrs={"rows": 6}),
+            "plantilla_formato": forms.Textarea(attrs={"rows": 6}),
         }
 
 

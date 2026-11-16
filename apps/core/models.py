@@ -121,15 +121,68 @@ class ModeloLLM(models.Model):
         return f"{self.proveedor.nombre} / {self.model_id}"
 
 
-class Habilidad(models.Model):
-    """Capacidad concreta que sabe ejecutar un agente."""
+class FormatoSalida(models.Model):
+    """Estructura de salida esperada, desacoplada de la habilidad de comportamiento.
+
+    Permite que un usuario no técnico seleccione, por separado:
+    - el comportamiento/tono (Habilidad.instrucciones) y
+    - el formato de salida (FormatoSalida.esquema).
+    """
 
     nombre = models.CharField(max_length=100)
     slug = models.SlugField(max_length=100, unique=True)
-    plantilla_prompt = models.TextField()
-    esquema_salida = models.JSONField(default=dict)
-    esquema_version = models.CharField(max_length=20, default="v1")
+    descripcion = models.TextField(blank=True)
+    esquema = models.JSONField(default=dict)
+    version = models.CharField(max_length=20, default="v1")
     permite_parcial = models.BooleanField(default=False)
+    plantilla_formato = models.TextField(
+        blank=True,
+        help_text="Plantilla de ejemplo JSON que se inyecta en el prompt del modelo.",
+    )
+
+    class Meta:
+        verbose_name = "formato de salida"
+        verbose_name_plural = "formatos de salida"
+        ordering = ["nombre"]
+
+    def __str__(self):
+        return self.nombre
+
+
+class Herramienta(models.Model):
+    """Acción externa que puede invocar un agente (scraping, búsqueda, DB, API, Python)."""
+
+    class Tipo(models.TextChoices):
+        SCRAPING = "scraping", "Scraping web"
+        BUSQUEDA = "busqueda", "Búsqueda web"
+        BASE_DATOS = "database", "Consulta a base de datos"
+        API_EXTERNA = "api", "API externa"
+        PYTHON = "python", "Código Python sandbox"
+
+    nombre = models.CharField(max_length=100)
+    slug = models.SlugField(max_length=100, unique=True)
+    tipo = models.CharField(max_length=20, choices=Tipo.choices)
+    descripcion = models.TextField(blank=True)
+    configuracion = models.JSONField(
+        default=dict,
+        help_text="Parámetros específicos del tipo (selector, endpoint, query, etc.).",
+    )
+
+    class Meta:
+        verbose_name = "herramienta"
+        verbose_name_plural = "herramientas"
+        ordering = ["nombre"]
+
+    def __str__(self):
+        return self.nombre
+
+
+class Habilidad(models.Model):
+    """Capacidad concreta de comportamiento/tono/estilo que sabe ejecutar un agente."""
+
+    nombre = models.CharField(max_length=100)
+    slug = models.SlugField(max_length=100, unique=True)
+    instrucciones = models.TextField()
     modo_ejecucion = models.CharField(
         max_length=10,
         choices=[("auto", "Automático"), ("manual", "Requiere aprobación")],
@@ -162,6 +215,20 @@ class Agente(models.Model):
     )
     habilidades = models.ManyToManyField(
         Habilidad, blank=True, related_name="agentes"
+    )
+    formato_salida = models.ForeignKey(
+        FormatoSalida,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="agentes",
+        help_text="Formato de salida por defecto para este agente.",
+    )
+    herramientas = models.ManyToManyField(
+        Herramienta,
+        blank=True,
+        related_name="agentes",
+        help_text="Herramientas externas disponibles para este agente.",
     )
 
     class Meta:
@@ -205,6 +272,14 @@ class Tarea(models.Model):
     )
     habilidad = models.ForeignKey(
         Habilidad, on_delete=models.PROTECT, related_name="tareas"
+    )
+    formato_salida = models.ForeignKey(
+        FormatoSalida,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="tareas",
+        help_text="Formato de salida override para esta tarea (si no, se usa el del agente).",
     )
     payload = models.JSONField(default=dict, blank=True)
     paso_workflow = models.ForeignKey(

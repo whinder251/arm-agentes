@@ -29,8 +29,7 @@ def crear_habilidad(**extra):
     datos = {
         "nombre": "SEO",
         "slug": "seo",
-        "plantilla_prompt": "Reescribe el texto: {{ texto }}",
-        "esquema_salida": {"type": "object", "properties": {"titulo": {"type": "string"}}},
+        "instrucciones": "Reescribe el texto: {{ texto }}",
     }
     datos.update(extra)
     return Habilidad.objects.create(**datos)
@@ -73,7 +72,7 @@ def test_crear_habilidad():
     habilidad = crear_habilidad()
     assert habilidad.pk is not None
     assert habilidad.slug == "seo"
-    assert habilidad.esquema_salida["type"] == "object"
+    assert habilidad.instrucciones == "Reescribe el texto: {{ texto }}"
 
 
 @pytest.mark.django_db

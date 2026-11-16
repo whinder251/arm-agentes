@@ -49,8 +49,7 @@ def crear_escenario() -> Tarea:
     habilidad = Habilidad.objects.create(
         nombre="SEO",
         slug="seo",
-        plantilla_prompt="Reescribe el texto: {{ texto }}",
-        esquema_salida={"type": "object"},
+        instrucciones="Reescribe el texto: {{ texto }}",
     )
     agente = Agente.objects.create(
         nombre="Redactor",
@@ -129,8 +128,7 @@ def test_tarea_revision_cuando_modo_manual():
     habilidad_manual = Habilidad.objects.create(
         nombre="Manual",
         slug="manual",
-        plantilla_prompt="Haz algo: {{ texto }}",
-        esquema_salida={"type": "object"},
+        instrucciones="Haz algo: {{ texto }}",
         modo_ejecucion="manual",
     )
     agente = Agente.objects.create(
@@ -347,14 +345,12 @@ def test_workflow_pasa_datos_entre_pasos(monkeypatch):
     habilidad_investigar = Habilidad.objects.create(
         nombre="Investigar",
         slug="investigar",
-        plantilla_prompt="Investiga: {{ tema }}",
-        esquema_salida={},
+        instrucciones="Investiga: {{ tema }}",
     )
     habilidad_redactar = Habilidad.objects.create(
         nombre="Redactar",
         slug="redactar",
-        plantilla_prompt="Redacta: {{ hallazgos }}",
-        esquema_salida={},
+        instrucciones="Redacta: {{ hallazgos }}",
     )
     agente = Agente.objects.create(
         nombre="Agente",
@@ -433,8 +429,7 @@ def test_tarea_manual_sin_workflow_queda_en_revision():
     habilidad_manual = Habilidad.objects.create(
         nombre="Manual suelta",
         slug="manual-suelta",
-        plantilla_prompt="Haz algo: {{ texto }}",
-        esquema_salida={"type": "object"},
+        instrucciones="Haz algo: {{ texto }}",
         modo_ejecucion="manual",
     )
     agente = Agente.objects.create(
@@ -484,8 +479,7 @@ def test_tarea_manual_con_respuesta_no_json_queda_en_revision():
     habilidad_manual = Habilidad.objects.create(
         nombre="Resumir",
         slug="resumir-contenido",
-        plantilla_prompt="Resume: {{ texto }}",
-        esquema_salida={"type": "object"},
+        instrucciones="Resume: {{ texto }}",
         modo_ejecucion="manual",
     )
     agente = Agente.objects.create(
