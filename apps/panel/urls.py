@@ -8,6 +8,7 @@ urlpatterns = [
     path('tarea/<int:pk>/eliminar/', views.eliminar_tarea, name='eliminar_tarea'),
     path('tarea/<int:pk>/publicar/', views.publicar_tarea, name='publicar_tarea'),
     path('tarea/<int:pk>/', views.detalle_tarea, name='detalle_tarea'),
+    path('tareas/lote/', views.acciones_lote_tareas, name='acciones_lote_tareas'),
     path('aprobar/', views.aprobar_tarea, name='aprobar_tarea'),
     path('login/', views.login_panel, name='login_panel'),
     path('logout/', views.logout_panel, name='logout_panel'),

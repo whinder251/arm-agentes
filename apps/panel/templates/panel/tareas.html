@@ -83,7 +83,7 @@
     <div class="page-header">
         <h1>Tareas</h1>
         <div class="acciones-encabezado">
-            <span class="cuenta">{{ tareas|length }} en total</span>
+            <span class="cuenta">{{ page_obj.paginator.count }} en total</span>
             <a class="btn-primary" href="{% url 'crear_tarea' %}">Nueva tarea</a>
         </div>
     </div>
@@ -97,9 +97,19 @@
         <a class="{% if estado_filtro == 'fallo' %}btn-primary{% else %}btn-secondary{% endif %}" href="?estado=fallo">Fallo</a>
     </nav>
 
+    <form method="post" action="{% url 'acciones_lote_tareas' %}" class="form-lote">
+        {% csrf_token %}
+        <select name="action" class="input" style="width: auto;">
+            <option value="aprobar">Aprobar seleccionadas</option>
+            <option value="eliminar">Eliminar seleccionadas</option>
+        </select>
+        <button type="submit" class="btn-primary" onclick="return confirm('¿Aplicar esta acción a las tareas seleccionadas?');">Aplicar</button>
+    </form>
+
     <table class="tabla">
         <thead>
             <tr>
+                <th><input type="checkbox" id="select-all-tasks"></th>
                 <th>ID</th>
                 <th>Estado</th>
                 <th>Agente</th>
@@ -109,14 +119,35 @@
             </tr>
         </thead>
         <tbody>
-            {% for t in tareas %}
+            {% for t in page_obj %}
                 {% include "panel/fila_tarea.html" with tarea=t %}
             {% empty %}
                 <tr>
-                    <td colspan="6" class="vacio">No hay tareas encontradas.</td>
+                    <td colspan="7" class="vacio">No hay tareas encontradas.</td>
                 </tr>
             {% endfor %}
         </tbody>
     </table>
+
+    <div class="paginacion">
+        {% if page_obj.has_previous %}
+            <a href="?page=1{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}" class="btn-secondary">&laquo; Primera</a>
+            <a href="?page={{ page_obj.previous_page_number }}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}" class="btn-secondary">Anterior</a>
+        {% endif %}
+        <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}" class="btn-secondary">Siguiente</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}" class="btn-secondary">Última &raquo;</a>
+        {% endif %}
+    </div>
+
+    <script>
+        const selectAll = document.getElementById('select-all-tasks');
+        if (selectAll) {
+            selectAll.addEventListener('change', function(e) {
+                document.querySelectorAll('input[name="task_ids"]').forEach(cb => cb.checked = e.target.checked);
+            });
+        }
+    </script>
 {% endif %}
 {% endblock %}

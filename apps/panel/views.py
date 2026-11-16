@@ -8,6 +8,7 @@ from django import forms
 from django.conf import settings
 from django.db import models
 from django.db.models import Sum, ProtectedError
+from django.core.paginator import Paginator
 from django.forms import inlineformset_factory
 import markdown
 from apps.core.models import (
@@ -36,10 +37,13 @@ class WorkflowForm(forms.ModelForm):
 @login_required
 def lista_tareas(request):
     estado_filtro = request.GET.get('estado')
-    tareas = Tarea.objects.all().order_by('-id')
+    tareas_qs = Tarea.objects.all().order_by('-id')
     if estado_filtro:
-        tareas = tareas.filter(estado=estado_filtro)
-    return render(request, 'panel/tareas.html', {'tareas': tareas, 'estado_filtro': estado_filtro})
+        tareas_qs = tareas_qs.filter(estado=estado_filtro)
+    paginator = Paginator(tareas_qs, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    return render(request, 'panel/tareas.html', {'page_obj': page_obj, 'estado_filtro': estado_filtro})
 
 @login_required
 def crear_tarea(request):
@@ -159,6 +163,37 @@ def eliminar_tarea(request, pk):
     tarea = get_object_or_404(Tarea, pk=pk)
     tarea.delete()
     return redirect("lista_tareas")
+
+
+@login_required
+@require_POST
+def acciones_lote_tareas(request):
+    action = request.POST.get('action')
+    task_ids = request.POST.getlist('task_ids')
+    if not task_ids:
+        messages.warning(request, "No se seleccionó ninguna tarea.")
+        return redirect('lista_tareas')
+
+    if action == 'eliminar':
+        Tarea.objects.filter(pk__in=task_ids).delete()
+        messages.success(request, f"{len(task_ids)} tarea(s) eliminada(s).")
+    elif action == 'aprobar':
+        count = 0
+        for t_id in task_ids:
+            try:
+                tarea = Tarea.objects.get(pk=t_id, estado='revision')
+                tarea.estado = 'ok'
+                tarea.save()
+                if tarea.paso_workflow:
+                    from apps.engine.tasks import continuar_workflow
+                    continuar_workflow.func(tarea.paso_workflow.workflow.pk, tarea.paso_workflow.orden + 1)
+                count += 1
+            except Tarea.DoesNotExist:
+                continue
+        messages.success(request, f"{count} tarea(s) aprobada(s).")
+    else:
+        messages.warning(request, "Acción no válida.")
+    return redirect('lista_tareas')
 
 
 @login_required
@@ -732,12 +767,15 @@ def lista_modelos(request):
 @login_required
 def lista_ejecuciones(request):
     """Historial de solo lectura de todas las ejecuciones de IA."""
-    ejecuciones = (
+    ejecuciones_qs = (
         Ejecucion.objects
         .select_related('tarea__agente__modelo__proveedor')
-        .order_by('-id')[:100]
+        .order_by('-id')
     )
-    return render(request, 'panel/lista_ejecuciones.html', {'ejecuciones': ejecuciones})
+    paginator = Paginator(ejecuciones_qs, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    return render(request, 'panel/lista_ejecuciones.html', {'page_obj': page_obj})
 
 
 @login_required

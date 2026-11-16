@@ -963,3 +963,110 @@ class TestPanel(TestCase):
         url = reverse('integraciones')
         response = self.client.post(url, {'rotar_arm_api': '1'})
         assert response.status_code in (200, 302)
+
+    def test_lista_tareas_paginacion(self):
+        """La lista de tareas pagina correctamente (20 por página)."""
+        self.client.login(username='testuser', password='testpass123')
+        # Crear 25 tareas
+        for i in range(25):
+            Tarea.objects.create(
+                agente=self.agente,
+                habilidad=self.habilidad,
+                estado='cola',
+                payload={'texto': f'tarea {i}'}
+            )
+        url = reverse('lista_tareas')
+        response = self.client.get(url)
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        # Primera página: 20 tareas
+        assert 'Página 1 de 2' in content
+        # Verificar que hay checkboxes
+        assert 'name="task_ids"' in content
+        assert 'id="select-all-tasks"' in content
+        # Segunda página
+        response = self.client.get(url + '?page=2')
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        assert 'Página 2 de 2' in content
+
+    def test_lista_tareas_filtro_estado_con_paginacion(self):
+        """El filtro de estado funciona con paginación."""
+        self.client.login(username='testuser', password='testpass123')
+        t_cola = Tarea.objects.create(agente=self.agente, habilidad=self.habilidad, estado='cola', payload={'texto': 'c1'})
+        t_ok1 = Tarea.objects.create(agente=self.agente, habilidad=self.habilidad, estado='ok', payload={'texto': 'o1'})
+        t_ok2 = Tarea.objects.create(agente=self.agente, habilidad=self.habilidad, estado='ok', payload={'texto': 'o2'})
+        url = reverse('lista_tareas') + '?estado=ok'
+        response = self.client.get(url)
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        assert 'Página 1 de 1' in content
+        # Verificar que la tabla contiene las tareas en estado 'ok' (buscar por ID en enlace de detalle)
+        assert f'href="{reverse("detalle_tarea", args=[t_ok1.pk])}"' in content
+        assert f'href="{reverse("detalle_tarea", args=[t_ok2.pk])}"' in content
+        # Verificar que la tarea en cola NO está en la tabla
+        assert f'href="{reverse("detalle_tarea", args=[t_cola.pk])}"' not in content
+
+    def test_acciones_lote_tareas_eliminar(self):
+        """Acción por lote: eliminar varias tareas."""
+        self.client.login(username='testuser', password='testpass123')
+        t1 = Tarea.objects.create(agente=self.agente, habilidad=self.habilidad, estado='cola', payload={'texto': 't1'})
+        t2 = Tarea.objects.create(agente=self.agente, habilidad=self.habilidad, estado='cola', payload={'texto': 't2'})
+        t3 = Tarea.objects.create(agente=self.agente, habilidad=self.habilidad, estado='cola', payload={'texto': 't3'})
+        url = reverse('acciones_lote_tareas')
+        response = self.client.post(url, {
+            'action': 'eliminar',
+            'task_ids': [t1.pk, t3.pk]
+        })
+        assert response.status_code == 302
+        assert not Tarea.objects.filter(pk=t1.pk).exists()
+        assert Tarea.objects.filter(pk=t2.pk).exists()  # t2 no seleccionada
+        assert not Tarea.objects.filter(pk=t3.pk).exists()
+
+    def test_acciones_lote_tareas_aprobar(self):
+        """Acción por lote: aprobar tareas en revisión."""
+        self.client.login(username='testuser', password='testpass123')
+        t1 = Tarea.objects.create(agente=self.agente, habilidad=self.habilidad, estado='revision', payload={'texto': 't1'})
+        t2 = Tarea.objects.create(agente=self.agente, habilidad=self.habilidad, estado='cola', payload={'texto': 't2'})  # no en revision
+        t3 = Tarea.objects.create(agente=self.agente, habilidad=self.habilidad, estado='revision', payload={'texto': 't3'})
+        url = reverse('acciones_lote_tareas')
+        response = self.client.post(url, {
+            'action': 'aprobar',
+            'task_ids': [t1.pk, t2.pk, t3.pk]
+        })
+        assert response.status_code == 302
+        t1.refresh_from_db()
+        t2.refresh_from_db()
+        t3.refresh_from_db()
+        assert t1.estado == 'ok'
+        assert t2.estado == 'cola'  # no cambia porque no estaba en revision
+        assert t3.estado == 'ok'
+
+    def test_acciones_lote_tareas_sin_seleccion(self):
+        """Acción por lote sin tareas seleccionadas muestra warning."""
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('acciones_lote_tareas')
+        response = self.client.post(url, {'action': 'eliminar'})
+        assert response.status_code == 302
+        # Verificar mensaje de warning
+        response = self.client.get(reverse('lista_tareas'))
+        content = response.content.decode('utf-8')
+        assert 'No se seleccionó ninguna tarea' in content
+
+    def test_lista_ejecuciones_paginacion(self):
+        """La lista de ejecuciones pagina correctamente (50 por página)."""
+        self.client.login(username='testuser', password='testpass123')
+        # Crear 55 ejecuciones
+        for i in range(55):
+            t = Tarea.objects.create(agente=self.agente, habilidad=self.habilidad, estado='ok', payload={'texto': f't{i}'})
+            Ejecucion.objects.create(tarea=t, modelo_usado='gemini-flash', tokens_in=10, tokens_out=20, ms=500)
+        url = reverse('lista_ejecuciones')
+        response = self.client.get(url)
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        assert 'Página 1 de 2' in content
+        # Segunda página
+        response = self.client.get(url + '?page=2')
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        assert 'Página 2 de 2' in content

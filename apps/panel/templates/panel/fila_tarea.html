@@ -1,4 +1,5 @@
 <tr id="task-{{ tarea.pk }}">
+    <td><input type="checkbox" name="task_ids" value="{{ tarea.pk }}"></td>
     <td><a href="{% url 'detalle_tarea' tarea.pk %}">{{ tarea.pk }}</a></td>
     <td><span class="badge {% if tarea.estado == 'ok' %}badge-success{% elif tarea.estado == 'fallo' %}badge-error{% elif tarea.estado == 'error' %}badge-error{% elif tarea.estado == 'revision' %}badge-warning{% else %}badge-info{% endif %}">{{ tarea.get_estado_display }}</span></td>
     <td>{{ tarea.agente }}</td>

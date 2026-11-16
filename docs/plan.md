@@ -1205,3 +1205,32 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 - Test suite completo (excluyendo 4 tests preexistentes rotos en test_pipeline.py/test_workflow.py): `172 passed, 2 warnings`.
 
 **Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Retrocompatible: solo añade funcionalidad CRUD faltante.
+
+## Paso UX-BATCH - Implementar paginación y acciones por lote en Tareas y Ejecuciones — COMPLETADO
+
+**Objetivo:** Mejorar la usabilidad del panel añadiendo paginación a las listas de tareas (20 por página) y ejecuciones (50 por página), y permitiendo acciones masivas (aprobar/eliminar) sobre múltiples tareas seleccionadas.
+
+**Archivos tocados (5):**
+- `apps/panel/views.py`: import `Paginator`; `lista_tareas` y `lista_ejecuciones` paginan sus querysets y pasan `page_obj` al contexto; nueva vista `acciones_lote_tareas` (`@login_required`, `@require_POST`) que procesa `action` (`aprobar`/`eliminar`) y `task_ids[]`, usa `messages` framework, y para `aprobar` invoca `continuar_workflow.func()` si la tarea tiene `paso_workflow`.
+- `apps/panel/urls.py`: ruta `tareas/lote/` → `acciones_lote_tareas`.
+- `apps/panel/templates/panel/tareas.html`: dentro del bloque `{% else %}` (lista), añadidos: checkbox "select all" en `<th>`, checkbox por fila en `<td>`, formulario `.form-lote` con `<select name="action">` y botón "Aplicar" con confirmación JS, paginación `.paginacion` con enlaces Primera/Anterior/Siguiente/Última preservando `estado_filtro`, script "select all" con guard `if (selectAll)`.
+- `apps/panel/templates/panel/fila_tarea.html`: columna checkbox `<input type="checkbox" name="task_ids" value="{{ tarea.pk }}">` como primer `<td>`.
+- `apps/panel/templates/panel/lista_ejecuciones.html`: itera `page_obj` en lugar de `ejecuciones`; paginación `.paginacion` al final.
+- `tests/test_panel.py`: 6 pruebas nuevas (`test_lista_tareas_paginacion`, `test_lista_tareas_filtro_estado_con_paginacion`, `test_acciones_lote_tareas_eliminar`, `test_acciones_lote_tareas_aprobar`, `test_acciones_lote_tareas_sin_seleccion`, `test_lista_ejecuciones_paginacion`).
+
+**Reglas respetadas:**
+- NO se modificó `models.py` ni se creó migración (`makemigrations --check --dry-run` → No changes detected).
+- Máximo 5 archivos modificados (aprobado por excepción).
+- `tareas.html` respeta la estructura dual `{% if tarea %}...{% else %}...{% endif %}`: toda la UI de lista (tabla, checkboxes, form lote, paginación) está dentro del `{% else %}`.
+- Script "select all" verifica existencia del elemento antes de añadir listener (evita error en vista detalle).
+- Paginación preserva query string `estado_filtro` en enlaces.
+- Vista lote usa `messages` framework y `redirect`; `aprobar` llama a `continuar_workflow.func()` (sincrónico en tests, asíncrono en worker Huey).
+- Estilo ARM Flow estricto: clases `.btn-primary`, `.btn-secondary`, `.input`, `.form-lote`, `.paginacion`, `.vacio`.
+- Pruebas sin APIs reales; `respx` no necesario aquí.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "lista_tareas or lista_ejecuciones or acciones_lote" -q` → `7 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_engine.py tests/test_integraciones.py tests/test_publicacion.py -q` → `25 passed`.
+
+**Impacto en contratos/datos:** SÍ contratos (nueva URL `acciones_lote_tareas`, parámetros POST `action` + `task_ids[]`). NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Retrocompatible: paginación opcional, acciones lote nuevas.
