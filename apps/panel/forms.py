@@ -103,6 +103,11 @@ class AgenteForm(forms.ModelForm):
 
 
 class CredencialForm(forms.ModelForm):
+    cambiar_api_key = forms.BooleanField(
+        required=False, label='Cambiar API Key',
+        help_text='Marca esta casilla solo si deseas reemplazar la clave existente.'
+    )
+
     class Meta:
         model = Credencial
         fields = ["nombre", "slug", "tipo", "secreto_cifrado", "metadata", "es_sistema"]
@@ -123,7 +128,22 @@ class CredencialForm(forms.ModelForm):
             field.widget.attrs.update({'class': 'input'})
         if self.instance and self.instance.pk and self.instance.secreto_cifrado:
             self.initial['secreto_cifrado'] = f"****{self.instance.secreto_cifrado[-4:]}"
-            self.fields['secreto_cifrado'].widget.attrs.update({'readonly': 'readonly'})
+            self.fields['secreto_cifrado'].required = False
+            self.fields['secreto_cifrado'].widget.attrs.pop('readonly', None)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        is_edit = self.instance and self.instance.pk
+        cambiar = cleaned_data.get('cambiar_api_key')
+        secreto = cleaned_data.get('secreto_cifrado')
+
+        if is_edit and not cambiar:
+            # No se marca cambiar: conservamos el valor original, eliminamos del cleaned_data
+            cleaned_data['secreto_cifrado'] = self.instance.secreto_cifrado
+        elif is_edit and cambiar and not secreto:
+            # Se marca cambiar pero campo vacío: error
+            self.add_error('secreto_cifrado', 'Debes escribir la nueva API Key para cambiarla.')
+        return cleaned_data
 
 
 class DestinoPublicacionForm(forms.ModelForm):

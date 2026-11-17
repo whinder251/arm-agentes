@@ -1571,3 +1571,29 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 - Motor resuelve `{{secreto}}` en metadata recursivamente (dicts anidados, listas) antes de ejecutar petición.
 
 **Impacto en contratos/datos:** NO modifica modelos ni migraciones. SÍ añade funcionalidad interna (resolución placeholders) — retrocompatible (si no hay `{{secreto}}`, pasa tal cual). NO afecta credenciales existentes, permisos, tareas en cola. SÍ cambia UI del formulario (label, help_text, placeholder) — mejora UX sin romper contratos.
+
+## Paso C.4-FIX-EDIT - Corregir edición de API Key en credenciales — COMPLETADO
+
+**Objetivo:** El campo API Key en CredencialForm quedó readonly al editar, impidiendo actualizar la clave. Replicar el patrón existente en ProveedorForm/DestinoPublicacionForm (campo `cambiar_api_key` / `cambiar_credenciales`) para que el usuario pueda reemplazar el secreto de forma explícita, y que al dejarlo vacío se conserve el valor existente.
+
+**Archivos tocados (3):**
+- `apps/panel/forms.py`: `CredencialForm` — añade campo `cambiar_api_key` (BooleanField), quita `readonly`, pone placeholder `****xxxx`, implementa `clean()` con lógica: si edición y no se marca `cambiar_api_key` → conserva secreto original; si se marca pero campo vacío → ValidationError; si creación → requerido normal.
+- `apps/panel/views.py`: `editar_credencial` — lógica manejada en form.clean(), vista sin cambios (reutiliza form.save()).
+- `tests/test_fase16.py`: 3 pruebas nuevas en `TestCredencialEditarAPIKey`: conservar secreto sin marcar, actualizar con marcar, error si marca sin escribir.
+
+**Reglas respetadas:**
+- No se modificó `models.py` ni se creó migración (`makemigrations --check --dry-run` → No changes detected).
+- No se tocó `tool_executor.py` (la resolución de `{{secreto}}` ya funciona).
+- Template `credencial_form.html` usa loop `{% for field in form %}` que renderiza automáticamente el checkbox `cambiar_api_key` con su help_text.
+- Cero estilos inline, cero bloques `<style>`; clases ARM Flow.
+- Pruebas sin APIs reales.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_fase16.py::TestCredencialEditarAPIKey -q` → `3 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_fase16.py -q` → `15 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "credencial" -q` → `2 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_engine.py tests/test_models.py -q` → `26 passed`.
+
+**Impacto en contratos/datos:** NO modifica modelos ni migraciones. SÍ cambia comportamiento del formulario (campo editable con patrón cambiar_api_key). Retrocompatible: sin marcar checkbox = conserva secreto existente. NO afecta credenciales persistidas, permisos, tareas en cola, contratos de API.
