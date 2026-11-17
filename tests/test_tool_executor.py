@@ -735,4 +735,59 @@ class TestEjecutarHerramientaHttp(TestCase):
         mock_request.assert_not_called()
 
 
+from apps.engine.tool_executor import _resolver_placeholders
+
+
+class TestResolverPlaceholders(TestCase):
+    """Pruebas de resolución de placeholders {{secreto}}."""
+
+    def test_resolver_placeholders_reemplaza_secreto(self):
+        """Verifica reemplazo simple de {{secreto}} en diccionario."""
+        config = {
+            "headers": {
+                "apikey": "{{secreto}}"
+            },
+            "base_url": "https://api.example.com",
+        }
+        resultado = _resolver_placeholders(config, "sk-real-123")
+        self.assertEqual(resultado["headers"]["apikey"], "sk-real-123")
+        self.assertEqual(resultado["base_url"], "https://api.example.com")
+
+    def test_resolver_placeholders_recursivo(self):
+        """Verifica reemplazo en dicts anidados y listas."""
+        config = {
+            "headers": {
+                "Authorization": "Bearer {{secreto}}",
+                "X-Custom": ["{{secreto}}", "otro-valor"],
+            },
+            "metadata": {
+                "nested": {
+                    "token": "{{secreto}}"
+                }
+            },
+            "endpoint": "/api/v1",
+        }
+        resultado = _resolver_placeholders(config, "sk-live-abc")
+        self.assertEqual(resultado["headers"]["Authorization"], "Bearer sk-live-abc")
+        self.assertEqual(resultado["headers"]["X-Custom"], ["sk-live-abc", "otro-valor"])
+        self.assertEqual(resultado["metadata"]["nested"]["token"], "sk-live-abc")
+        self.assertEqual(resultado["endpoint"], "/api/v1")
+
+    def test_resolver_placeholders_sin_placeholder(self):
+        """Verifica que strings sin {{secreto}} pasan intactos."""
+        config = {
+            "headers": {
+                "Authorization": "Bearer token-fijo",
+                "X-API-Key": "sk-fijo-123",
+            },
+            "base_url": "https://api.example.com",
+            "endpoint": "/v1/data",
+        }
+        resultado = _resolver_placeholders(config, "sk-real-123")
+        # Nada debe cambiar porque no hay {{secreto}}
+        self.assertEqual(resultado["headers"]["Authorization"], "Bearer token-fijo")
+        self.assertEqual(resultado["headers"]["X-API-Key"], "sk-fijo-123")
+        self.assertEqual(resultado["base_url"], "https://api.example.com")
+        self.assertEqual(resultado["endpoint"], "/v1/data")
+
 import socket

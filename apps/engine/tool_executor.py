@@ -123,6 +123,25 @@ def _validar_endpoint_seguro(url: str) -> None:
             )
 
 
+def _resolver_placeholders(config: dict, secreto: str) -> dict:
+    """Recorre recursivamente el diccionario y reemplaza {{secreto}} con el valor real.
+
+    Maneja dicts anidados, listas y strings. Solo reemplaza la cadena exacta
+    "{{secreto}}" (case-sensitive) para evitar falsos positivos.
+    """
+
+    def _resolver_valor(valor: Any) -> Any:
+        if isinstance(valor, str):
+            return valor.replace("{{secreto}}", secreto)
+        elif isinstance(valor, dict):
+            return {clave: _resolver_valor(subvalor) for clave, subvalor in valor.items()}
+        elif isinstance(valor, list):
+            return [_resolver_valor(item) for item in valor]
+        return valor
+
+    return _resolver_valor(config)
+
+
 def _obtener_configuracion_ejecucion(herramienta: Herramienta) -> dict:
     """Fusiona la configuración de la herramienta con su credencial desencriptada.
 
@@ -154,6 +173,9 @@ def _obtener_configuracion_ejecucion(herramienta: Herramienta) -> dict:
                 f"está vinculada a la herramienta '{herramienta.nombre}' "
                 f"pero su secreto está vacío."
             )
+
+        # Resolver placeholders {{secreto}} en metadata ANTES de fusionar
+        metadata = _resolver_placeholders(metadata, secreto)
 
         # Fusionar: metadata < config_herramienta < secreto
         # metadata provee base_url (OBLIGATORIO), header_scheme, header_name, username, etc.

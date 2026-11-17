@@ -1538,3 +1538,36 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "integraciones or destino" -q` → `9 passed`.
 
 **Impacto en contratos/datos:** NO modifica modelos ni migraciones. SÍ refuerza contratos internos de `tool_executor.py` (validaciones estrictas, excepción `ToolExecutionError`). NO afecta credenciales existentes, permisos, tareas en cola ni compatibilidad. Retrocompatible: misma firma de funciones, comportamiento más estricto.
+
+## Paso C.4-CREDENTIAL-UX - Mejorar UX de credenciales con placeholders {{secreto}} y labels intuitivos — COMPLETADO
+
+**Objetivo:**
+1) Cambiar el label de "Secreto cifrado" a "API Key" en el formulario de credenciales.
+2) Mejorar el texto de ayuda para explicar el uso de `{{secreto}}`.
+3) Implementar resolución de placeholders `{{secreto}}` en el motor de ejecución.
+4) Asegurar que el campo muestre el valor enmascarado al editar (ej. `****k6dQ`).
+
+**Archivos tocados (4):**
+- `apps/panel/forms.py`: `CredencialForm` — label "API Key", help_text explica `{{secreto}}`, placeholder `sk-... o {{secreto}}`, valor enmascarado `****{últimos 4 chars}` al editar (readonly).
+- `apps/engine/tool_executor.py`: Nueva función `_resolver_placeholders(config, secreto)` recursiva (maneja dict, list, str); integrada en `_obtener_configuracion_ejecucion` para resolver `{{secreto}}` en metadata antes de fusionar con config de herramienta.
+- `apps/panel/templates/panel/credencial_form.html`: Ejemplo visual debajo del campo Metadata: `{"headers": {"apikey": "{{secreto}}"}, "base_url": "https://api.example.com"}`.
+- `tests/test_tool_executor.py`: 3 pruebas nuevas en `TestResolverPlaceholders`: `test_resolver_placeholders_reemplaza_secreto`, `test_resolver_placeholders_recursivo`, `test_resolver_placeholders_sin_placeholder`.
+
+**Reglas respetadas:**
+- No se modificó `models.py` (estructura de datos intacta).
+- No se creó migración (`makemigrations --check --dry-run` → No changes detected).
+- Cero estilos inline, cero bloques `<style>`; clases ARM Flow.
+- Pruebas sin APIs reales; `unittest.mock.patch` donde aplica.
+- No se ejecutó `git push`.
+- Commit: "C.4: Mejorar UX de credenciales con placeholders {{secreto}} y labels intuitivos".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_tool_executor.py -q` → `43 passed in 4.40s` (incluye 3 nuevos tests).
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "credencial" -q` → `2 passed`.
+- Formulario muestra "API Key" (no "Secreto cifrado"), help_text explica `{{secreto}}`, placeholder `sk-... o {{secreto}}`.
+- Al editar credencial guardada, campo muestra `****1234` (enmascarado) y readonly.
+- Motor resuelve `{{secreto}}` en metadata recursivamente (dicts anidados, listas) antes de ejecutar petición.
+
+**Impacto en contratos/datos:** NO modifica modelos ni migraciones. SÍ añade funcionalidad interna (resolución placeholders) — retrocompatible (si no hay `{{secreto}}`, pasa tal cual). NO afecta credenciales existentes, permisos, tareas en cola. SÍ cambia UI del formulario (label, help_text, placeholder) — mejora UX sin romper contratos.

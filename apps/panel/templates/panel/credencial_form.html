@@ -27,6 +27,11 @@
             </ul>
             {% endif %}
             {% if field.help_text %}<p class="ayuda">{{ field.help_text }}</p>{% endif %}
+            {% if field.name == "metadata" %}
+            <p class="ayuda">
+                Ejemplo: <code>{"headers": {"apikey": "{{secreto}}"}, "base_url": "https://api.example.com"}</code>
+            </p>
+            {% endif %}
         </div>
         {% endfor %}
         <div class="acciones-formulario">

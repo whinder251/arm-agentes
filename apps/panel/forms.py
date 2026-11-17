@@ -106,8 +106,14 @@ class CredencialForm(forms.ModelForm):
     class Meta:
         model = Credencial
         fields = ["nombre", "slug", "tipo", "secreto_cifrado", "metadata", "es_sistema"]
+        labels = {
+            "secreto_cifrado": "API Key",
+        }
+        help_texts = {
+            "secreto_cifrado": "Clave secreta que se usará para autenticar las peticiones. Puedes referenciarla en el Metadata usando {{secreto}}.",
+        }
         widgets = {
-            "secreto_cifrado": forms.PasswordInput,
+            "secreto_cifrado": forms.PasswordInput(attrs={"placeholder": "sk-... o {{secreto}}"}),
             "metadata": forms.Textarea(attrs={"rows": 4}),
         }
 
