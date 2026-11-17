@@ -6,10 +6,11 @@ obligatorio y sanitizado de logs. Listo para ser consumido por el
 orquestador (Fase 4) y por el botón "Probar conexión" del panel.
 """
 
+import base64
 import logging
 import socket
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 import ipaddress
 import requests
@@ -18,68 +19,73 @@ from apps.core.models import Credencial, Herramienta
 
 logger = logging.getLogger(__name__)
 
-# Claves que nunca deben aparecer en logs ni serializaciones
+# Excepción personalizada para errores de ejecución de herramientas
+class ToolExecutionError(Exception):
+    """Error genérico de ejecución de herramienta sin filtrar detalles sensibles."""
+    pass
+
+
+# Claves que nunca deben aparecer en logs ni serializaciones (case-insensitive)
 _CLAVES_SENSIBLES = {
     "api_key",
+    "apikey",
+    "secret",
     "secreto",
     "password",
     "token",
+    "authorization",
+    "cookie",
     "secreto_desencriptado",
     "credentials_json",
     "app_password",
+    "x-api-key",
+    "x_api_key",
 }
 
-# Rangos IP bloqueados por política SSRF (IPv4 e IPv6)
-_RANGOS_BLOQUEADOS = [
-    ipaddress.ip_network("127.0.0.0/8"),      # Loopback
-    ipaddress.ip_network("10.0.0.0/8"),       # Privado RFC 1918
-    ipaddress.ip_network("172.16.0.0/12"),    # Privado RFC 1918
-    ipaddress.ip_network("192.168.0.0/16"),   # Privado RFC 1918
-    ipaddress.ip_network("169.254.0.0/16"),   # Link-local
-    ipaddress.ip_network("::1/128"),          # Loopback IPv6
-    ipaddress.ip_network("fc00::/7"),         # Unique local IPv6
-]
+
+# Headers que no pueden ser sobrescritos por extra_headers
+_HEADERS_PROTEGIDOS = {
+    "authorization",
+    "host",
+    "content-length",
+    "connection",
+    "x-forwarded-for",
+    "x-forwarded-proto",
+    "x-forwarded-host",
+    "x-forwarded-port",
+    "forwarded",
+}
 
 
 def _sanitizar_config(config: dict) -> dict:
     """Devuelve una copia profunda del diccionario con claves sensibles enmascaradas.
 
-    Sanitiza recursivamente diccionarios anidados (ej. headers) y valores
-    que contengan patrones de secretos (Bearer, Basic, API keys).
+    Sanitiza recursivamente diccionarios anidados (ej. headers, metadata, params)
+    verificando el NOMBRE de la clave (case-insensitive) en TODOS los niveles.
     """
-    _PATRONES_SENSIBLES = (
-        "bearer ",
-        "basic ",
-        "api_key",
-        "apikey",
-    )
 
-    def _contiene_secreto(valor: str) -> bool:
-        if not isinstance(valor, str):
-            return False
-        v_lower = valor.lower()
-        return any(p in v_lower for p in _PATRONES_SENSIBLES)
-
-    def _sanitizar_valor(valor):
+    def _sanitizar_valor(valor: Any) -> Any:
         if isinstance(valor, dict):
-            return {k: _sanitizar_valor(v) for k, v in valor.items()}
+            sanitizado = {}
+            for clave, subvalor in valor.items():
+                if isinstance(clave, str) and clave.lower() in _CLAVES_SENSIBLES:
+                    sanitizado[clave] = "***"
+                else:
+                    sanitizado[clave] = _sanitizar_valor(subvalor)
+            return sanitizado
         elif isinstance(valor, list):
             return [_sanitizar_valor(v) for v in valor]
-        elif isinstance(valor, str) and _contiene_secreto(valor):
-            return "***"
         return valor
 
-    sanitizada = {}
-    for clave, valor in config.items():
-        if clave.lower() in _CLAVES_SENSIBLES:
-            sanitizada[clave] = "***"
-        else:
-            sanitizada[clave] = _sanitizar_valor(valor)
-    return sanitizada
+    return _sanitizar_valor(config)
 
 
 def _validar_endpoint_seguro(url: str) -> None:
     """Valida que el endpoint no apunte a redes internas (SSRF).
+
+    Usa ipaddress para verificar que la IP resuelta sea is_global.
+    Rechaza explícitamente IPs privadas, loopback, link-local, multicast,
+    reservadas y desempaqueta direcciones IPv4-mapped en IPv6.
 
     Lanza ValueError si la URL resuelve a una IP bloqueada.
     """
@@ -104,12 +110,17 @@ def _validar_endpoint_seguro(url: str) -> None:
         except ValueError:
             continue
 
-        for rango in _RANGOS_BLOQUEADOS:
-            if direccion in rango:
-                raise ValueError(
-                    f"Endpoint bloqueado por política SSRF: {ip_str} "
-                    f"pertenece a rango restringido ({rango})."
-                )
+        # Desempaquetar IPv4-mapped IPv6 (ej. ::ffff:127.0.0.1 → 127.0.0.1)
+        if direccion.version == 6 and direccion.ipv4_mapped:
+            direccion = direccion.ipv4_mapped
+
+        # Validar usando is_global (True solo para IPs públicas globales)
+        # is_global es False para: private, loopback, link-local, multicast, reserved, unspecified
+        if not direccion.is_global:
+            raise ValueError(
+                f"Endpoint bloqueado por política SSRF: {ip_str} "
+                f"no es una IP pública global (pertenece a rango restringido)."
+            )
 
 
 def _obtener_configuracion_ejecucion(herramienta: Herramienta) -> dict:
@@ -120,9 +131,17 @@ def _obtener_configuracion_ejecucion(herramienta: Herramienta) -> dict:
     2. configuración propia de la herramienta (endpoint, timeout, params)
     3. secreto_desencriptado (inyectado al final)
 
+    IMPORTANTE: El `base_url` de destino DEBE provenir de `credencial.metadata`
+    para prevenir cross-wiring (host malicioso). El `endpoint` (ruta) puede venir
+    de la herramienta. Se ignora `base_url` en `herramienta.configuracion`.
+
     Lanza ValueError si la credencial existe pero su secreto está vacío.
     """
-    config = dict(herramienta.configuracion or {})
+    # Tomar configuración de la herramienta, PERO eliminar base_url (solo de credencial)
+    config_herramienta = dict(herramienta.configuracion or {})
+    # Eliminar base_url de la herramienta - SOLO credencial define el host
+    config_herramienta.pop("base_url", None)
+    # endpoint SÍ puede venir de la herramienta (ruta específica)
 
     if herramienta.credencial is not None:
         credencial: Credencial = herramienta.credencial
@@ -136,16 +155,25 @@ def _obtener_configuracion_ejecucion(herramienta: Herramienta) -> dict:
                 f"pero su secreto está vacío."
             )
 
-        # Fusionar: metadata < config < secreto
-        config_ejecucion = {**metadata, **config}
+        # Fusionar: metadata < config_herramienta < secreto
+        # metadata provee base_url (OBLIGATORIO), header_scheme, header_name, username, etc.
+        # config_herramienta provee endpoint, timeout, params, etc.
+        config_ejecucion = {**metadata, **config_herramienta}
         config_ejecucion["secreto_desencriptado"] = secreto
         return config_ejecucion
 
-    return config
+    return config_herramienta
 
 
 def _construir_headers_autenticacion(config: dict) -> dict:
-    """Construye los headers de autenticación según el tipo de credencial."""
+    """Construye los headers de autenticación según el tipo de credencial.
+
+    Respeta `Credencial.tipo` (vía metadata header_scheme):
+    - api_key: usa `header_name` (default 'X-API-Key')
+    - basic: usa `username` del metadata y codifica en Base64
+    - bearer: usa el secreto en Authorization: Bearer
+    - json: no añade headers, solo marca para inyección en body
+    """
     headers = {}
     secreto = config.get("secreto_desencriptado")
     if not secreto:
@@ -160,7 +188,6 @@ def _construir_headers_autenticacion(config: dict) -> dict:
         headers[header_name] = secreto
     elif header_scheme == "basic":
         username = config.get("username", "")
-        import base64
         token = base64.b64encode(f"{username}:{secreto}".encode()).decode()
         headers["Authorization"] = f"Basic {token}"
     # Para 'json' el secreto va en el body, no en headers
@@ -179,63 +206,107 @@ def _ejecutar_herramienta_http(herramienta: Herramienta, payload: dict) -> dict:
         Diccionario con 'status' (int) y 'body' (dict o str).
 
     Lanza:
-        ValueError: Si falla la validación SSRF o falta credencial.
-        requests.RequestException: Errores de red/HTTP propagados.
+        ValueError: Si falla la validación SSRF o validación de inputs.
+        ToolExecutionError: Errores de red/HTTP envueltos sin filtrar detalles sensibles.
     """
     config = _obtener_configuracion_ejecucion(herramienta)
 
-    # Determinar endpoint: prioridad endpoint > base_url
-    # Si endpoint es ruta relativa y hay base_url, unirlos
+    # Determinar endpoint: base_url OBLIGATORIO de credencial, endpoint de herramienta
     endpoint = config.get("endpoint")
     base_url = config.get("base_url")
-    if endpoint and base_url and not endpoint.startswith(("http://", "https://")):
-        from urllib.parse import urljoin
-        endpoint = urljoin(base_url.rstrip("/") + "/", endpoint.lstrip("/"))
-    elif not endpoint:
-        endpoint = base_url
+
+    if not base_url:
+        raise ValueError(
+            f"La credencial de la herramienta '{herramienta.nombre}' "
+            f"no tiene 'base_url' configurado en metadata (requerido para prevenir cross-wiring)."
+        )
 
     if not endpoint:
         raise ValueError(
-            f"La herramienta '{herramienta.nombre}' no tiene 'endpoint' "
-            f"ni 'base_url' configurados."
+            f"La herramienta '{herramienta.nombre}' no tiene 'endpoint' configurado."
         )
 
+    if base_url and not endpoint.startswith(("http://", "https://")):
+        endpoint = urljoin(base_url.rstrip("/") + "/", endpoint.lstrip("/"))
+    elif not base_url and not endpoint.startswith(("http://", "https://")):
+        # Si no hay base_url, el endpoint debe ser URL absoluta
+        raise ValueError(
+            f"La herramienta '{herramienta.nombre}' requiere 'base_url' en la credencial "
+            f"cuando 'endpoint' es una ruta relativa."
+        )
+
+    # Validar SSRF ANTES de cualquier petición
     _validar_endpoint_seguro(endpoint)
 
-    # Timeout obligatorio con default 30s
-    timeout = config.get("timeout", 30)
+    # Timeout obligatorio: forzar float, rango 1-120, default 30
+    # Rechazar strings aunque sean numéricos (solo int/float permitidos)
+    timeout_raw = config.get("timeout", 30)
+    if not isinstance(timeout_raw, (int, float)):
+        raise ValueError("Timeout inválido: debe ser un número (int o float), no string.")
+    try:
+        timeout = float(timeout_raw)
+    except (TypeError, ValueError):
+        raise ValueError("Timeout inválido: debe ser un número.")
 
-    # Método HTTP (default POST)
+    if timeout <= 0 or timeout > 120:
+        raise ValueError("Timeout inválido: debe estar entre 1 y 120 segundos.")
+
+    # Método HTTP: allowlist estricta
     metodo = config.get("method", "POST").upper()
+    if metodo not in ("GET", "POST", "PUT", "PATCH"):
+        raise ValueError(f"Método HTTP no permitido: {metodo}. Permitidos: GET, POST, PUT, PATCH.")
 
     # Headers de autenticación
     headers = _construir_headers_autenticacion(config)
-    # Headers adicionales de la configuración
+
+    # Headers adicionales de la configuración - BLOQUEAR override de headers protegidos
     extra_headers = config.get("headers", {})
     if isinstance(extra_headers, dict):
-        headers.update(extra_headers)
+        for clave, valor in extra_headers.items():
+            if isinstance(clave, str) and clave.lower() in _HEADERS_PROTEGIDOS:
+                # Ignorar silenciosamente headers protegidos
+                continue
+            headers[clave] = valor
 
     # Log sanitizado (NUNCA el config crudo)
+    # Sanitizar headers reemplazando el valor del secreto si aparece en algún header
+    headers_para_log = dict(headers)
+    secreto = config.get("secreto_desencriptado")
+    if secreto:
+        for clave, valor in headers_para_log.items():
+            if isinstance(valor, str) and secreto in valor:
+                headers_para_log[clave] = "***"
+
     logger.info(
         "Ejecutando herramienta '%s': %s %s",
         herramienta.nombre,
         metodo,
-        _sanitizar_config({**config, "headers": headers}),
+        _sanitizar_config({**config, "headers": headers_para_log}),
     )
 
     # Para credenciales tipo 'json', añadir secreto al payload si se especifica
     json_payload = dict(payload)
     if config.get("inject_secret_in_body") and config.get("secreto_desencriptado"):
         secret_key = config.get("secret_body_key", "api_key")
+        if secret_key in json_payload:
+            raise ValueError(
+                f"La clave '{secret_key}' ya existe en el payload; "
+                f"no se puede inyectar el secreto (prevención de colisión)."
+            )
         json_payload[secret_key] = config["secreto_desencriptado"]
 
-    response = requests.request(
-        method=metodo,
-        url=endpoint,
-        json=json_payload,
-        headers=headers,
-        timeout=timeout,
-    )
+    try:
+        response = requests.request(
+            method=metodo,
+            url=endpoint,
+            json=json_payload,
+            headers=headers,
+            timeout=timeout,
+            allow_redirects=False,  # OBLIGATORIO: no seguir redirecciones no validadas
+        )
+    except requests.RequestException as exc:
+        # Relanzar excepción genérica SIN detalles sensibles (URL, headers, body)
+        raise ToolExecutionError("Error de red al ejecutar la herramienta") from exc
 
     try:
         body = response.json()

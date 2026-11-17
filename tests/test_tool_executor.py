@@ -6,6 +6,7 @@ Ninguna llamada sale a la red; se usan mocks para HTTP y resolución DNS.
 from __future__ import annotations
 
 import logging
+import socket
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -13,6 +14,7 @@ from django.test import TestCase
 
 from apps.core.models import Credencial, Herramienta
 from apps.engine.tool_executor import (
+    ToolExecutionError,
     _ejecutar_herramienta_http,
     _obtener_configuracion_ejecucion,
     _sanitizar_config,
@@ -65,6 +67,42 @@ class TestSanitizarConfig(TestCase):
         original = {"api_key": "real", "endpoint": "url"}
         _sanitizar_config(original)
         self.assertEqual(original["api_key"], "real")
+
+    def test_sanitizar_recursivo_en_headers(self):
+        """Verifica que el sanitizado recorre headers anidados por nombre de clave."""
+        config = {
+            "headers": {
+                "Authorization": "Bearer secret-token",
+                "X-API-Key": "sk-live-123",
+                "X-Custom-Header": "valor-normal",
+                "Cookie": "session=abc",
+            },
+            "endpoint": "https://api.example.com",
+        }
+        resultado = _sanitizar_config(config)
+        self.assertEqual(resultado["headers"]["Authorization"], "***")
+        self.assertEqual(resultado["headers"]["X-API-Key"], "***")
+        self.assertEqual(resultado["headers"]["Cookie"], "***")
+        self.assertEqual(resultado["headers"]["X-Custom-Header"], "valor-normal")
+
+    def test_sanitizar_recursivo_en_metadata(self):
+        """Verifica que el sanitizado recorre metadata anidada por nombre de clave."""
+        config = {
+            "metadata": {
+                "api_key": "sk-meta-123",
+                "username": "user",
+                "nested": {
+                    "secret": "deep-secret",
+                    "public": "valor",
+                },
+            },
+            "endpoint": "https://api.example.com",
+        }
+        resultado = _sanitizar_config(config)
+        self.assertEqual(resultado["metadata"]["api_key"], "***")
+        self.assertEqual(resultado["metadata"]["nested"]["secret"], "***")
+        self.assertEqual(resultado["metadata"]["username"], "user")
+        self.assertEqual(resultado["metadata"]["nested"]["public"], "valor")
 
 
 class TestValidarEndpointSeguro(TestCase):
@@ -142,6 +180,17 @@ class TestValidarEndpointSeguro(TestCase):
         with self.assertRaises(ValueError) as ctx:
             _validar_endpoint_seguro("http://[fc00::1]")
         self.assertIn("SSRF", str(ctx.exception))
+
+    @patch("socket.getaddrinfo")
+    def test_ssrf_bloquea_ipv4_mapped_ipv6(self, mock_getaddrinfo):
+        """Prueba que IPv4-mapped IPv6 (::ffff:127.0.0.1) se desempaqueta y bloquea."""
+        mock_getaddrinfo.return_value = [
+            (socket.AF_INET6, socket.SOCK_STREAM, 6, "", ("::ffff:127.0.0.1", 0, 0, 0)),
+        ]
+        with self.assertRaises(ValueError) as ctx:
+            _validar_endpoint_seguro("http://[::ffff:127.0.0.1]")
+        self.assertIn("SSRF", str(ctx.exception))
+        self.assertIn("127.0.0.1", str(ctx.exception))
 
     def test_endpoint_vacio_lanza_error(self):
         with self.assertRaises(ValueError) as ctx:
@@ -231,10 +280,36 @@ class TestObtenerConfiguracionEjecucion(TestCase):
         config = _obtener_configuracion_ejecucion(herramienta)
         # timeout de herramienta (30) gana sobre metadata (5)
         self.assertEqual(config["timeout"], 30)
-        # endpoint de herramienta existe, metadata no tiene endpoint
+        # endpoint de herramienta existe
         self.assertEqual(config["endpoint"], "/custom")
         # base_url viene de metadata
         self.assertEqual(config["base_url"], "https://meta.example.com")
+
+    def test_base_url_de_herramienta_se_ignora_endpoint_no(self):
+        """Verifica que base_url en herramienta.configuracion se ignora (anti cross-wiring),
+        pero endpoint SÍ se toma de la herramienta (ruta legítima)."""
+        credencial = Credencial.objects.create(
+            nombre="Cred Test",
+            slug="cred-test-2",
+            tipo="api_key",
+            secreto_cifrado="sk-test",
+            metadata={"base_url": "https://credencial.example.com"},
+        )
+        herramienta = Herramienta.objects.create(
+            nombre="Herramienta",
+            slug="herramienta-cross-wiring",
+            tipo="api",
+            configuracion={
+                "base_url": "https://malicioso.evil.com",  # Debe ser ignorado
+                "endpoint": "/herramienta/endpoint",  # Debe usarse (ruta de la herramienta)
+                "timeout": 10,
+            },
+            credencial=credencial,
+        )
+        config = _obtener_configuracion_ejecucion(herramienta)
+        self.assertEqual(config["base_url"], "https://credencial.example.com")
+        self.assertEqual(config["endpoint"], "/herramienta/endpoint")
+        self.assertEqual(config["timeout"], 10)
 
 
 class TestEjecutarHerramientaHttp(TestCase):
@@ -293,7 +368,15 @@ class TestEjecutarHerramientaHttp(TestCase):
 
     @patch("apps.engine.tool_executor.requests.request")
     @patch("apps.engine.tool_executor._validar_endpoint_seguro")
-    def test_ejecucion_http_log_sanitizado(self, mock_validar, mock_request):
+    def test_ejecucion_http_log_sanitizado_api_key_header(self, mock_validar, mock_request):
+        """Prueba que el log no filtra el secreto cuando header_scheme='api_key' con header_name personalizado."""
+        self.credencial.metadata = {
+            "base_url": "https://api.example.com",
+            "header_scheme": "api_key",
+            "header_name": "X-Custom-Key",
+        }
+        self.credencial.save()
+
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {"ok": True}
@@ -325,11 +408,17 @@ class TestEjecutarHerramientaHttp(TestCase):
         # El secreto NO debe aparecer en el log
         self.assertNotIn("sk-live-abc123", log_msg)
         self.assertIn("***", log_msg)
+        # Verificar que el header personalizado aparece sanitizado
+        self.assertIn("X-Custom-Key", log_msg)
 
     @patch("apps.engine.tool_executor.requests.request")
     @patch("apps.engine.tool_executor._validar_endpoint_seguro")
     def test_ejecucion_http_header_scheme_api_key(self, mock_validar, mock_request):
-        self.credencial.metadata = {"base_url": "https://api.example.com", "header_scheme": "api_key", "header_name": "X-Custom-Key"}
+        self.credencial.metadata = {
+            "base_url": "https://api.example.com",
+            "header_scheme": "api_key",
+            "header_name": "X-Custom-Key",
+        }
         self.credencial.save()
 
         mock_response = MagicMock()
@@ -348,7 +437,11 @@ class TestEjecutarHerramientaHttp(TestCase):
     @patch("apps.engine.tool_executor.requests.request")
     @patch("apps.engine.tool_executor._validar_endpoint_seguro")
     def test_ejecucion_http_header_scheme_basic(self, mock_validar, mock_request):
-        self.credencial.metadata = {"base_url": "https://api.example.com", "header_scheme": "basic", "username": "user"}
+        self.credencial.metadata = {
+            "base_url": "https://api.example.com",
+            "header_scheme": "basic",
+            "username": "user",
+        }
         self.credencial.save()
 
         mock_response = MagicMock()
@@ -400,13 +493,20 @@ class TestEjecutarHerramientaHttp(TestCase):
 
     @patch("apps.engine.tool_executor.requests.request")
     @patch("apps.engine.tool_executor._validar_endpoint_seguro")
-    def test_ejecucion_http_error_red_propagado(self, mock_validar, mock_request):
+    def test_ejecucion_http_error_red_envuelto_sin_filtracion(self, mock_validar, mock_request):
+        """Verifica que errores de red se envuelven en ToolExecutionError sin filtrar URL/headers."""
         mock_validar.return_value = None
         import requests as requests_lib
         mock_request.side_effect = requests_lib.ConnectionError("Connection refused")
 
-        with self.assertRaises(requests_lib.ConnectionError):
+        with self.assertRaises(ToolExecutionError) as ctx:
             _ejecutar_herramienta_http(self.herramienta, {})
+
+        # El mensaje NO debe contener la URL ni detalles sensibles
+        self.assertEqual(str(ctx.exception), "Error de red al ejecutar la herramienta")
+        self.assertNotIn("https://api.example.com", str(ctx.exception))
+        self.assertNotIn("sk-live-abc123", str(ctx.exception))
+        self.assertNotIn("Authorization", str(ctx.exception))
 
     @patch("apps.engine.tool_executor.requests.request")
     @patch("apps.engine.tool_executor._validar_endpoint_seguro")
@@ -473,7 +573,165 @@ class TestEjecutarHerramientaHttp(TestCase):
         with self.assertRaises(ValueError) as ctx:
             _ejecutar_herramienta_http(herramienta_sin_url, {})
 
-        self.assertIn("endpoint", str(ctx.exception).lower())
+        self.assertIn("base_url", str(ctx.exception).lower())
+        mock_request.assert_not_called()
+
+    @patch("apps.engine.tool_executor.requests.request")
+    @patch("apps.engine.tool_executor._validar_endpoint_seguro")
+    def test_allow_redirects_false_obligatorio(self, mock_validar, mock_request):
+        """Verifica que allow_redirects=False se pasa obligatoriamente a requests."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {}
+        mock_request.return_value = mock_response
+        mock_validar.return_value = None
+
+        _ejecutar_herramienta_http(self.herramienta, {})
+
+        args, kwargs = mock_request.call_args
+        self.assertIn("allow_redirects", kwargs)
+        self.assertFalse(kwargs["allow_redirects"])
+
+    @patch("apps.engine.tool_executor.requests.request")
+    @patch("apps.engine.tool_executor._validar_endpoint_seguro")
+    def test_timeout_invalido_none_lanza_error(self, mock_validar, mock_request):
+        """Prueba que timeout=None lanza ValueError."""
+        self.herramienta.configuracion = {"endpoint": "/test", "timeout": None}
+        self.herramienta.save()
+
+        mock_validar.return_value = None
+
+        with self.assertRaises(ValueError) as ctx:
+            _ejecutar_herramienta_http(self.herramienta, {})
+        self.assertIn("Timeout inválido", str(ctx.exception))
+        mock_request.assert_not_called()
+
+    @patch("apps.engine.tool_executor.requests.request")
+    @patch("apps.engine.tool_executor._validar_endpoint_seguro")
+    def test_timeout_invalido_cero_lanza_error(self, mock_validar, mock_request):
+        """Prueba que timeout=0 lanza ValueError."""
+        self.herramienta.configuracion = {"endpoint": "/test", "timeout": 0}
+        self.herramienta.save()
+
+        mock_validar.return_value = None
+
+        with self.assertRaises(ValueError) as ctx:
+            _ejecutar_herramienta_http(self.herramienta, {})
+        self.assertIn("Timeout inválido", str(ctx.exception))
+        mock_request.assert_not_called()
+
+    @patch("apps.engine.tool_executor.requests.request")
+    @patch("apps.engine.tool_executor._validar_endpoint_seguro")
+    def test_timeout_invalido_negativo_lanza_error(self, mock_validar, mock_request):
+        """Prueba que timeout negativo lanza ValueError."""
+        self.herramienta.configuracion = {"endpoint": "/test", "timeout": -5}
+        self.herramienta.save()
+
+        mock_validar.return_value = None
+
+        with self.assertRaises(ValueError) as ctx:
+            _ejecutar_herramienta_http(self.herramienta, {})
+        self.assertIn("Timeout inválido", str(ctx.exception))
+        mock_request.assert_not_called()
+
+    @patch("apps.engine.tool_executor.requests.request")
+    @patch("apps.engine.tool_executor._validar_endpoint_seguro")
+    def test_timeout_invalido_string_lanza_error(self, mock_validar, mock_request):
+        """Prueba que timeout string lanza ValueError."""
+        self.herramienta.configuracion = {"endpoint": "/test", "timeout": "30"}
+        self.herramienta.save()
+
+        mock_validar.return_value = None
+
+        with self.assertRaises(ValueError) as ctx:
+            _ejecutar_herramienta_http(self.herramienta, {})
+        self.assertIn("Timeout inválido", str(ctx.exception))
+        mock_request.assert_not_called()
+
+    @patch("apps.engine.tool_executor.requests.request")
+    @patch("apps.engine.tool_executor._validar_endpoint_seguro")
+    def test_timeout_fuera_de_rango_mayor_120_lanza_error(self, mock_validar, mock_request):
+        """Prueba que timeout > 120 lanza ValueError."""
+        self.herramienta.configuracion = {"endpoint": "/test", "timeout": 150}
+        self.herramienta.save()
+
+        mock_validar.return_value = None
+
+        with self.assertRaises(ValueError) as ctx:
+            _ejecutar_herramienta_http(self.herramienta, {})
+        self.assertIn("Timeout inválido", str(ctx.exception))
+        mock_request.assert_not_called()
+
+    @patch("apps.engine.tool_executor.requests.request")
+    @patch("apps.engine.tool_executor._validar_endpoint_seguro")
+    def test_metodo_no_permitido_lanza_error(self, mock_validar, mock_request):
+        """Prueba que método DELETE (no en allowlist) lanza ValueError."""
+        self.herramienta.configuracion = {"endpoint": "/test", "method": "DELETE"}
+        self.herramienta.save()
+
+        mock_validar.return_value = None
+
+        with self.assertRaises(ValueError) as ctx:
+            _ejecutar_herramienta_http(self.herramienta, {})
+        self.assertIn("Método HTTP no permitido", str(ctx.exception))
+        mock_request.assert_not_called()
+
+    @patch("apps.engine.tool_executor.requests.request")
+    @patch("apps.engine.tool_executor._validar_endpoint_seguro")
+    def test_extra_headers_no_sobrescribe_headers_protegidos(self, mock_validar, mock_request):
+        """Verifica que extra_headers no puede sobrescribir Authorization, Host, etc."""
+        self.herramienta.configuracion = {
+            "endpoint": "/test",
+            "headers": {
+                "Authorization": "Bearer malicious",
+                "Host": "evil.com",
+                "Content-Length": "9999",
+                "X-Forwarded-For": "1.2.3.4",
+                "X-Custom-Header": "allowed",
+            },
+        }
+        self.herramienta.save()
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {}
+        mock_request.return_value = mock_response
+        mock_validar.return_value = None
+
+        _ejecutar_herramienta_http(self.herramienta, {})
+
+        args, kwargs = mock_request.call_args
+        headers = kwargs["headers"]
+        # Headers protegidos deben mantener el valor original (Bearer token)
+        self.assertEqual(headers["Authorization"], "Bearer sk-live-abc123")
+        # Host no debe estar en headers (requests lo maneja)
+        self.assertNotIn("Host", headers)
+        # Content-Length no debe ser sobrescrito
+        self.assertNotIn("Content-Length", headers)
+        # X-Forwarded-* no debe ser sobrescrito
+        self.assertNotIn("X-Forwarded-For", headers)
+        # Header personalizado permitido debe pasar
+        self.assertEqual(headers["X-Custom-Header"], "allowed")
+
+    @patch("apps.engine.tool_executor.requests.request")
+    @patch("apps.engine.tool_executor._validar_endpoint_seguro")
+    def test_inject_secret_in_body_colision_lanza_error(self, mock_validar, mock_request):
+        """Verifica que inyección de secreto en body falla si la clave ya existe en payload."""
+        self.credencial.metadata = {"base_url": "https://api.example.com"}
+        self.credencial.save()
+        self.herramienta.configuracion = {
+            "endpoint": "/v1/endpoint",
+            "inject_secret_in_body": True,
+            "secret_body_key": "api_key",
+        }
+        self.herramienta.save()
+
+        mock_validar.return_value = None
+
+        # Payload ya contiene 'api_key'
+        with self.assertRaises(ValueError) as ctx:
+            _ejecutar_herramienta_http(self.herramienta, {"api_key": "user-provided"})
+        self.assertIn("ya existe en el payload", str(ctx.exception))
         mock_request.assert_not_called()
 
 

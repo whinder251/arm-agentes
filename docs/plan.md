@@ -1498,3 +1498,43 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 **Impacto en contratos/datos:** NO modifica modelos ni migraciones. SÍ añade nuevo contrato interno (módulo `tool_executor.py`). NO afecta credenciales existentes, permisos, tareas en cola ni compatibilidad. Retrocompatible: integración con orquestador pendiente en Fase 4.
 
 **Pendiente conocido:** Tests `test_api.py::test_webhook_crear_tarea_exitoso` y `test_consultar_tarea_exitoso` fallan por discrepancia de `ARM_API_KEY` en `.env` vs fallback de test (`dev-api-key-123`); es problema preexistente de entorno, no introducido por este cambio.
+
+## Paso C.3-FIX-MASTER - Remediar vulnerabilidades críticas de seguridad en el motor de herramientas — COMPLETADO
+
+**Objetivo:** Reescribir la lógica de `apps/engine/tool_executor.py` para cerrar las vulnerabilidades de log leak, SSRF, timeout y autenticación identificadas en la auditoría empírica, dejando el módulo listo para la Fase 4.
+
+**Archivos tocados (2):**
+- `apps/engine/tool_executor.py`: Reescritura completa de las funciones de seguridad:
+  - `_sanitizar_config`: Sanitizado recursivo por NOMBRE de clave (case-insensitive) en TODOS los niveles (headers, metadata, params). Enmascara claves: api_key, apikey, secret, secreto, password, token, authorization, cookie, secreto_desencriptado, credentials_json, app_password, x-api-key. Reemplaza valor del secreto en headers del log.
+  - `_validar_endpoint_seguro`: Usa `ipaddress.ip_address().is_global` para validar IP pública. Desempaqueta IPv4-mapped IPv6 (ej. `::ffff:127.0.0.1` → `127.0.0.1`). Rechaza private, loopback, link-local, multicast, reserved, unspecified.
+  - `_obtener_configuracion_ejecucion`: `base_url` OBLIGATORIO de `credencial.metadata` (anti cross-wiring). `endpoint` desde tool config (ruta legítima). Ignora `base_url` de tool config.
+  - `_construir_headers_autenticacion`: Respeta `header_scheme` (bearer, api_key con `header_name`, basic con `username`, json). No hardcodea Authorization.
+  - `_ejecutar_herramienta_http`: `allow_redirects=False` obligatorio. `timeout` validado: solo int/float, rango 1-120s, default 30. `method` allowlist: GET/POST/PUT/PATCH. Headers protegidos no sobrescribibles (authorization, host, content-length, connection, x-forwarded-*). Inyección secreto en body con prevención de colisión (`secret_body_key` no debe existir en payload). Excepciones de red envueltas en `ToolExecutionError` sin filtrar URL/headers/body.
+- `tests/test_tool_executor.py`: 40 pruebas (13 nuevas de seguridad):
+  - `test_sanitizar_recursivo_en_headers`, `test_sanitizar_recursivo_en_metadata`
+  - `test_ssrf_bloquea_ipv4_mapped_ipv6` (::ffff:127.0.0.1)
+  - `test_base_url_de_herramienta_se_ignora_endpoint_no` (anti cross-wiring)
+  - `test_allow_redirects_false_obligatorio`
+  - `test_timeout_invalido_none/cero/negativo/string/fuera_rango_lanza_error`
+  - `test_metodo_no_permitido_lanza_error` (DELETE rechazado)
+  - `test_extra_headers_no_sobrescribe_headers_protegidos`
+  - `test_inject_secret_in_body_colision_lanza_error`
+  - `test_ejecucion_http_error_red_envuelto_sin_filtracion` (ToolExecutionError sin URL/secreto)
+  - `test_ejecucion_http_log_sanitizado_api_key_header` (header personalizado X-Custom-Key sanitizado)
+
+**Reglas respetadas:**
+- No se modificó `models.py` ni se creó migración (`makemigrations --check --dry-run` → No changes detected).
+- Máximo 2 archivos modificados (dentro del límite de 4).
+- Pruebas sin APIs reales; `unittest.mock.patch` para `requests.request` y `socket.getaddrinfo`.
+- Cero estilos inline, cero bloques `<style>`.
+- No se ejecutó `git push`.
+- Commit: "C.3-FIX: Remediar vulnerabilidades críticas de SSRF, log leak y ejecución segura".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_tool_executor.py -q` → `40 passed in 4.55s` (100% éxito, incluyendo 13 nuevos tests de seguridad).
+- `.venv\Scripts\python.exe -m pytest tests/test_engine.py -q` → `12 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "integraciones or destino" -q` → `9 passed`.
+
+**Impacto en contratos/datos:** NO modifica modelos ni migraciones. SÍ refuerza contratos internos de `tool_executor.py` (validaciones estrictas, excepción `ToolExecutionError`). NO afecta credenciales existentes, permisos, tareas en cola ni compatibilidad. Retrocompatible: misma firma de funciones, comportamiento más estricto.
