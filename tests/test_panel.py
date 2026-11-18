@@ -1166,21 +1166,36 @@ class TestPanel(TestCase):
         assert 'btn-primary' in content
 
     def test_crear_investigacion_guardar_redirige_a_lista(self):
-        """POST válido crea la investigación y redirige a la lista."""
+        """POST válido crea la investigación, ejecuta inmediatamente y redirige a la lista."""
         self.client.login(username='testuser', password='testpass123')
         url = reverse('crear_investigacion')
-        response = self.client.post(url, {
-            'nombre': 'Monitoreo Competencia',
-            'urls_objetivo': 'https://ejemplo.com/sitemap.xml\nhttps://otro.com/feed',
-            'frecuencia': 'semanal',
-        })
+        respuesta_publica = [(2, 1, 6, "", ("93.184.216.34", 0))]
+        xml_sitemap = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+            '<url><loc>https://ejemplo.com/pagina-1</loc><lastmod>2024-01-01</lastmod></url>'
+            '</urlset>'
+        )
+        with patch("socket.getaddrinfo", return_value=respuesta_publica), patch(
+            "apps.engine.investigaciones.requests.get"
+        ) as mock_get:
+            mock_resp = Mock()
+            mock_resp.status_code = 200
+            mock_resp.text = xml_sitemap
+            mock_get.return_value = mock_resp
+            response = self.client.post(url, {
+                'nombre': 'Monitoreo Competencia',
+                'urls_objetivo': 'https://ejemplo.com/sitemap.xml\nhttps://otro.com/feed',
+                'frecuencia': 'semanal',
+            })
         assert response.status_code == 302
         assert response.url == reverse('lista_investigaciones')
         assert InvestigacionProgramada.objects.filter(nombre='Monitoreo Competencia').exists()
         inv = InvestigacionProgramada.objects.get(nombre='Monitoreo Competencia')
         assert inv.frecuencia == 'semanal'
         assert inv.activa is True
-        assert inv.ultima_ejecucion is None
+        # UX-2A: se ejecuta al crear, por lo que ultima_ejecucion se setea.
+        assert inv.ultima_ejecucion is not None
 
     def test_crear_investigacion_nombre_obligatorio(self):
         """POST sin nombre muestra error de validación."""

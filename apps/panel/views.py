@@ -25,6 +25,7 @@ from apps.core.models import (
 import json
 import requests
 from apps.engine.tasks import ejecutar_tarea, continuar_workflow
+from apps.engine.investigaciones import ejecutar_investigacion
 from apps.engine.tool_executor import (
     validar_endpoint_seguro,
     construir_headers_autenticacion,
@@ -1543,7 +1544,12 @@ def lista_investigaciones(request):
 
 @login_required
 def crear_investigacion(request):
-    """Crea una investigación programada con formulario simplificado."""
+    """Crea una investigación programada con formulario simplificado.
+
+    Tras guardar el registro (commit antes de cualquier red), ejecuta
+    la primera descarga de forma síncrona. Un fallo de red no revierte
+    la creación ni lanza excepción al usuario: se avisa con warning.
+    """
     if request.method == "POST":
         form = InvestigacionForm(request.POST)
         if form.is_valid():
@@ -1551,11 +1557,61 @@ def crear_investigacion(request):
             logger.info(
                 "Programando investigación: %s", investigacion.nombre
             )
-            messages.success(
-                request,
-                f"Investigación '{investigacion.nombre}' creada y activada."
-            )
+            try:
+                resultado = ejecutar_investigacion(investigacion)
+                if resultado["hallazgos_nuevos"]:
+                    messages.success(
+                        request,
+                        f"Investigación '{investigacion.nombre}' creada. "
+                        f"{resultado['hallazgos_nuevos']} hallazgo(s) nuevo(s) detectado(s)."
+                    )
+                if resultado["fallos"]:
+                    mensajes_fallos = "; ".join(
+                        f"{f['url']}: {f['error']}" for f in resultado["fallos"]
+                    )
+                    messages.warning(
+                        request,
+                        f"Algunas fuentes no se pudieron leer: {mensajes_fallos}"
+                    )
+            except Exception as exc:  # límite de ejecución: no romper el guardado
+                logger.exception(
+                    "Error ejecutando investigación %s: %s", investigacion.pk, exc
+                )
+                messages.warning(
+                    request,
+                    f"Investigación '{investigacion.nombre}' creada, pero falló la primera ejecución."
+                )
             return redirect("lista_investigaciones")
     else:
         form = InvestigacionForm()
     return render(request, "panel/investigacion_form.html", {"form": form})
+
+
+@login_required
+@require_POST
+def ejecutar_investigacion_ahora(request, pk):
+    """Re-ejecuta una investigación programada a petición del usuario."""
+    investigacion = get_object_or_404(InvestigacionProgramada, pk=pk)
+    try:
+        resultado = ejecutar_investigacion(investigacion)
+        if resultado["hallazgos_nuevos"]:
+            messages.success(
+                request,
+                f"Re-ejecución completada: {resultado['hallazgos_nuevos']} hallazgo(s) nuevo(s)."
+            )
+        if resultado["fallos"]:
+            mensajes_fallos = "; ".join(
+                f"{f['url']}: {f['error']}" for f in resultado["fallos"]
+            )
+            messages.warning(
+                request,
+                f"Algunas fuentes fallaron: {mensajes_fallos}"
+            )
+        if not resultado["fallos"] and not resultado["hallazgos_nuevos"]:
+            messages.info(request, "Re-ejecución completada sin hallazgos nuevos.")
+    except Exception as exc:  # límite de ejecución
+        logger.exception(
+            "Error re-ejecutando investigación %s: %s", pk, exc
+        )
+        messages.error(request, "No se pudo re-ejecutar la investigación.")
+    return redirect("lista_investigaciones")

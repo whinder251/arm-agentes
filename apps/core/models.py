@@ -729,3 +729,64 @@ class InvestigacionProgramada(models.Model):
 
     def __str__(self):
         return self.nombre
+
+
+class Hallazgo(models.Model):
+    """Artículo o entrada detectada durante una investigación programada.
+
+    Representa un hallazgo proveniente de un feed RSS o de un sitemap,
+    vinculado a la investigación que lo descubrió.
+    """
+
+    class TipoFuente(models.TextChoices):
+        RSS = "rss", "RSS"
+        SITEMAP = "sitemap", "Sitemap"
+
+    investigacion = models.ForeignKey(
+        InvestigacionProgramada,
+        on_delete=models.CASCADE,
+        related_name="hallazgos",
+        help_text="Investigación que descubrió este hallazgo.",
+    )
+    url_fuente = models.CharField(
+        max_length=500,
+        help_text="URL que se descargó para obtener este hallazgo.",
+    )
+    tipo_fuente = models.CharField(
+        max_length=20,
+        choices=TipoFuente.choices,
+        help_text="Tipo de fuente: RSS o Sitemap.",
+    )
+    titulo = models.CharField(
+        max_length=500,
+        blank=True,
+        help_text="Título del artículo o entrada (vacío para sitemaps).",
+    )
+    url_articulo = models.URLField(
+        blank=True,
+        help_text="URL del artículo o entrada descubierta.",
+    )
+    fecha_publicacion = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text="Fecha de publicación tal cual viene del feed (sin parsear).",
+    )
+    resumen = models.TextField(
+        blank=True,
+        help_text="Resumen o descripción del artículo (vacío para sitemaps).",
+    )
+    detectado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "hallazgo"
+        verbose_name_plural = "hallazgos"
+        ordering = ["-detectado_en"]
+        indexes = [
+            models.Index(
+                fields=["investigacion", "url_articulo"],
+                name="hallazgo_inv_url_idx",
+            ),
+        ]
+
+    def __str__(self):
+        return self.titulo or self.url_articulo

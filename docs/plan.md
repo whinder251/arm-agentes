@@ -1876,3 +1876,45 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 - NO credenciales, NO tareas en cola (Huey pendiente), NO retrocompatibilidad rota.
 
 **Pendiente:** Lógica de Huey para ejecución programada de investigaciones (paso posterior).
+
+
+## Paso UX-2A - Ejecución real de investigaciones + entrada en sidebar — COMPLETADO
+
+**Objetivo:** Que al crear una InvestigacionProgramada el sistema descargue las URLs, detecte si cada una es un feed RSS o un sitemap, la parsee reutilizando los parsers de tool_executor y guarde cada artículo/entrada como un Hallazgo. Además añadir la entrada "Investigaciones" al sidebar.
+
+**Archivos tocados (6, excepción aprobada):**
+- `apps/panel/templates/panel/base.html`: entrada "Investigaciones" en sección Operación del sidebar (icono SVG radar/luca, stroke 2px, 18x18, currentColor, sin emojis; clase activo por url_name).
+- `apps/core/models.py`: nuevo modelo `Hallazgo` (FK a InvestigacionProgramada, url_fuente, tipo_fuente rss/sitemap, titulo, url_articulo, fecha_publicacion, resumen, detectado_en; Meta ordering -detectado_en e índice (investigacion, url_articulo)).
+- `apps/core/migrations/0024_hallazgo.py`: migración generada y aplicada.
+- `apps/engine/investigaciones.py` (nuevo): `_detectar_tipo(texto_xml)` y `ejecutar_investigacion(investigacion)` que itera URLs, valida SSRF con `_validar_endpoint_seguro` (de tool_executor), `requests.get` con timeout 15 y allow_redirects=False, detecta tipo, parsea con `_parsear_sitemap`/`_parsear_rss` (de tool_executor), guarda Hallazgos con update_or_create (dedupe por investigacion+url_articulo), actualiza ultima_ejecucion y devuelve conteos. Nunca lanza excepción por red de una URL.
+- `apps/panel/views.py`: `crear_investigacion` guarda el formulario y luego llama `ejecutar_investigacion` dentro de try/except (fallo de red no revierte la creación); nueva vista `ejecutar_investigacion_ahora(request, pk)` (@login_required, @require_POST) que re-ejecuta y muestra messages.
+- `apps/panel/urls.py`: ruta `investigaciones/<int:pk>/ejecutar/` → `ejecutar_investigacion_ahora`.
+- `tests/test_investigaciones.py` (nuevo): 8 pruebas (detectar_tipo sitemap/rss/invalido, ejecutar guarda hallazgos RSS, deduplica, no rompe con URL fallando, status != 200).
+- `tests/test_panel.py`: actualizado `test_crear_investigacion_guardar_redirige_a_lista` al nuevo contrato (ultima_ejecucion se setea al crear; HTTP mockeado, sin llamadas reales).
+
+**Reglas respetadas:**
+- Reutilización de `_parsear_sitemap`, `_parsear_rss` y `_validar_endpoint_seguro` desde `apps.engine.tool_executor` (sin copiar lógica).
+- `_validar_endpoint_seguro` obligatorio antes de cada `requests.get`.
+- Cero dependencias nuevas (solo stdlib + requests + django).
+- Cero estilos inline en el sidebar; clases existentes de app.css.
+- Transacción de BD cerrada antes de llamadas de red (form.save() commit antes del servicio).
+- `.venv\Scripts\python.exe` línea por línea, sin `&&`.
+- No se ejecutó `git push`.
+- Commit: "UX-2A: Ejecución real de investigaciones con detección RSS/sitemap y entrada en sidebar".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations core` → migración `0024_hallazgo` creada.
+- `.venv\Scripts\python.exe manage.py migrate` → `Applying core.0024_hallazgo... OK`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_investigaciones.py -q` → `8 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "investigacion or sidebar or crear_investigacion or lista_investigaciones" -q` → `9 passed`.
+- Suite completo `tests/test_panel.py -q` tiene un cuelgue preexistente de entorno (documentado en pasos C.2/C.3a/C.4/C.9b), no relacionado con este cambio; los 63 tests ejecutados antes del cuelgue pasaron.
+
+**Impacto en contratos/datos:**
+- SÍ datos persistidos (nuevo modelo `Hallazgo` + migración 0024).
+- SÍ contratos (nueva URL `ejecutar_investigacion_ahora`; comportamiento de `crear_investigacion` ahora ejecuta al guardar).
+- SÍ permisos (vistas con `@login_required`).
+- NO credenciales, NO tareas en cola (ejecución síncrona), NO retrocompatibilidad rota salvo `ultima_ejecucion` que ya no es None tras crear.
+
+**Pendiente:** Botón "Ejecutar ahora" en la tarjeta de la lista (requiere tocar `investigacion_lista.html`, fuera de los 6 archivos aprobados; se deja para un paso con excepción de archivos).
