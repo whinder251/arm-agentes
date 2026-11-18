@@ -10,19 +10,15 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 import os
+import sys
 from dotenv import load_dotenv
 from pathlib import Path
-
-# Preservar SUPABASE_DATABASE_URL si ya está seteada en el entorno (p. ej. vacío para forzar SQLite en tests).
-# load_dotenv con override=False no debería sobrescribirla, pero lo garantizamos explícitamente.
-_supabase_db_url_preserved = os.environ.get("SUPABASE_DATABASE_URL")
-load_dotenv(Path(__file__).resolve().parent.parent / ".env")
-if _supabase_db_url_preserved is not None:
-    os.environ["SUPABASE_DATABASE_URL"] = _supabase_db_url_preserved
-
 from urllib.parse import urlparse
-
 from huey import SqliteHuey
+
+# Cargar variables de entorno desde .env, forzando que el archivo tenga prioridad absoluta
+# sobre cualquier variable de entorno residual del sistema operativo.
+load_dotenv(Path(__file__).resolve().parent.parent / ".env", override=True)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -32,7 +28,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-# TODO C.1b: migrar a os.environ.get('SECRET_KEY') con ImproperlyConfigured
 SECRET_KEY = os.environ.get("SECRET_KEY")
 if not SECRET_KEY:
     from django.core.exceptions import ImproperlyConfigured
@@ -98,8 +93,7 @@ DATABASE_URL = os.environ.get("SUPABASE_DATABASE_URL", "").strip()
 
 # En entorno de pruebas (pytest) forzar SQLite independientemente de SUPABASE_DATABASE_URL.
 # Esto evita fallos de conexión cuando no hay Supabase disponible en desarrollo local.
-import sys as _sys
-if "pytest" in _sys.modules:
+if "pytest" in sys.modules:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -111,6 +105,7 @@ elif DATABASE_URL:
         url = urlparse(DATABASE_URL)
     except Exception:
         url = None
+    
     if url and url.scheme and url.hostname:
         DATABASES = {
             'default': {
@@ -125,7 +120,6 @@ elif DATABASE_URL:
                 },
                 # CONN_MAX_AGE permite reutilizar la conexión dentro del mismo request,
                 # pero la cierra al final, dejando que el pooler de Supabase la gestione.
-                # 60 segundos es un valor seguro y eficiente.
                 'CONN_MAX_AGE': 60,
             }
         }
@@ -146,9 +140,8 @@ else:
     }
 
 
-# Cola Huey sobre el mismo SQLite del proyecto. Comparte archivo con Django:
-# si aparecen bloqueos con varios workers, mover a un archivo aparte.
-HUEY = SqliteHuey(name='arm', filename=str(BASE_DIR / 'db.sqlite3'))
+# Cola Huey en base de datos separada para evitar bloqueos concurrentes con Django.
+HUEY = SqliteHuey(name='arm', filename=str(BASE_DIR / 'huey.db'))
 
 
 # Password validation
