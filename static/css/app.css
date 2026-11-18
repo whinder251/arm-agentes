@@ -1038,3 +1038,10 @@ td input[type="checkbox"] {
   border-radius: 4px;
   color: var(--text-1);
 }
+
+/* Paso FIX-UI-02: alineado horizontal de acciones de investigaciones */
+.acciones-investigacion {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}

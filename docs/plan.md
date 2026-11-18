@@ -1989,3 +1989,29 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
   
  * * I m p a c t o   e n   c o n t r a t o s / d a t o s : * *   N O   c o n t r a t o s ,   N O   d a t o s   p e r s i s t i d o s ,   N O   c r e d e n c i a l e s ,   N O   p e r m i s o s ,   N O   t a r e a s   e n   c o l a ,   N O   m i g r a c i o n e s .   S o l o   p r e s e n t a c i o n   ( C S S   +   t e m p l a t e   J S ) .   R e t r o c o m p a t i b l e .  
  
+
+## Paso FIX-UI-02 - Corregir deudas visuales en Credenciales, Investigaciones y Workflow — COMPLETADO
+
+**Objetivo:** Corregir tres deudas visuales del panel: alinear botones de Credenciales (Mostrar/Copiar/Rotar en misma fila), alinear horizontalmente botones de Investigaciones (Ejecutar ahora/Ver hallazgos) y aplicar clases ARM Flow 2.0 al formulario de Workflow.
+
+**Archivos tocados (4):**
+- `apps/panel/templates/panel/lista_credenciales.html`: movido el `<form name="rotar_arm_api_key">` dentro de `<div class="api-key-fila">` como último elemento (a la derecha de "Copiar"); `<span id="display-arm-key">` con `style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"` para no empujar el botón Rotar; `<form>` de rotar con `style="flex-shrink: 0;"`.
+- `apps/panel/templates/panel/investigacion_lista.html`: sin cambios HTML (ya tenía `<div class="acciones-investigacion">`); alineado vía CSS.
+- `apps/panel/templates/panel/formulario_workflow.html`: formulario envuelto en `<div class="card">` (quitado `class="tarjeta"`); `<label>` con `class="label"`; campos `{{ paso_form.X }}` dentro de `<div class="form-group">` para heredar estilos de input; sección "Pasos del workflow" envuelta en `<div class="bloque">` con `<h3>` arriba; botón "Guardar Workflow" envuelto en `<div class="acciones-formulario">`.
+- `static/css/app.css`: añadida regla `.acciones-investigacion { display: flex; gap: 8px; margin-top: 12px; }` al final; sin tocar otras reglas.
+
+**Reglas respetadas:**
+- Máximo 4 archivos modificados.
+- CERO cambios en lógica de backend, modelos, vistas o JavaScript.
+- CERO estilos inline excepto el requerido en `lista_credenciales.html` (blindaje del span de API key) documentado como deuda justificada.
+- No se ejecutó `git push`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "credencial or investigacion or workflow or sidebar or detalle or aprobar or crear_investigacion or lista_investigaciones" -q` → `19 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_workflow.py -q` → `5 passed`.
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación/CSS. Retrocompatible.
+
+**Pendiente:** Ninguno para este paso.

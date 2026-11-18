@@ -23,16 +23,15 @@
     <p class="subtexto">Clave para autenticar peticiones a la API REST de ARM. Se muestra enmascarada por defecto.</p>
 
     <div class="api-key-fila">
-        <span id="display-arm-key" class="api-key-masked" data-key="{{ api_key_full }}" data-masked="{{ api_key_masked }}">{{ api_key_masked }}</span>
+        <span id="display-arm-key" class="api-key-masked" style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" data-key="{{ api_key_full }}" data-masked="{{ api_key_masked }}">{{ api_key_masked }}</span>
         <button type="button" class="btn-secondary btn-sm" id="btn-toggle-arm-key">Mostrar</button>
         <button type="button" class="btn-secondary btn-sm" onclick="copiarTextoDesdeElemento('display-arm-key', this)">Copiar</button>
+        <form method="post" action="{% url 'lista_credenciales' %}" onsubmit="return confirm('¿Generar una nueva ARM API Key? Esto invalidará la clave anterior y deberás actualizar tus servicios externos.');" style="flex-shrink: 0;">
+            {% csrf_token %}
+            <button type="submit" name="rotar_arm_api_key" value="1" class="btn-danger btn-sm">Rotar Clave</button>
+        </form>
     </div>
     <p class="ayuda">La clave completa se revela solo por 10 segundos y luego vuelve a ocultarse.</p>
-
-    <form method="post" action="{% url 'lista_credenciales' %}" onsubmit="return confirm('¿Generar una nueva ARM API Key? Esto invalidará la clave anterior y deberás actualizar tus servicios externos.');">
-        {% csrf_token %}
-        <button type="submit" name="rotar_arm_api_key" value="1" class="btn-danger btn-sm">Rotar Clave del Sistema</button>
-    </form>
 </div>
 
 <div class="tarjeta">
