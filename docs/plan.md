@@ -1597,3 +1597,39 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 - `.venv\Scripts\python.exe -m pytest tests/test_engine.py tests/test_models.py -q` → `26 passed`.
 
 **Impacto en contratos/datos:** NO modifica modelos ni migraciones. SÍ cambia comportamiento del formulario (campo editable con patrón cambiar_api_key). Retrocompatible: sin marcar checkbox = conserva secreto existente. NO afecta credenciales persistidas, permisos, tareas en cola, contratos de API.
+
+## Paso C.5-B-N8N-UI - Transformar la creación de herramientas en una experiencia visual tipo n8n — COMPLETADO
+
+**Objetivo:** Reemplazar el formulario genérico de herramientas por una experiencia guiada de tres capas:
+1) Catálogo visual de nodos como punto de entrada (HTTP Request, Supabase, Google Sheets, WordPress, Tavily, Personalizada).
+2) Formulario con campos estructurados que cambian según el tipo de nodo elegido. El JSONField `configuracion` sigue siendo la fuente de verdad en BD.
+3) Sidebar derecho con ayuda contextual que se actualiza según el tipo.
+Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. Retrocompatible: las herramientas y credenciales existentes abren en modo simple con sus campos poblarados desde su JSON actual.
+
+**Archivos tocados (6):**
+- `apps/panel/views.py`: dict `TOOL_TYPES` con metadatos de 6 tipos de nodo; funciones `_inferir_tipo_herramienta`, `_serializar_campos_a_json`, `_parsear_json_desde_campos`; vistas `crear_herramienta` y `editar_herramienta` actualizadas para manejar catálogo, formulario dinámico y modo avanzado.
+- `apps/panel/templates/panel/herramienta_catalogo.html` (nuevo): grid de tarjetas (`.nodo-grid`, `.nodo-card`) con iconos SVG inline, una por tipo, enlazando a `crear_herramienta?tipo=<slug>`.
+- `apps/panel/templates/panel/herramienta_form.html` (reescrito): layout 2 columnas (`.layout-herramienta`), fieldset dinámico generado desde `TOOL_TYPES[tool_type].campos`, bloque "Headers adicionales" dinámico, checkbox "Modo avanzado" que alterna visibilidad fieldset/textarea JSON, sidebar derecho (`.sidebar-ayuda`) con ayuda contextual y lista de campos.
+- `apps/panel/templatetags/markdown_tags.py`: añadido filtro `get_item` para acceso a claves de diccionario en templates.
+- `static/js/panel_tools.js` (nuevo): `addHeaderRow`, `removeHeaderRow`, `toggleAdvancedMode` con serialización bidireccional campos↔JSON y validación JSON (mantiene modo avanzado si falla). Delegación de eventos, vanilla JS.
+- `static/css/app.css`: añadidas clases `.nodo-grid`, `.nodo-card`, `.layout-herramienta`, `.sidebar-ayuda`, `.fieldset-estructurado`, `.fieldset-avanzado`, `.headers-container`, `.header-row`, `.oculto`, `.form-check`, `.nota-vacia`, siguiendo tokens ARM Flow.
+- `tests/test_fase16.py`: nueva clase `TestN8NUI` con 6 pruebas (catálogo, formulario preseleccionado, generación JSON modo simple, modo avanzado conserva JSON, claves no mapeadas sobreviven, sidebar ayuda dinámico).
+
+**Reglas respetadas:**
+- NO se modificó `models.py` ni se crearon migraciones.
+- NO se tocó `tool_executor.py` ni la lógica de `{{secreto}}`.
+- El JSONField `configuracion` es la única fuente de verdad persistida; campos estructurados son solo capa de presentación.
+- Cero estilos inline, cero bloques `<style>`; exclusivamente clases de `app.css`.
+- Iconos SVG inline, nunca emojis.
+- JS vanilla, sin librerías externas.
+- No se ejecutó `git push`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_fase16.py -q` → `21 passed` (incluye 6 tests nuevos de `TestN8NUI`).
+- `.venv\Scripts\python.exe -m pytest tests/test_tool_executor.py -q` → `43 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_engine.py -q` → `12 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "herramienta or credencial or dashboard or sidebar or lista_tareas or lista_ejecuciones or lista_workflows or lista_equipos or lista_agentes or lista_habilidades or lista_formatos or lista_proveedores or lista_modelos or integraciones or detalle or aprobar or editar_destino or eliminar_herramienta or crear_herramienta" -q` → `23 passed`.
+
+**Impacto en contratos/datos:** SÍ contratos de UI (nuevas URLs de catálogo, parámetros POST `advanced_mode`, `tool_type`, `header_key[]`, `header_value[]`). NO modelos, NO migraciones, NO credenciales, NO permisos, NO tareas en cola. Retrocompatible: herramientas existentes inferen tipo y poblaron campos desde su JSON; claves no mapeadas se conservan al editar.

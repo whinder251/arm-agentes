@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.utils import timezone
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_GET
 from django import forms
 from django.conf import settings
 from django.db import models
@@ -11,15 +11,24 @@ from apps.core import defaults
 from django.db.models import Sum, ProtectedError
 from django.core.paginator import Paginator
 from django.forms import inlineformset_factory
+from django.http import JsonResponse
 import markdown
 import secrets
+import logging
 from pathlib import Path
 from dotenv import set_key
 from apps.core.models import (
     Tarea, Proveedor, ModeloLLM, Habilidad, FormatoSalida, Herramienta, Agente, Equipo,
     Workflow, PasoWorkflow, Ejecucion, IntegracionConfig, DestinoPublicacion, Credencial,
 )
+import json
+import requests
 from apps.engine.tasks import ejecutar_tarea, continuar_workflow
+from apps.engine.tool_executor import (
+    validar_endpoint_seguro,
+    construir_headers_autenticacion,
+    _sanitizar_config,
+)
 from apps.providers.wordpress import WordPressProvider
 from apps.panel.forms import (
     AgenteForm,
@@ -31,6 +40,154 @@ from apps.panel.forms import (
     ModeloLLMForm,
     ProveedorForm,
 )
+
+logger = logging.getLogger(__name__)
+
+# ============================================================
+# Paso C.5-B: Catálogo de tipos de herramientas (n8n-style)
+# ============================================================
+TOOL_TYPES = {
+    "http_request": {
+        "nombre": "HTTP Request",
+        "icono": "M3 3h18v18H3z M3 9h18 M9 3v18",
+        "descripcion": "Conecta con cualquier API REST o endpoint HTTP.",
+        "ayuda_sidebar": "Usa {{secreto}} en cualquier campo para inyectar la API Key de la credencial vinculada. El método DELETE está bloqueado por seguridad; usa Personalizada si lo necesitas.",
+        "campos": [
+            {"name": "method", "label": "Método", "widget": "select", "choices": ["GET", "POST", "PUT", "PATCH"], "initial": "POST"},
+            {"name": "endpoint", "label": "URL o ruta", "widget": "input", "placeholder": "https://api.ejemplo.com/v1/recurso o /recurso"},
+            {"name": "timeout", "label": "Timeout (segundos)", "widget": "number", "initial": 30, "min": 1, "max": 120},
+            {"name": "body_template", "label": "Cuerpo de la petición (JSON)", "widget": "textarea", "rows": 4, "placeholder": "{\"query\": \"{{texto}}\"}"}
+        ]
+    },
+    "supabase-query": {
+        "nombre": "Supabase",
+        "icono": "M10 2 L2 7 L10 12 L18 7 L10 2 Z M2 7v10l8 5 M18 7v10l-8 5",
+        "descripcion": "Consulta tablas de tu base de datos Supabase.",
+        "ayuda_sidebar": "La base_url vive en la credencial, no aquí. Escribe solo el nombre de la tabla o la ruta relativa. La clave anon requiere GRANT SELECT en el SQL Editor de Supabase para leer tablas.",
+        "campos": [
+            {"name": "endpoint", "label": "Tabla o ruta", "widget": "input", "placeholder": "core_tarea o /rest/v1/posts"},
+            {"name": "method", "label": "Método", "widget": "select", "choices": ["GET", "POST", "PATCH", "DELETE"], "initial": "GET"},
+            {"name": "timeout", "label": "Timeout (segundos)", "widget": "number", "initial": 30, "min": 1, "max": 120}
+        ]
+    },
+    "google-sheets": {
+        "nombre": "Google Sheets",
+        "icono": "M4 3h12l4 4v14H4z M16 3v4h4 M8 12h8 M8 16h8",
+        "descripcion": "Lee o escribe filas en una hoja de cálculo.",
+        "ayuda_sidebar": "El spreadsheet_id es la cadena larga en la URL de tu Google Sheet. La credencial debe ser tipo JSON con el contenido de credentials.json de una Service Account de Google Cloud.",
+        "campos": [
+            {"name": "spreadsheet_id", "label": "ID de la hoja", "widget": "input", "placeholder": "1BxiMVs0XRA5nFMdKv..."},
+            {"name": "sheet_name", "label": "Nombre de la pestaña", "widget": "input", "placeholder": "Hoja 1"},
+            {"name": "action", "label": "Acción", "widget": "select", "choices": ["read", "append", "update"], "initial": "read"}
+        ]
+    },
+    "wordpress-connector": {
+        "nombre": "WordPress",
+        "icono": "M12 2a10 10 0 100 20 10 10 0 000-20z M8 9l4 8 4-8",
+        "descripcion": "Publica o actualiza entradas vía la API REST de WordPress.",
+        "ayuda_sidebar": "Requiere una credencial tipo Basic Auth con tu usuario y Application Password de WordPress (no la contraseña de login). La base_url debe terminar en /wp-json/wp/v2.",
+        "campos": [
+            {"name": "endpoint", "label": "Recurso", "widget": "select", "choices": ["posts", "pages", "media"], "initial": "posts"},
+            {"name": "method", "label": "Operación", "widget": "select", "choices": ["POST", "PUT", "DELETE"], "initial": "POST"},
+            {"name": "status_defecto", "label": "Estado al publicar", "widget": "select", "choices": ["draft", "publish"], "initial": "draft"}
+        ]
+    },
+    "tavily-search": {
+        "nombre": "Tavily Search",
+        "icono": "M10 2a8 8 0 100 16 8 8 0 000-16z M16 16l4 4",
+        "descripcion": "Búsqueda web optimizada para agentes de IA.",
+        "ayuda_sidebar": "Obtén tu API Key gratis en tavily.com. La base_url de la credencial debe ser https://api.tavily.com. El método es POST.",
+        "campos": [
+            {"name": "method", "label": "Método", "widget": "select", "choices": ["POST"], "initial": "POST"},
+            {"name": "search_depth", "label": "Profundidad", "widget": "select", "choices": ["basic", "advanced"], "initial": "advanced"},
+            {"name": "max_results", "label": "Máx. resultados", "widget": "number", "initial": 5, "min": 1, "max": 10}
+        ]
+    },
+    "custom": {
+        "nombre": "Personalizada",
+        "icono": "M12 3v18 M3 12h18",
+        "descripcion": "Construye la configuración JSON a mano.",
+        "ayuda_sidebar": "Úsala cuando ningún nodo predefinido cubra tu caso. El JSON que escribas aquí es exactamente lo que recibirá el motor de ejecución.",
+        "campos": []
+    }
+}
+
+
+def _inferir_tipo_herramienta(herramienta):
+    """Intenta inferir el tipo de nodo a partir de la configuración JSON existente."""
+    if not herramienta.configuracion:
+        return "custom"
+    config = herramienta.configuracion
+    # Heurísticas basadas en claves características (orden de más específico a más general)
+    if "search_depth" in config and "max_results" in config:
+        return "tavily-search"
+    if "spreadsheet_id" in config and "sheet_name" in config:
+        return "google-sheets"
+    if "status_defecto" in config and config.get("endpoint") in ["posts", "pages", "media"]:
+        return "wordpress-connector"
+    # Supabase: detectar por claves típicas o valores de endpoint
+    if config.get("endpoint") and isinstance(config.get("endpoint"), str):
+        endpoint = config.get("endpoint", "").lower()
+        if "supabase" in endpoint or endpoint.startswith("/rest/v1/") or "tabla" in endpoint or endpoint in ["posts", "users", "comments"]:
+            return "supabase-query"
+    # HTTP Request genérico (body_template es distintivo)
+    if "body_template" in config:
+        return "http_request"
+    if "method" in config and "endpoint" in config:
+        return "http_request"
+    return "custom"
+
+
+def _serializar_campos_a_json(tool_type, post_data, configuracion_actual=None):
+    """Convierte los campos del formulario estructurado a JSON para guardar en configuracion."""
+    if tool_type == "custom":
+        return configuracion_actual or {}
+    
+    tipo_def = TOOL_TYPES.get(tool_type, {})
+    campos_def = tipo_def.get("campos", [])
+    resultado = {}
+    
+    # Empezar con claves no mapeadas de la configuración actual (preservar claves exóticas)
+    if configuracion_actual and isinstance(configuracion_actual, dict):
+        claves_mapeadas = {c["name"] for c in campos_def}
+        for k, v in configuracion_actual.items():
+            if k not in claves_mapeadas:
+                resultado[k] = v
+    
+    # Sobrescribir/añadir campos mapeados desde POST
+    for campo in campos_def:
+        name = campo["name"]
+        value = post_data.get(name)
+        if value is not None and value != "":
+            # Conversión de tipos según widget
+            if campo["widget"] == "number":
+                try:
+                    value = int(value)
+                except (ValueError, TypeError):
+                    value = campo.get("initial", 30)
+            elif campo["widget"] == "textarea":
+                # Intentar parsear JSON si parece JSON
+                pass  # Se guarda como string
+            resultado[name] = value
+        elif name not in resultado and "initial" in campo:
+            # Usar valor por defecto si no se envió nada y no hay valor previo
+            resultado[name] = campo["initial"]
+    
+    return resultado
+
+
+def _parsear_json_desde_campos(config_json, tool_type):
+    """Extrae valores de campos estructurados desde un JSON para poblar el formulario."""
+    if not config_json or not isinstance(config_json, dict):
+        return {}
+    resultado = {}
+    tipo_def = TOOL_TYPES.get(tool_type, {})
+    campos_def = tipo_def.get("campos", [])
+    for campo in campos_def:
+        name = campo["name"]
+        if name in config_json:
+            resultado[name] = config_json[name]
+    return resultado
 
 
 class WorkflowForm(forms.ModelForm):
@@ -517,36 +674,142 @@ def lista_herramientas(request):
 
 @login_required
 def crear_herramienta(request):
-    """Crea una herramienta externa."""
+    """Crea una herramienta externa. Si no hay ?tipo=, muestra el catálogo."""
+    tipo_param = request.GET.get("tipo")
+    
+    # Si no hay tipo, mostrar catálogo
+    if not tipo_param or tipo_param not in TOOL_TYPES:
+        return render(request, "panel/herramienta_catalogo.html", {
+            "tool_types": TOOL_TYPES,
+        })
+    
+    tool_type = tipo_param
+    tipo_def = TOOL_TYPES[tool_type]
+    
     if request.method == "POST":
+        # Verificar si viene en modo avanzado (checkbox envía "on" en HTML, True en test client)
+        advanced_mode_raw = request.POST.get("advanced_mode")
+        advanced_mode = advanced_mode_raw in ("on", "True", "true", "1", True)
+        
         form = HerramientaForm(request.POST)
         if form.is_valid():
-            form.save()
+            herramienta = form.save(commit=False)
+            if advanced_mode:
+                # Usar el JSON crudo del textarea configuracion
+                try:
+                    raw_json = request.POST.get("configuracion", "{}")
+                    herramienta.configuracion = json.loads(raw_json)
+                except json.JSONDecodeError:
+                    messages.error(request, "El JSON en modo avanzado no es válido.")
+                    return render(request, "panel/herramienta_form.html", {
+                        "form": form,
+                        "accion": "Crear",
+                        "tool_type": tool_type,
+                        "tipo_def": tipo_def,
+                        "tool_types": TOOL_TYPES,
+                        "valores_campos": _parsear_json_desde_campos(form.cleaned_data.get("configuracion") or {}, tool_type),
+                        "error_json": True,
+                    })
+            else:
+                # Serializar campos estructurados a JSON
+                herramienta.configuracion = _serializar_campos_a_json(tool_type, request.POST)
+            
+            herramienta.save()
             messages.success(request, "Herramienta creada.")
             return redirect("lista_herramientas")
     else:
         form = HerramientaForm()
-    return render(request, "panel/herramienta_form.html", {"form": form, "accion": "Crear"})
+    
+    # Valores iniciales para el formulario estructurado
+    valores_campos = {}
+    configuracion_inicial = form.initial.get("configuracion") if hasattr(form, 'initial') else None
+    if configuracion_inicial:
+        valores_campos = _parsear_json_desde_campos(configuracion_inicial, tool_type)
+    
+    return render(request, "panel/herramienta_form.html", {
+        "form": form,
+        "accion": "Crear",
+        "tool_type": tool_type,
+        "tipo_def": tipo_def,
+        "tool_types": TOOL_TYPES,
+        "valores_campos": valores_campos,
+    })
 
 
 @login_required
 def editar_herramienta(request, pk):
-    """Edita una herramienta existente."""
+    """Edita una herramienta existente con formulario dinámico según tipo."""
     herramienta = get_object_or_404(Herramienta, pk=pk)
     if herramienta.es_sistema:
         messages.warning(
             request,
             "Estás editando un recurso del sistema. Usa Restaurar para volver a los valores de fábrica.",
         )
+    
+    # Inferir tipo desde la configuración existente, pero permitir override desde POST
+    tool_type = _inferir_tipo_herramienta(herramienta)
     if request.method == "POST":
+        # Permitir que el formulario sobrescriba el tipo inferido
+        posted_tool_type = request.POST.get("tool_type")
+        if posted_tool_type and posted_tool_type in TOOL_TYPES:
+            tool_type = posted_tool_type
+    tipo_def = TOOL_TYPES.get(tool_type, TOOL_TYPES["custom"])
+    
+    if request.method == "POST":
+        # Permitir que el formulario sobrescriba el tipo inferido
+        posted_tool_type = request.POST.get("tool_type")
+        if posted_tool_type and posted_tool_type in TOOL_TYPES:
+            tool_type = posted_tool_type
+        tipo_def = TOOL_TYPES.get(tool_type, TOOL_TYPES["custom"])
+        
+        # Verificar si viene en modo avanzado (checkbox envía "on" en HTML, True en test client)
+        advanced_mode_raw = request.POST.get("advanced_mode")
+        advanced_mode = advanced_mode_raw in ("on", "True", "true", "1", True)
+        
         form = HerramientaForm(request.POST, instance=herramienta)
         if form.is_valid():
-            form.save()
-            messages.success(request, "Herramienta actualizada.")
-            return redirect("lista_herramientas")
+            if advanced_mode:
+                # Usar el JSON crudo del textarea configuracion
+                try:
+                    raw_json = request.POST.get("configuracion", "{}")
+                    herramienta.configuracion = json.loads(raw_json)
+                    herramienta.save()
+                    messages.success(request, "Herramienta actualizada.")
+                    return redirect("lista_herramientas")
+                except json.JSONDecodeError:
+                    messages.error(request, "El JSON en modo avanzado no es válido.")
+                    valores_campos = _parsear_json_desde_campos(herramienta.configuracion, tool_type)
+                    return render(request, "panel/herramienta_form.html", {
+                        "form": form,
+                        "accion": "Editar",
+                        "herramienta_editar": herramienta,
+                        "tool_type": tool_type,
+                        "tipo_def": tipo_def,
+                        "tool_types": TOOL_TYPES,
+                        "valores_campos": valores_campos,
+                        "error_json": True,
+                    })
+            else:
+                # Serializar campos estructurados a JSON, preservando claves no mapeadas
+                herramienta.configuracion = _serializar_campos_a_json(tool_type, request.POST, herramienta.configuracion)
+                herramienta.save()
+                messages.success(request, "Herramienta actualizada.")
+                return redirect("lista_herramientas")
     else:
         form = HerramientaForm(instance=herramienta)
-    return render(request, "panel/herramienta_form.html", {"form": form, "accion": "Editar", "herramienta_editar": herramienta})
+    
+    # Poblar valores_campos desde la configuración actual
+    valores_campos = _parsear_json_desde_campos(herramienta.configuracion, tool_type)
+    
+    return render(request, "panel/herramienta_form.html", {
+        "form": form,
+        "accion": "Editar",
+        "herramienta_editar": herramienta,
+        "tool_type": tool_type,
+        "tipo_def": tipo_def,
+        "tool_types": TOOL_TYPES,
+        "valores_campos": valores_campos,
+    })
 
 
 @login_required
@@ -719,6 +982,105 @@ def eliminar_credencial(request, pk):
         return redirect("lista_credenciales")
     messages.success(request, f"Credencial '{credencial.nombre}' eliminada.")
     return redirect("lista_credenciales")
+
+
+@login_required
+@require_GET
+def descubrir_tablas(request, pk):
+    """
+    Descubre las tablas de una base de datos Supabase usando la OpenAPI spec.
+
+    Requiere una credencial de tipo 'api_key' o 'bearer' con base_url en metadata.
+    Devuelve JSON con lista de tablas o error.
+    """
+    credencial = get_object_or_404(Credencial, pk=pk)
+
+    # Validar tipo de credencial
+    if credencial.tipo not in (Credencial.Tipo.API_KEY, Credencial.Tipo.BEARER):
+        return JsonResponse(
+            {"error": "Tipo de credencial no soportado para descubrimiento de tablas. Use 'api_key' o 'bearer'."},
+            status=400,
+        )
+
+    # Obtener base_url del metadata
+    metadata = credencial.metadata or {}
+    base_url = metadata.get("base_url")
+    if not base_url:
+        return JsonResponse(
+            {"error": "La credencial no tiene 'base_url' configurado en metadata."},
+            status=400,
+        )
+
+    # Validar SSRF ANTES de hacer la petición
+    try:
+        validar_endpoint_seguro(base_url)
+    except ValueError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+    # Construir headers de autenticación usando la fachada pública
+    config = {
+        "secreto_desencriptado": credencial.secreto_cifrado,
+        "header_scheme": metadata.get("header_scheme", "bearer"),
+        "header_name": metadata.get("header_name", "apikey"),
+        "username": metadata.get("username", ""),
+    }
+    headers = construir_headers_autenticacion(config)
+
+    # Petición a la OpenAPI spec de Supabase
+    try:
+        response = requests.get(
+            base_url.rstrip("/"),
+            headers=headers,
+            timeout=10,
+            allow_redirects=False,
+            trust_env=False,
+        )
+    except requests.RequestException as exc:
+        # Log sanitizado sin exponer secretos
+        logger.error(
+            "Error de red al descubrir tablas de Supabase: %s",
+            _sanitizar_config({"base_url": base_url, "headers": headers}),
+        )
+        return JsonResponse(
+            {"error": "No se pudo conectar al endpoint de Supabase."},
+            status=502,
+        )
+
+    if response.status_code != 200:
+        return JsonResponse(
+            {"error": f"Error HTTP {response.status_code} al obtener especificación OpenAPI."},
+            status=502,
+        )
+
+    try:
+        spec = response.json()
+    except (ValueError, requests.exceptions.JSONDecodeError):
+        return JsonResponse(
+            {"error": "La respuesta no es un JSON válido."},
+            status=502,
+        )
+
+    # Extraer tablas de paths de OpenAPI
+    paths = spec.get("paths", {})
+    tablas = []
+    for path_key in paths.keys():
+        if not path_key.startswith("/"):
+            continue
+        if path_key == "/":
+            continue
+        if "{" in path_key:
+            continue
+        if path_key.startswith("/rpc/"):
+            continue
+        # Eliminar el slash inicial
+        tabla = path_key[1:]
+        if tabla:
+            tablas.append(tabla)
+
+    # Ordenar alfabéticamente
+    tablas.sort()
+
+    return JsonResponse({"tables": tablas})
 
 
 @login_required

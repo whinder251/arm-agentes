@@ -336,3 +336,19 @@ def _ejecutar_herramienta_http(herramienta: Herramienta, payload: dict) -> dict:
         body = response.text
 
     return {"status": response.status_code, "body": body}
+
+
+# ============================================================
+# Fachadas públicas para consumir desde vistas del panel (Paso C.6-A)
+# Las funciones privadas (_validar_endpoint_seguro, _construir_headers_autenticacion)
+# se mantienen intactas; estas fachadas solo delegan a las privadas.
+# ============================================================
+
+def validar_endpoint_seguro(url: str) -> None:
+    """Fachada pública del validador SSRF. Consumida por views del panel."""
+    return _validar_endpoint_seguro(url)
+
+
+def construir_headers_autenticacion(config: dict) -> dict:
+    """Fachada pública del builder de headers. Consumida por views del panel."""
+    return _construir_headers_autenticacion(config)

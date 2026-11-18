@@ -52,6 +52,7 @@ urlpatterns = [
     path('credenciales/nuevo/', views.crear_credencial, name='crear_credencial'),
     path('credenciales/<int:pk>/editar/', views.editar_credencial, name='editar_credencial'),
     path('credenciales/<int:pk>/eliminar/', views.eliminar_credencial, name='eliminar_credencial'),
+    path('credenciales/<int:pk>/tablas/', views.descubrir_tablas, name='descubrir_tablas'),
     path('ejecuciones/', views.lista_ejecuciones, name='lista_ejecuciones'),
     path('ejecuciones/lote/', views.acciones_lote_ejecuciones, name='acciones_lote_ejecuciones'),
     path('configuracion/habilidades/<int:pk>/restaurar/', views.restaurar_habilidad, name='restaurar_habilidad'),
