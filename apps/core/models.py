@@ -308,7 +308,7 @@ class Tarea(models.Model):
         Estado.COLA: {Estado.CURSO, Estado.FALLO},
         Estado.CURSO: {Estado.COLA, Estado.REVISION, Estado.FALLO, Estado.ERROR, Estado.OK},
         Estado.REVISION: {Estado.OK, Estado.FALLO},
-        Estado.OK: set(),
+        Estado.OK: {Estado.REVISION},
         Estado.ERROR: set(),
         Estado.FALLO: set(),
     }
@@ -365,7 +365,7 @@ class Tarea(models.Model):
                 f"Transición no permitida: {self.estado} -> {nuevo_estado}"
             )
         self.estado = nuevo_estado
-        self.save(update_fields=["estado"])
+        self.save(update_fields=["estado", "actualizado_en"])
 
 
 class Ejecucion(models.Model):

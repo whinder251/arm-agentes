@@ -1687,3 +1687,27 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 - `.venv\Scripts\python.exe -m pytest tests/test_engine.py tests/test_tool_executor.py tests/test_fase16.py -q` → `84 passed` (sin regresiones).
 
 **Impacto en contratos/datos:** NO contratos de API, NO datos persistidos, NO permisos, NO tareas en cola. SÍ credenciales (autenticación ahora exclusivamente por hash SHA-256 en BD, sin fallback a `settings.ARM_API_KEY`). Retrocompatible para consumidores que ya tengan su `IntegracionConfig` creada.
+
+## Paso 0.3 - Declarar y usar la transición de estado OK → REVISION en Tarea — COMPLETADO
+
+**Objetivo:** Eliminar el bypass de actualización directa de estado en el pipeline editorial, haciendo que la transición de `Tarea.Estado.OK` a `Tarea.Estado.REVISION` esté declarada en el modelo y se ejecute mediante el método `transicionar()`.
+
+**Archivos tocados (3):**
+- `apps/core/models.py`: `TRANSICIONES[Estado.OK]` pasa de `set()` a `{Estado.REVISION}`. El método `transicionar()` ahora guarda con `update_fields=["estado", "actualizado_en"]` en lugar de solo `["estado"]`.
+- `apps/engine/pipelines.py`: `_move_to_review()` reemplaza `Tarea.objects.filter(pk=tarea.pk).update(estado=Tarea.Estado.REVISION)` + `tarea.estado = ...` por `tarea.transicionar(Tarea.Estado.REVISION)`. Se actualiza el docstring eliminando la referencia a "paso 7".
+- `tests/test_pipeline.py`: nueva prueba `test_tarea_ok_puede_transicionar_a_revision` que verifica que una tarea en `Estado.OK` transiciona a `Estado.REVISION` sin lanzar `ValueError` y que el estado se guarda correctamente.
+
+**Reglas respetadas:**
+- No se añadieron nuevos campos al modelo `Tarea`.
+- No se creó migración (`makemigrations --check --dry-run` → No changes detected).
+- Máximo 3 archivos modificados (dentro del límite de 4).
+- No se ejecutó `git push`.
+- Commit: "0.3: Declarar transición OK → REVISION en Tarea y usar transicionar() en pipeline".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_pipeline.py -q` → `4 passed` (incluye la prueba nueva).
+- `.venv\Scripts\python.exe -m pytest tests/test_engine.py tests/test_tool_executor.py tests/test_fase16.py tests/test_api.py -q` → `88 passed` (sin regresiones).
+
+**Impacto en contratos/datos:** NO contratos de API, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola. SÍ contratos internos: `transicionar()` ahora permite OK→REVISION y toca `actualizado_en`. Retrocompatible: el resto de transiciones se mantienen igual.

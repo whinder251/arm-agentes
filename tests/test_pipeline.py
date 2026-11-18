@@ -185,6 +185,21 @@ def test_pipeline_con_palabra_vetada_termina_en_revision():
 
 @pytest.mark.django_db
 @respx.mock
+def test_tarea_ok_puede_transicionar_a_revision():
+    """Una tarea en Estado.OK puede transicionar a Estado.REVISION sin ValueError."""
+    tarea = _crear_escenario("Texto original para probar transición OK -> REVISION.")
+    tarea.estado = Tarea.Estado.OK
+    tarea.save(update_fields=["estado", "actualizado_en"])
+    tarea.refresh_from_db()
+    assert tarea.estado == Tarea.Estado.OK
+
+    tarea.transicionar(Tarea.Estado.REVISION)
+    tarea.refresh_from_db()
+    assert tarea.estado == Tarea.Estado.REVISION
+
+
+@pytest.mark.django_db
+@respx.mock
 def test_tarea_seo_depende_de_la_principal():
     tarea = _crear_escenario(
         "Texto original tres sobre la energía solar en el tejado."

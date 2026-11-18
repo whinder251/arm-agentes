@@ -93,15 +93,8 @@ def _verify(
 
 
 def _move_to_review(tarea: Tarea) -> None:
-    """Pasa la tarea principal a revisión.
-
-    ``ejecutar_tarea`` la deja en ``ok``, que es terminal en
-    ``Tarea.TRANSICIONES``. Para no tocar los modelos en este paso se actualiza
-    el estado directamente; el panel del paso 7 debería formalizar la
-    transición ``ok -> revision``.
-    """
-    Tarea.objects.filter(pk=tarea.pk).update(estado=Tarea.Estado.REVISION)
-    tarea.estado = Tarea.Estado.REVISION
+    """Pasa la tarea principal a revisión usando la transición declarada en el modelo."""
+    tarea.transicionar(Tarea.Estado.REVISION)
 
 
 def pipeline_editorial(tarea_id: int) -> dict:
