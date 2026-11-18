@@ -4,7 +4,7 @@
 <div class="pagina-crear">
     <a class="volver" href="{% url 'lista_tareas' %}">&larr; Volver al listado</a>
 
-    <div class="tarjeta">
+    <div class="card">
         <h1>Nueva tarea</h1>
         <p class="subtitulo">
             Cuéntale al agente qué quieres procesar. La tarea se encola al enviarla.
@@ -18,21 +18,21 @@
             {% csrf_token %}
 
             <div class="form-group">
-                <label for="texto">Contenido</label>
+                <label for="texto" class="label">Contenido</label>
                 <textarea id="texto" name="texto" rows="12" class="input" required
                           placeholder="Escribe o pega aquí el contenido que quieres procesar...">{{ request.POST.texto|default:"" }}</textarea>
             </div>
 
             <div class="fila-campos">
                 <div class="form-group">
-                    <label for="keyword">Keyword <span class="opcional">(opcional)</span></label>
+                    <label for="keyword" class="label">Keyword <span class="opcional">(opcional)</span></label>
                     <input type="text" id="keyword" name="keyword" class="input"
                            placeholder="ej. energía solar"
                            value="{{ request.POST.keyword|default:"" }}">
                 </div>
 
                 <div class="form-group">
-                    <label for="agente_id">Agente <span class="opcional">(opcional)</span></label>
+                    <label for="agente_id" class="label">Agente <span class="opcional">(opcional)</span></label>
                     <select id="agente_id" name="agente_id" class="input">
                         <option value="">Asignación automática</option>
                         {% for agente in agentes %}
@@ -46,13 +46,13 @@
             </div>
 
             <div class="form-group">
-                <label for="instrucciones">Instrucciones adicionales <span class="opcional">(opcional)</span></label>
+                <label for="instrucciones" class="label">Instrucciones adicionales <span class="opcional">(opcional)</span></label>
                 <textarea id="instrucciones" name="instrucciones" rows="3" class="input"
                           placeholder="Tono, audiencia o cualquier detalle extra para el agente...">{{ request.POST.instrucciones|default:"" }}</textarea>
             </div>
 
             <div class="form-group">
-                <label for="habilidad_id">Habilidad:</label>
+                <label for="habilidad_id" class="label">Habilidad:</label>
                 <select name="habilidad_id" id="habilidad_id" class="input">
                     <option value="">-- Selecciona una habilidad --</option>
                     {% for agente in agentes %}

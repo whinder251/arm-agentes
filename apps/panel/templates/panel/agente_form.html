@@ -2,7 +2,7 @@
 {% load l10n %}
 
 {% block content %}
-<div class="tarjeta">
+<div class="card">
     <h2>Nuevo agente</h2>
 
     <form method="post" action="{% url 'crear_agente' %}">
@@ -12,14 +12,14 @@
         {% endif %}
 
         <div class="form-group">
-            <label for="id_nombre">Nombre</label>
+            <label for="id_nombre" class="label">Nombre</label>
             <input type="text" id="id_nombre" name="nombre" required class="input"
                    value="{{ form.nombre.value|default_if_none:'' }}">
             <div class="errores">{{ form.nombre.errors }}</div>
         </div>
 
         <div class="form-group">
-            <label for="id_rol">Rol (system prompt)</label>
+            <label for="id_rol" class="label">Rol (system prompt)</label>
             <div class="plantillas">
                 <button type="button" class="btn-plantilla"
                         data-plantilla="redactor">Redactor SEO</button>
@@ -34,7 +34,7 @@
         </div>
 
         <div class="form-group">
-            <label for="id_temperatura">Temperatura</label>
+            <label for="id_temperatura" class="label">Temperatura</label>
             <div class="temperatura-fila">
                 <input type="range" id="id_temperatura" name="temperatura"
                        min="0" max="2" step="0.1"
@@ -46,7 +46,7 @@
         </div>
 
         <div class="form-group">
-            <label>Modelo</label>
+            <label class="label">Modelo</label>
             <div class="modelos-lista">
                 {% for radio in form.modelo %}
                 <label class="modelo-card">
@@ -61,7 +61,7 @@
         </div>
 
         <div class="form-group">
-            <label>Habilidades</label>
+            <label class="label">Habilidades</label>
             <div class="habilidades-grid">
                 {% for habilidad in habilidades %}
                 <label class="habilidad-card">
@@ -77,7 +77,7 @@
             </div>
         </div>
 
-        <div class="acciones">
+        <div class="acciones-formulario">
             <button type="submit" class="btn-primary">Guardar agente</button>
             <a class="btn-secondary" href="{% url 'configuracion' %}">Cancelar</a>
         </div>

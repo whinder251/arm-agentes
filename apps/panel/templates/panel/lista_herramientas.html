@@ -36,11 +36,13 @@
                 {% endif %}
             </td>
             <td class="acciones">
-                <a href="{% url 'editar_herramienta' herramienta.pk %}" class="enlace-editar">Editar</a>
-                <form method="post" action="{% url 'eliminar_herramienta' herramienta.pk %}" class="form-eliminar" onsubmit="return confirm('¿Estás seguro de que quieres eliminar esta herramienta?');">
-                    {% csrf_token %}
-                    <button type="submit" class="btn-danger-sm">Eliminar</button>
-                </form>
+                <div class="tabla-acciones">
+                    <a href="{% url 'editar_herramienta' herramienta.pk %}" class="enlace-editar">Editar</a>
+                    <form method="post" action="{% url 'eliminar_herramienta' herramienta.pk %}" class="form-eliminar" onsubmit="return confirm('¿Estás seguro de que quieres eliminar esta herramienta?');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-danger-sm">Eliminar</button>
+                    </form>
+                </div>
             </td>
         </tr>
         {% endfor %}

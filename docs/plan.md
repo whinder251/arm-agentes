@@ -2015,3 +2015,35 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 **Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación/CSS. Retrocompatible.
 
 **Pendiente:** Ninguno para este paso.
+
+## Paso AUDIT-UI-01 - Estandarizar formularios (.card, .input, .label) y acciones en listas — COMPLETADO (validación visual pendiente)
+
+**Objetivo:** Unificar los formularios de agente y creación de tarea con ARM Flow 2.0 (`.card`, `.label`, `.acciones-formulario`) y alinear las acciones Editar/Eliminar de la tabla de herramientas con un gap real de 8px, sin tocar lógica de backend.
+
+**Archivos tocados (6, excepción aprobada para tests):**
+- `apps/panel/templates/panel/agente_form.html`: `<div class="tarjeta">` → `<div class="card">`; `class="label"` en los 5 labels de campo (Nombre, Rol, Temperatura, Modelo, Habilidades); `<div class="acciones">` → `<div class="acciones-formulario">`. Los labels de `.modelo-card`/`.habilidad-card` y el slider de temperatura conservan sus clases de componente, según lo aprobado.
+- `apps/panel/templates/panel/lista_herramientas.html`: enlace Editar y form Eliminar envueltos en `<div class="tabla-acciones">` dentro del `<td class="acciones">`; se conservan `.enlace-editar`, `.form-eliminar` y `.btn-danger-sm`. Cero estilos inline.
+- `apps/panel/templates/panel/crear_tarea.html`: `<div class="tarjeta">` → `<div class="card">`; `class="label"` en los 5 labels (Contenido, Keyword, Agente, Instrucciones, Habilidad). Los campos ya usaban `.input` y el submit ya estaba en `.acciones-formulario`.
+- `static/css/app.css`: añadido al final `.tabla-acciones { display:flex; gap:8px; align-items:center; }` y `.tabla-acciones .enlace-editar { margin-right:0; }` para anular el margen global de 16px de `.enlace-editar` y respetar el gap de 8px. No se modificó ninguna regla existente.
+- `tests/test_audit_ui_01.py` (nuevo): 4 pruebas que verifican `.card`, `.label`, `.acciones-formulario`, `.input` en crear tarea, el contenedor `.tabla-acciones` sin `style=`, y el bloque CSS con `gap:8px` + reset de margen.
+- `docs/plan.md`: esta sección.
+
+**Reglas respetadas:**
+- CERO cambios en `views.py`, `forms.py`, modelos, URLs o JavaScript.
+- CERO estilos inline en los templates modificados.
+- No se crearon ni modificaron migraciones (`makemigrations --check --dry-run` → `No changes detected`).
+- No se ejecutó `git push`.
+- Commit pendiente (manual): "AUDIT-UI-01: Estandarizar formularios (.card, .input, .label) y acciones en listas".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_audit_ui_01.py -q` → `4 passed, 2 warnings in 23.88s`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "crear_tarea" -q` → `9 passed, 56 deselected, 2 warnings in 75.32s`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel_agente.py tests/test_skills_sistema.py -q` → `13 passed, 1 failed` (el fallo es de `TestCRUDHerramienta::test_crear_herramienta`: la vista `crear_herramienta` sin `?tipo=` renderiza el catálogo y devuelve 200; este paso no tocó esa vista, ese formulario ni ese test).
+- `.venv\Scripts\python.exe -m pytest -q` → no terminó dentro de 900s; alcanzó ~48% y quedó colgado (cuelgue de entorno ya documentado en pasos anteriores).
+- `.venv\Scripts\python.exe -m pytest -q -x` → se detiene en `tests/test_fase16.py::TestListaCredenciales::test_lista_credenciales_render`, que espera el texto "Rotar Clave del Sistema" mientras `lista_credenciales.html` renderiza "Rotar Clave". Es una inconsistencia preexistente, ajena a los archivos de este paso.
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación. Se conservan ids, names, CSRF, acciones de formulario y JavaScript. `.card` usa padding de 20px y borde `--border` (ARM Flow 2.0) frente a los 24px y `--border-subtle` de `.tarjeta`; es el cambio visual buscado.
+
+**Pendiente:** Validación visual en navegador de `/panel/configuracion/agente/nuevo/`, `/panel/tarea/nueva/` y `/panel/configuracion/herramientas/` (no ejecutada en esta sesión). Corregir en un paso aparte los dos fallos preexistentes de `test_skills_sistema.py` y `test_fase16.py`, y el cuelgue del suite completo.

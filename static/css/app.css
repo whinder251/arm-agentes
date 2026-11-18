@@ -1045,3 +1045,14 @@ td input[type="checkbox"] {
   gap: 8px;
   margin-top: 12px;
 }
+
+/* AUDIT-UI-01: acciones alineadas en tablas */
+.tabla-acciones {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.tabla-acciones .enlace-editar {
+  margin-right: 0; /* Anula el margen por defecto para respetar el gap de 8px */
+}
