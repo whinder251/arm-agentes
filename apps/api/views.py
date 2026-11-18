@@ -12,7 +12,6 @@ import hmac
 import json
 import logging
 
-from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
@@ -32,9 +31,8 @@ def _autenticado(request) -> bool:
     """Verifica el header X-ARM-API-KEY contra el hash SHA-256 en BD.
 
     Busca la IntegracionConfig activa de tipo arm_api y compara en tiempo
-    constante con hmac.compare_digest. Mientras no exista registro migrado en
-    BD, se mantiene el fallback a settings.ARM_API_KEY
-    (TODO C.5b: retirar este fallback al completar la migración de credenciales).
+    constante con hmac.compare_digest. Si no existe registro o el hash no
+    coincide, la petición es rechazada.
     """
     clave = request.headers.get("X-ARM-API-KEY")
     if not clave:
@@ -45,11 +43,10 @@ def _autenticado(request) -> bool:
     integracion = (
         IntegracionConfig.objects.filter(tipo="arm_api", activa=True).first()
     )
-    if integracion is not None:
-        return hmac.compare_digest(hash_proporcionado, integracion.credenciales)
+    if integracion is None:
+        return False
 
-    # TODO C.5b: retirar este fallback una vez migrada la clave a IntegracionConfig.
-    return clave == settings.ARM_API_KEY
+    return hmac.compare_digest(hash_proporcionado, integracion.credenciales)
 
 
 @csrf_exempt

@@ -1666,3 +1666,24 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
   3. Prueba shell con herramienta Tavily → Status 200 con resultados.
 
 **Impacto en contratos/datos:** NO modelos, NO migraciones, NO credenciales persistidas, NO permisos, NO tareas en cola. SÍ contratos internos de `tool_executor.py` (endpoint viene de herramienta, base_url de credencial). SÍ UX de formularios (sin checkbox, convención campo vacío = conservar). Retrocompatible: herramientas sin endpoint absoluto siguen funcionando (se une con base_url).
+
+## Paso 0.2 - Retirar fallback de ARM_API_KEY en autenticación de API — COMPLETADO
+
+**Objetivo:** Eliminar la puerta trasera temporal que permitía autenticar peticiones a la API usando `settings.ARM_API_KEY` si no existía un registro `IntegracionConfig`. La autenticación depende exclusivamente del hash SHA-256 almacenado en la base de datos.
+
+**Archivos tocados (2):**
+- `apps/api/views.py`: en `_autenticado`, eliminado el bloque `return clave == settings.ARM_API_KEY` y el comentario TODO C.5b. Queda solo la consulta a `IntegracionConfig` con `tipo='arm_api'` y `activa=True`, comparando con `hmac.compare_digest` contra `config.credenciales`. Si no existe la configuración o el hash no coincide, devuelve `False` (→ 401). Eliminado el import `settings` ya sin uso.
+- `tests/test_api.py`: `test_webhook_crear_tarea_exitoso` y `test_consultar_tarea_exitoso` crean un registro `IntegracionConfig` válido (hash de `dev-api-key-123`) en su setup. Añadido `test_api_auth_falla_sin_integracion_config` que envía la clave del .env sin registro en BD y verifica rechazo (401/403).
+
+**Reglas respetadas:**
+- NO `models.py`, NO migraciones (`makemigrations --check --dry-run` → No changes detected).
+- NO instalar dependencias. `.venv\Scripts\python.exe` línea por línea. NO `git push`.
+- Commit: "0.2: Retirar fallback de ARM_API_KEY en autenticación de API, exigir IntegracionConfig".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_api.py -q` → `4 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_engine.py tests/test_tool_executor.py tests/test_fase16.py -q` → `84 passed` (sin regresiones).
+
+**Impacto en contratos/datos:** NO contratos de API, NO datos persistidos, NO permisos, NO tareas en cola. SÍ credenciales (autenticación ahora exclusivamente por hash SHA-256 en BD, sin fallback a `settings.ARM_API_KEY`). Retrocompatible para consumidores que ya tengan su `IntegracionConfig` creada.

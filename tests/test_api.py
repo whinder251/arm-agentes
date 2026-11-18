@@ -1,12 +1,20 @@
 """Pruebas de la API REST (webhooks) sin llamadas de red reales."""
 
+import hashlib
 import json
 from unittest.mock import patch
 
 import pytest
 from django.test import Client
 
-from apps.core.models import Agente, Habilidad, ModeloLLM, Proveedor, Tarea
+from apps.core.models import (
+    Agente,
+    Habilidad,
+    IntegracionConfig,
+    ModeloLLM,
+    Proveedor,
+    Tarea,
+)
 
 
 def _crear_entorno():
@@ -44,6 +52,12 @@ PAYLOAD = {"texto": "Texto de prueba", "habilidad_slug": "reescritura"}
 @pytest.mark.django_db
 def test_webhook_crear_tarea_exitoso():
     _crear_entorno()
+    IntegracionConfig.objects.create(
+        nombre="ARM API",
+        tipo="arm_api",
+        credenciales=hashlib.sha256("dev-api-key-123".encode("utf-8")).hexdigest(),
+        activa=True,
+    )
     cliente = Client()
     with patch("apps.api.views.ejecutar_tarea") as mock_ejecutar:
         respuesta = cliente.post(
@@ -86,6 +100,12 @@ def test_webhook_crear_tarea_sin_auth():
 @pytest.mark.django_db
 def test_consultar_tarea_exitoso():
     entorno = _crear_entorno()
+    IntegracionConfig.objects.create(
+        nombre="ARM API",
+        tipo="arm_api",
+        credenciales=hashlib.sha256("dev-api-key-123".encode("utf-8")).hexdigest(),
+        activa=True,
+    )
     cliente = Client()
     tarea = Tarea.objects.create(
         agente=entorno["agente"],
@@ -101,3 +121,17 @@ def test_consultar_tarea_exitoso():
     datos = json.loads(respuesta.content)
     assert datos["tarea_id"] == tarea.pk
     assert datos["estado"] == Tarea.Estado.COLA
+
+
+@pytest.mark.django_db
+def test_api_auth_falla_sin_integracion_config():
+    """Sin registro IntegracionConfig en BD, la clave del .env no debe autenticar."""
+    _crear_entorno()
+    cliente = Client()
+    respuesta = cliente.post(
+        "/api/v1/webhook/tarea/",
+        data=json.dumps(PAYLOAD),
+        content_type="application/json",
+        **HEADER_CORRECTO,
+    )
+    assert respuesta.status_code in (401, 403), respuesta.content
