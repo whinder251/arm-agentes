@@ -45,6 +45,16 @@ class Proveedor(models.Model):
 
     nombre = models.CharField(max_length=100, unique=True)
     base_url = models.URLField(max_length=300)
+    tipo_adaptador = models.CharField(
+        max_length=20,
+        choices=[
+            ("gemini", "Gemini"),
+            ("openrouter", "OpenRouter"),
+            ("custom", "Personalizado"),
+        ],
+        default="custom",
+        help_text="Adaptador interno que ejecuta las llamadas a este proveedor.",
+    )
     # api_key se cifra antes de guardar (RB-013). La columna BD sigue siendo
     # TextField; la transformación es en Python vía EncryptedTextField.
     api_key = EncryptedTextField(blank=True)

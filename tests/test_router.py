@@ -31,10 +31,17 @@ def load_fixture(name: str) -> dict:
 
 def crear_proveedor(nombre: str, limite_diario: int = 5) -> Proveedor:
     base_url = GEMINI_BASE if nombre == "gemini" else OPENROUTER_BASE
+    if nombre == "gemini":
+        tipo_adaptador = "gemini"
+    elif nombre == "openrouter":
+        tipo_adaptador = "openrouter"
+    else:
+        tipo_adaptador = "custom"
     return Proveedor.objects.create(
         nombre=nombre,
         base_url=base_url,
         api_key=f"test-{nombre}-key",
+        tipo_adaptador=tipo_adaptador,
         limite_diario=limite_diario,
     )
 

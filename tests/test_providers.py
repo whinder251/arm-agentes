@@ -9,6 +9,7 @@ import httpx
 import pytest
 import respx
 
+from apps.core.models import Proveedor
 from apps.providers.base import (
     ErrorServidor,
     LimiteVelocidad,
@@ -16,6 +17,7 @@ from apps.providers.base import (
 )
 from apps.providers.gemini import GeminiProvider
 from apps.providers.openrouter import OpenRouterProvider
+from apps.providers.router import fabricar_proveedor
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -253,3 +255,32 @@ def test_get_usage_normaliza_tokens_entre_proveedores():
             "tokens_in": 21,
             "tokens_out": 9,
         }
+
+
+def _proveedor_memoria(tipo_adaptador: str) -> Proveedor:
+    return Proveedor(
+        nombre=f"Proveedor {tipo_adaptador}",
+        base_url="https://api.ejemplo.com",
+        api_key="test-key",
+        tipo_adaptador=tipo_adaptador,
+    )
+
+
+def test_fabricar_proveedor_tipo_gemini_devuelve_gemini_provider():
+    proveedor = _proveedor_memoria("gemini")
+    adaptador = fabricar_proveedor(proveedor)
+    assert isinstance(adaptador, GeminiProvider)
+
+
+def test_fabricar_proveedor_tipo_openrouter_devuelve_openrouter_provider():
+    proveedor = _proveedor_memoria("openrouter")
+    adaptador = fabricar_proveedor(proveedor)
+    assert isinstance(adaptador, OpenRouterProvider)
+
+
+def test_fabricar_proveedor_tipo_custom_lanza_valor_error():
+    proveedor = _proveedor_memoria("custom")
+    with pytest.raises(ValueError) as error:
+        fabricar_proveedor(proveedor)
+    assert "Proveedor 'Proveedor custom'" in str(error.value)
+    assert "tipo_adaptador 'custom'" in str(error.value)

@@ -20,8 +20,6 @@ from apps.providers.quota import CuotaDiaria
 
 COOLDOWN_SEGUNDOS = 60
 
-# El nombre del proveedor en la base selecciona el adaptador. Es provisional:
-# lo razonable es guardar el tipo de adaptador en Proveedor en un paso futuro.
 ADAPTADORES = {
     "gemini": GeminiProvider,
     "openrouter": OpenRouterProvider,
@@ -29,11 +27,13 @@ ADAPTADORES = {
 
 
 def fabricar_proveedor(proveedor) -> BaseProveedor:
-    """Crea el adaptador que corresponde al nombre del proveedor."""
-    clase = ADAPTADORES.get(proveedor.nombre.strip().lower())
+    """Crea el adaptador que corresponde al tipo_adaptador del proveedor."""
+    tipo = proveedor.tipo_adaptador
+    clase = ADAPTADORES.get(tipo)
     if clase is None:
-        raise ErrorProveedor(
-            f"sin adaptador para el proveedor '{proveedor.nombre}'"
+        raise ValueError(
+            f"Proveedor '{proveedor.nombre}' tiene tipo_adaptador '{tipo}' "
+            "sin adaptador registrado en el router."
         )
     return clase(api_key=proveedor.api_key, base_url=proveedor.base_url)
 

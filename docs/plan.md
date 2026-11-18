@@ -1043,7 +1043,7 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 
 **Impacto en contratos/datos:** NO contratos de API, NO datos persistidos, NO permisos, NO tareas en cola. SÍ credenciales (`ARM_API_KEY` obligatoria en producción). Retrocompatible: en desarrollo con `DEBUG=True` y `ARM_API_KEY` ausente se mantiene el valor por defecto `"dev-api-key-123"`.
 
-**Estado general:** Pasos 0 a 25 y Bloque B (B.1 a B.10) completados. Bloque C: C.1a, C.1b, C.2, C.3a, C.3b, C.4, C.5a, C.5b, C.5c, C.6, C.7a, C.7b, C.7c+d, C.7e, C.8a, C.8b, C.8c, C.9a, C.9a-fix, C.9a-fix2, C.9b, C.10 Fase 2, C.10.3, C.10.5, C.10.6, C.11a, C.11b, C.11b.1, C.12a, C.12b, C.13, C.14 y C.15 completados. Paso S (blindado configuración de seguridad) completado. C.8 (retirar fallback temporal de proveedor LLM en publicación) completado.
+**Estado general:** Pasos 0 a 25 y Bloque B (B.1 a B.10) completados. Bloque C: C.1a, C.1b, C.2, C.3a, C.3b, C.4, C.5a, C.5b, C.5c, C.6, C.7a, C.7b, C.7c+d, C.7e, C.8a, C.8b, C.8c, C.9a, C.9a-fix, C.9a-fix2, C.9b, C.10 Fase 2, C.10.3, C.10.5, C.10.6, C.11a, C.11b, C.11b.1, C.12a, C.12b, C.13, C.14 y C.15 completados. Paso S (blindado configuración de seguridad) completado. C.8 (retirar fallback temporal de proveedor LLM en publicación) completado. Paso 0.4 (campo tipo_adaptador en Proveedor y router basado en campo) completado.
    ## Paso UI - Estados legibles y mensajes de error en panel — COMPLETADO
    **Archivos:** `tareas.html`, `fila_tarea.html`. Usa `get_estado_display`, badge rojo para `error` y muestra `metadata.resultado.error.message`.
 
