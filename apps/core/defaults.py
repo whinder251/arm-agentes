@@ -102,4 +102,14 @@ HERRAMIENTAS_SISTEMA = {
             "timeout": 15,
         },
     },
+    "seo-analyzer": {
+        "nombre": "SEO Analyzer",
+        "slug": "seo-analyzer",
+        "tipo": "api",
+        "descripcion": "Analiza el SEO on-page de cualquier URL: title, meta, headings, densidad de palabras, enlaces, imagenes, schema.",
+        "configuracion": {
+            "method": "GET",
+            "timeout": 20,
+        },
+    },
 }

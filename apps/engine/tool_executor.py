@@ -7,9 +7,13 @@ orquestador (Fase 4) y por el botón "Probar conexión" del panel.
 """
 
 import base64
+import json
 import logging
+import re
 import socket
 import xml.etree.ElementTree as ET
+from collections import Counter
+from html.parser import HTMLParser
 from typing import Any
 from urllib.parse import urljoin, urlparse
 
@@ -260,6 +264,210 @@ def _parsear_sitemap(xml_text: str) -> list[dict]:
     return urls
 
 
+# Stopwords español/inglés para filtrar en el cálculo de densidad de palabras clave.
+_STOPWORDS_ES_EN = {
+    # español
+    "el", "la", "los", "las", "un", "una", "unos", "unas", "y", "o", "pero", "aunque",
+    "si", "no", "que", "de", "del", "en", "por", "para", "con", "sin", "sobre",
+    "entre", "desde", "hasta", "como", "más", "menos", "muy", "mejor", "peor",
+    "este", "esta", "estos", "estas", "ese", "esa", "esos", "esas", "aquel", "aquella",
+    "aquello", "es", "son", "era", "eras", "eramos", "eran", "ser", "estar", "estoy",
+    "estás", "está", "estamos", "estáis", "están", "he", "has", "ha", "hemos", "habéis",
+    "han", "tengo", "tienes", "tiene", "tenemos", "tenéis", "tienen", "al", "lo", "le",
+    "les", "me", "te", "se", "nos", "os", "mi", "tu", "su", "mis", "tus", "sus", "uno",
+    "cual", "quien", "quienes", "donde", "cuando", "porque", "ya", "todavia", "aun",
+    # inglés
+    "the", "a", "an", "and", "or", "but", "if", "then", "else", "when", "at", "from",
+    "by", "for", "with", "about", "against", "between", "into", "through", "during",
+    "before", "after", "above", "below", "to", "of", "in", "on", "off", "over", "under",
+    "again", "further", "then", "once", "here", "there", "when", "where", "why", "how",
+    "all", "any", "both", "each", "few", "more", "most", "other", "some", "such", "no",
+    "nor", "not", "only", "own", "same", "so", "than", "too", "very", "just", "don",
+    "should", "now", "is", "are", "was", "were", "be", "been", "being", "have", "has",
+    "had", "having", "do", "does", "did", "doing", "will", "would", "could", "should",
+    "may", "might", "must", "shall", "can", "need", "i", "me", "my", "myself", "we",
+    "our", "ours", "ourselves", "you", "your", "yours", "yourself", "yourselves", "he",
+    "him", "his", "himself", "she", "her", "hers", "herself", "it", "its", "itself",
+    "they", "them", "their", "theirs", "themselves", "what", "which", "who", "whom",
+    "this", "that", "these", "those", "am",
+}
+
+
+class _SEOParser(HTMLParser):
+    """Parser ligero (stdlib html.parser) que extrae la estructura SEO de un HTML."""
+
+    def __init__(self, url_base: str):
+        super().__init__()
+        self.url_base = url_base or ""
+        self.dominio_base = urlparse(self.url_base).netloc.lower() if self.url_base else ""
+        self.title = ""
+        self._en_title = False
+        self.meta_description = ""
+        self.h1: list[str] = []
+        self.h2: list[str] = []
+        self.h3: list[str] = []
+        self._heading_tag: str | None = None
+        self._heading_text: list[str] = []
+        self.body_text: list[str] = []
+        self._en_body = False
+        self.internal_links = 0
+        self.external_links = 0
+        self.images_sin_alt = 0
+        self.schema_types: list[str] = []
+        self._en_script_ldjson = False
+        self._script_ldjson_text: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        attrs_dict = {k: (v or "") for k, v in attrs}
+        tag_lower = tag.lower()
+
+        if tag_lower == "title":
+            self._en_title = True
+        elif tag_lower == "meta":
+            nombre = attrs_dict.get("name", "").lower()
+            if nombre == "description":
+                self.meta_description = attrs_dict.get("content", "")
+        elif tag_lower in ("h1", "h2", "h3"):
+            self._heading_tag = tag_lower
+            self._heading_text = []
+        elif tag_lower == "body":
+            self._en_body = True
+        elif tag_lower == "a":
+            href = attrs_dict.get("href", "")
+            if href:
+                href_absoluto = urljoin(self.url_base or "https://x.invalid/", href)
+                dominio_href = urlparse(href_absoluto).netloc.lower()
+                if dominio_href and dominio_href == self.dominio_base:
+                    self.internal_links += 1
+                else:
+                    self.external_links += 1
+        elif tag_lower == "img":
+            if "alt" not in attrs_dict:
+                self.images_sin_alt += 1
+        elif tag_lower == "script":
+            if attrs_dict.get("type", "") == "application/ld+json":
+                self._en_script_ldjson = True
+                self._script_ldjson_text = []
+
+    def handle_endtag(self, tag: str) -> None:
+        tag_lower = tag.lower()
+        if tag_lower == "title":
+            self._en_title = False
+        elif tag_lower in ("h1", "h2", "h3") and self._heading_tag == tag_lower:
+            texto = "".join(self._heading_text).strip()
+            if texto:
+                getattr(self, tag_lower).append(texto)
+            self._heading_tag = None
+            self._heading_text = []
+        elif tag_lower == "body":
+            self._en_body = False
+        elif tag_lower == "script" and self._en_script_ldjson:
+            self._en_script_ldjson = False
+            texto = "".join(self._script_ldjson_text).strip()
+            if texto:
+                try:
+                    datos = json.loads(texto)
+                    self.schema_types.extend(self._extraer_tipos_schema(datos))
+                except Exception:
+                    self.schema_types.append("desconocido")
+            self._script_ldjson_text = []
+
+    def handle_data(self, data: str) -> None:
+        if self._en_title:
+            self.title += data
+        if self._heading_tag:
+            self._heading_text.append(data)
+        if self._en_body:
+            self.body_text.append(data)
+        if self._en_script_ldjson:
+            self._script_ldjson_text.append(data)
+
+    @staticmethod
+    def _extraer_tipos_schema(datos: Any) -> list[str]:
+        """Extrae valores de @type de un objeto JSON-LD (dict o lista anidada)."""
+        tipos: list[str] = []
+        if isinstance(datos, dict):
+            t = datos.get("@type")
+            if t is not None:
+                if isinstance(t, list):
+                    tipos.extend(str(x) for x in t)
+                else:
+                    tipos.append(str(t))
+        elif isinstance(datos, list):
+            for item in datos:
+                tipos.extend(_SEOParser._extraer_tipos_schema(item))
+        return tipos
+
+
+def _analizar_seo_on_page(html: str, url_base: str) -> dict:
+    """Extrae la estructura SEO completa de un HTML.
+
+    Devuelve siempre un dict con los campos esperados; en caso de HTML
+    vacío o error de parseo, devuelve campos vacíos y un mensaje en 'error'.
+    Nunca lanza excepciones que rompan el flujo del llamador.
+    """
+    vacio = {
+        "error": "",
+        "title": "",
+        "meta_description": "",
+        "h1": [],
+        "h2": [],
+        "h3": [],
+        "word_count": 0,
+        "keyword_density": [],
+        "internal_links": 0,
+        "external_links": 0,
+        "images_sin_alt": 0,
+        "schema_markup": [],
+    }
+
+    if not html or not html.strip():
+        vacio["error"] = "HTML vacío o nulo"
+        return vacio
+
+    try:
+        parser = _SEOParser(url_base)
+        parser.feed(html)
+        parser.close()
+    except Exception as exc:  # HTML muy roto: no romper el flujo
+        vacio["error"] = f"Error parseando HTML: {exc}"
+        return vacio
+
+    # Title recortado a 60 caracteres
+    title = parser.title.strip()
+    if len(title) > 60:
+        title = title[:57].strip() + "..."
+
+    # Conteo de palabras del cuerpo (sin tags)
+    texto_body = " ".join(parser.body_text)
+    palabras = re.findall(r"\w+", texto_body, flags=re.UNICODE)
+    word_count = len(palabras)
+
+    # Densidad de palabras clave (top 10, sin stopwords)
+    palabras_filtradas = [p.lower() for p in palabras if p.lower() not in _STOPWORDS_ES_EN]
+    contador = Counter(palabras_filtradas)
+    total = len(palabras_filtradas)
+    keyword_density = []
+    for palabra, conta in contador.most_common(10):
+        porcentaje = round((conta / total) * 100, 2) if total else 0
+        keyword_density.append({"palabra": palabra, "conteo": conta, "porcentaje": porcentaje})
+
+    return {
+        "error": "",
+        "title": title,
+        "meta_description": parser.meta_description.strip(),
+        "h1": parser.h1,
+        "h2": parser.h2,
+        "h3": parser.h3,
+        "word_count": word_count,
+        "keyword_density": keyword_density,
+        "internal_links": parser.internal_links,
+        "external_links": parser.external_links,
+        "images_sin_alt": parser.images_sin_alt,
+        "schema_markup": parser.schema_types,
+    }
+
+
 def _ejecutar_herramienta_http(herramienta: Herramienta, payload: dict) -> dict:
     """Ejecuta una petición HTTP usando la herramienta y su credencial.
 
@@ -276,8 +484,10 @@ def _ejecutar_herramienta_http(herramienta: Herramienta, payload: dict) -> dict:
     """
     config = _obtener_configuracion_ejecucion(herramienta)
 
-    # Determinar endpoint
-    endpoint = config.get("endpoint")
+    # Determinar endpoint: primero de la configuracion de la herramienta,
+    # y como fallback del payload (util para herramientas sin credencial como
+    # sitemap-reader y seo-analyzer que reciben la URL absoluta en la llamada).
+    endpoint = config.get("endpoint") or payload.get("endpoint")
     base_url = config.get("base_url")
 
     if not endpoint:
@@ -379,6 +589,11 @@ def _ejecutar_herramienta_http(herramienta: Herramienta, payload: dict) -> dict:
     if herramienta.slug == "sitemap-reader" and response.status_code == 200:
         if isinstance(body, str):
             body = _parsear_sitemap(body)
+
+    # Post-procesamiento condicional para seo-analyzer: analizar SEO on-page del HTML
+    if herramienta.slug == "seo-analyzer" and response.status_code == 200:
+        if isinstance(body, str):
+            body = _analizar_seo_on_page(body, url_final)
 
     return {"status": response.status_code, "body": body}
 

@@ -835,6 +835,75 @@ class TestEjecutarHerramientaHttp(TestCase):
         self.assertEqual(len(resultado["body"]), 1)
         self.assertIn("error", resultado["body"][0])
 
+    @patch("apps.engine.tool_executor.requests.request")
+    @patch("apps.engine.tool_executor._validar_endpoint_seguro")
+    def test_seo_analyzer_extrae_datos_basicos(self, mock_validar, mock_request):
+        html = (
+            "<html><head><title>Título de prueba SEO</title>"
+            '<meta name="description" content="Descripción meta de prueba">'
+            "</head><body><h1>H1 Principal</h1><h2>H2 uno</h2><h2>H2 dos</h2>"
+            "<p>Este es un parrafo de contenido de prueba para contar palabras.</p>"
+            "</body></html>"
+        )
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.side_effect = ValueError("No es JSON")
+        mock_response.text = html
+        mock_request.return_value = mock_response
+        mock_validar.return_value = None
+
+        herramienta = Herramienta.objects.create(
+            nombre="SEO Analyzer",
+            slug="seo-analyzer",
+            tipo="api",
+            configuracion={"endpoint": "https://example.com", "method": "GET", "timeout": 20},
+        )
+
+        resultado = _ejecutar_herramienta_http(herramienta, {})
+
+        self.assertEqual(resultado["status"], 200)
+        body = resultado["body"]
+        self.assertEqual(body["title"], "Título de prueba SEO")
+        self.assertEqual(body["meta_description"], "Descripción meta de prueba")
+        self.assertEqual(body["h1"], ["H1 Principal"])
+        self.assertEqual(body["h2"], ["H2 uno", "H2 dos"])
+        self.assertEqual(body["h3"], [])
+        self.assertGreater(body["word_count"], 0)
+        self.assertEqual(body["error"], "")
+
+    @patch("apps.engine.tool_executor.requests.request")
+    @patch("apps.engine.tool_executor._validar_endpoint_seguro")
+    def test_seo_analyzer_cuenta_enlaces_internos_externos(self, mock_validar, mock_request):
+        html = (
+            "<html><body>"
+            '<a href="https://example.com/pagina1">Interna 1</a>'
+            '<a href="/pagina2">Interna 2 relativa</a>'
+            '<a href="https://otro-dominio.com">Externa 1</a>'
+            '<a href="https://otro-dominio.com/otro">Externa 2</a>'
+            "</body></html>"
+        )
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.side_effect = ValueError("No es JSON")
+        mock_response.text = html
+        mock_request.return_value = mock_response
+        mock_validar.return_value = None
+
+        herramienta = Herramienta.objects.create(
+            nombre="SEO Analyzer Enlaces",
+            slug="seo-analyzer",
+            tipo="api",
+            configuracion={"endpoint": "https://example.com", "method": "GET", "timeout": 20},
+        )
+
+        resultado = _ejecutar_herramienta_http(herramienta, {})
+
+        self.assertEqual(resultado["status"], 200)
+        body = resultado["body"]
+        self.assertEqual(body["internal_links"], 2)
+        self.assertEqual(body["external_links"], 2)
+        self.assertEqual(body["error"], "")
+
 
 from apps.engine.tool_executor import _resolver_placeholders
 
