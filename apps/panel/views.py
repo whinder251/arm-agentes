@@ -1026,20 +1026,28 @@ def descubrir_tablas(request, pk):
     }
     headers = construir_headers_autenticacion(config)
 
+    # Asegurar que la URL termine en barra final para el spec OpenAPI de PostgREST
+    url = base_url.rstrip("/") + "/"
+
+    # Validar SSRF sobre la URL final
+    try:
+        validar_endpoint_seguro(url)
+    except ValueError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
     # Petición a la OpenAPI spec de Supabase
     try:
         response = requests.get(
-            base_url.rstrip("/"),
+            url,
             headers=headers,
             timeout=10,
             allow_redirects=False,
-            trust_env=False,
         )
     except requests.RequestException as exc:
         # Log sanitizado sin exponer secretos
         logger.error(
             "Error de red al descubrir tablas de Supabase: %s",
-            _sanitizar_config({"base_url": base_url, "headers": headers}),
+            _sanitizar_config({"base_url": url, "headers": headers}),
         )
         return JsonResponse(
             {"error": "No se pudo conectar al endpoint de Supabase."},
