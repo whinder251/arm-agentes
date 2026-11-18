@@ -1918,3 +1918,23 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 - NO credenciales, NO tareas en cola (ejecución síncrona), NO retrocompatibilidad rota salvo `ultima_ejecucion` que ya no es None tras crear.
 
 **Pendiente:** Botón "Ejecutar ahora" en la tarjeta de la lista (requiere tocar `investigacion_lista.html`, fuera de los 6 archivos aprobados; se deja para un paso con excepción de archivos).
+
+## Paso UX-2A-FIX - Corregir timeout por redirecciones y mejorar mensaje de error en investigaciones — COMPLETADO
+
+**Objetivo:** Arreglar el fallo de ConnectTimeout en `ejecutar_investigacion` permitiendo redirecciones HTTP (necesarias para muchos feeds) y mostrando el error real de la excepción en lugar de un mensaje genérico.
+
+**Archivos tocados (1):**
+- `apps/engine/investigaciones.py`: `allow_redirects=False` → `True` en `requests.get` (la validación SSRF ya se ejecutó sobre la URL original, por lo que seguir redirecciones HTTPS públicas es seguro y necesario); el bloque `except requests.RequestException as exc:` ahora incluye el mensaje real de la excepción en el diccionario de fallos y en el `logger.warning`.
+
+**Reglas respetadas:**
+- Solo se modificó `apps/engine/investigaciones.py`. No se tocaron modelos, vistas ni tests.
+- No se creó migración (`makemigrations --check --dry-run` → No changes detected).
+- No se ejecutó `git push`.
+- Commit: `b1bbedd` "UX-2A-FIX: Permitir redirecciones y mostrar error real en ejecución de investigaciones".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe -m pytest tests/test_investigaciones.py -q` → `8 passed`.
+- Verificación en shell: `ejecutar_investigacion` sobre "Monitor Hacker News" devolvió `{"ejecutadas": 1, "hallazgos_nuevos": 20, "fallos": []}` y 20 `Hallazgo` guardados con títulos reales de hnrss.org.
+
+**Impacto en contratos/datos:** NO modelos, NO migraciones, NO credenciales, NO permisos, NO tareas en cola, NO contratos de API. Retrocompatible. SÍ comportamiento de red (se siguen redirecciones) y mensaje de error más informativo.
