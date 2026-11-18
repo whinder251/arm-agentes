@@ -122,10 +122,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     btnMostrar.addEventListener('click', function() {
-        enmascarar();
-        display.textContent = claveCompleta;
-        btnMostrar.textContent = 'Ocultar';
-        temporizador = setTimeout(enmascarar, 10000);
+        if (btnMostrar.textContent === 'Mostrar') {
+            display.textContent = claveCompleta;
+            btnMostrar.textContent = 'Ocultar';
+            temporizador = setTimeout(enmascarar, 10000);
+        } else {
+            enmascarar();
+        }
     });
 });
 </script>
