@@ -1,6 +1,6 @@
 from django import forms
 
-from apps.core.models import Agente, Credencial, FormatoSalida, Habilidad, Herramienta, Proveedor, ModeloLLM, DestinoPublicacion
+from apps.core.models import Agente, Credencial, FormatoSalida, Habilidad, Herramienta, Proveedor, ModeloLLM, DestinoPublicacion, InvestigacionProgramada
 
 
 class ProveedorForm(forms.ModelForm):
@@ -177,3 +177,25 @@ class DestinoPublicacionForm(forms.ModelForm):
             # No se escribió nada o se dejó el placeholder enmascarado: conservar original
             cleaned_data['credenciales'] = self.instance.credenciales
         return cleaned_data
+
+
+class InvestigacionForm(forms.ModelForm):
+    """Formulario simplificado para crear una investigación programada.
+
+    La frecuencia se renderiza manualmente como .segmented en el template,
+    no usando el widget Select por defecto.
+    """
+
+    class Meta:
+        model = InvestigacionProgramada
+        fields = ["nombre", "urls_objetivo", "frecuencia"]
+        widgets = {
+            "urls_objetivo": forms.Textarea(attrs={"rows": 4}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["nombre"].widget.attrs.update({"class": "input"})
+        self.fields["urls_objetivo"].widget.attrs.update({"class": "textarea"})
+        self.fields["frecuencia"].widget = forms.RadioSelect()
+        self.fields["frecuencia"].widget.attrs.update({"class": "segmented-radio"})

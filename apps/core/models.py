@@ -694,3 +694,38 @@ class CacheRespuesta(models.Model):
 
     def __str__(self):
         return f"Cache {self.clave[:16]}... ({self.modelo})"
+
+
+class InvestigacionProgramada(models.Model):
+    """Monitoreo programado de fuentes de competencia (RSS o Sitemap).
+
+    Permite al usuario programar revisiones periódicas de URLs objetivo
+    sin exponer la complejidad técnica del parsing ni la descarga.
+    """
+
+    FRECUENCIAS = [
+        ("diaria", "Diaria"),
+        ("semanal", "Semanal"),
+        ("mensual", "Mensual"),
+    ]
+
+    nombre = models.CharField(max_length=200)
+    urls_objetivo = models.TextField(
+        help_text="Pega una URL por línea (RSS o Sitemap)"
+    )
+    frecuencia = models.CharField(
+        max_length=20,
+        choices=FRECUENCIAS,
+        default="semanal",
+    )
+    activa = models.BooleanField(default=True)
+    ultima_ejecucion = models.DateTimeField(null=True, blank=True)
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "investigación programada"
+        verbose_name_plural = "investigaciones programadas"
+        ordering = ["-creado_en"]
+
+    def __str__(self):
+        return self.nombre

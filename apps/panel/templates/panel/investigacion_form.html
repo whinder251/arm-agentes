@@ -1,0 +1,74 @@
+{% extends "panel/base.html" %}
+
+{% block content %}
+<div class="pagina-crear">
+    <div class="card">
+        <h2>Nueva Investigación de Competencia</h2>
+        <p class="help-text">El sistema revisará estas fuentes automáticamente y guardará los hallazgos para tu agente.</p>
+
+        <form method="post" novalidate>
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label class="label" for="{{ form.nombre.id_for_label }}">Nombre de la investigación</label>
+                {{ form.nombre }}
+                {% if form.nombre.errors %}
+                <p class="error-text">{{ form.nombre.errors|first }}</p>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label class="label" for="{{ form.urls_objetivo.id_for_label }}">URLs objetivo</label>
+                {{ form.urls_objetivo }}
+                <p class="help-text">Pega una URL por línea (RSS o Sitemap).</p>
+                {% if form.urls_objetivo.errors %}
+                <p class="error-text">{{ form.urls_objetivo.errors|first }}</p>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label class="label" for="frecuencia">Frecuencia de revisión</label>
+                <div class="segmented" id="segmented-frecuencia">
+                    {% for valor, etiqueta in form.fields.frecuencia.choices %}
+                    <button type="button" class="segmented-btn{% if valor == form.frecuencia.value %} active{% endif %}" data-value="{{ valor }}">{{ etiqueta }}</button>
+                    {% endfor %}
+                </div>
+                <input type="hidden" name="{{ form.frecuencia.html_name }}" id="frecuencia-oculta" value="{{ form.frecuencia.value|default:'semanal' }}">
+                {% if form.frecuencia.errors %}
+                <p class="error-text">{{ form.frecuencia.errors|first }}</p>
+                {% endif %}
+            </div>
+
+            <button type="submit" class="btn btn-primary">Activar investigación</button>
+        </form>
+    </div>
+</div>
+
+<script>
+(function() {
+    var contenedor = document.getElementById('segmented-frecuencia');
+    var inputOculto = document.getElementById('frecuencia-oculta');
+    var botones = contenedor.querySelectorAll('.segmented-btn');
+
+    function activarBoton(valor) {
+        botones.forEach(function(btn) {
+            if (btn.getAttribute('data-value') === valor) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+        inputOculto.value = valor;
+    }
+
+    botones.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            activarBoton(btn.getAttribute('data-value'));
+        });
+    });
+
+    // Inicializar con el valor actual
+    activarBoton(inputOculto.value);
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends "panel/base.html" %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Investigaciones Programadas</h1>
+    <a href="{% url 'crear_investigacion' %}" class="btn btn-primary">Nueva investigación</a>
+</div>
+
+{% if not investigaciones %}
+<div class="vacio">
+    <p>No hay investigaciones programadas todavía. Crea la primera para empezar a monitorear fuentes de competencia.</p>
+</div>
+{% else %}
+<div class="grid-investigaciones">
+    {% for inv in investigaciones %}
+    <div class="card">
+        <div class="fila-investigacion">
+            <div class="info-investigacion">
+                <h3>{{ inv.nombre }}</h3>
+                <span class="badge badge-neutral">{{ inv.get_frecuencia_display }}</span>
+                {% if inv.activa %}
+                <span class="badge badge-success">Activa</span>
+                {% else %}
+                <span class="badge badge-danger">Inactiva</span>
+                {% endif %}
+            </div>
+            <div class="meta-investigacion">
+                {% if inv.ultima_ejecucion %}
+                <div class="help-text">Última ejecución: {{ inv.ultima_ejecucion|date:"d/m/Y H:i" }}</div>
+                {% else %}
+                <div class="help-text">Última ejecución: Nunca</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

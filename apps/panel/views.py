@@ -20,6 +20,7 @@ from dotenv import set_key
 from apps.core.models import (
     Tarea, Proveedor, ModeloLLM, Habilidad, FormatoSalida, Herramienta, Agente, Equipo,
     Workflow, PasoWorkflow, Ejecucion, IntegracionConfig, DestinoPublicacion, Credencial,
+    InvestigacionProgramada,
 )
 import json
 import requests
@@ -37,6 +38,7 @@ from apps.panel.forms import (
     FormatoSalidaForm,
     HabilidadForm,
     HerramientaForm,
+    InvestigacionForm,
     ModeloLLMForm,
     ProveedorForm,
 )
@@ -1526,3 +1528,34 @@ def eliminar_workflow(request, pk):
         return redirect("lista_workflows")
     messages.success(request, f"Workflow '{nombre}' eliminado.")
     return redirect("lista_workflows")
+
+
+@login_required
+def lista_investigaciones(request):
+    """Lista las investigaciones programadas activas en tarjetas."""
+    investigaciones = (
+        InvestigacionProgramada.objects.all().order_by("-creado_en")
+    )
+    return render(request, "panel/investigacion_lista.html", {
+        "investigaciones": investigaciones,
+    })
+
+
+@login_required
+def crear_investigacion(request):
+    """Crea una investigación programada con formulario simplificado."""
+    if request.method == "POST":
+        form = InvestigacionForm(request.POST)
+        if form.is_valid():
+            investigacion = form.save()
+            logger.info(
+                "Programando investigación: %s", investigacion.nombre
+            )
+            messages.success(
+                request,
+                f"Investigación '{investigacion.nombre}' creada y activada."
+            )
+            return redirect("lista_investigaciones")
+    else:
+        form = InvestigacionForm()
+    return render(request, "panel/investigacion_form.html", {"form": form})

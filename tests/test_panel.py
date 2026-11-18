@@ -6,6 +6,7 @@ from django.urls import reverse
 from apps.core.models import (
     Proveedor, ModeloLLM, Habilidad, Agente, Equipo, Tarea, Artefacto, Ejecucion,
     Workflow, PasoWorkflow, DestinoPublicacion, IntegracionConfig,
+    InvestigacionProgramada,
 )
 from apps.engine.tasks import continuar_workflow
 
@@ -1123,3 +1124,92 @@ class TestPanel(TestCase):
         assert 'badge badge-neutral' in html
         assert 'class="card"' in html
         assert 'class="segmented"' in html
+
+    def test_lista_investigaciones_requiere_login(self):
+        """GET a lista_investigaciones sin login redirige a login."""
+        url = reverse('lista_investigaciones')
+        response = self.client.get(url)
+        assert response.status_code == 302
+
+    def test_lista_investigaciones_vacia(self):
+        """Lista vacía muestra mensaje y botón de crear."""
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('lista_investigaciones')
+        response = self.client.get(url)
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        assert 'Investigaciones Programadas' in content
+        assert 'No hay investigaciones programadas todavía' in content
+        assert 'Nueva investigación' in content
+        assert reverse('crear_investigacion') in content
+
+    def test_crear_investigacion_requiere_login(self):
+        """GET a crear_investigacion sin login redirige a login."""
+        url = reverse('crear_investigacion')
+        response = self.client.get(url)
+        assert response.status_code == 302
+
+    def test_crear_investigacion_formulario_limpio(self):
+        """Formulario de creación muestra 3 campos y control segmentado."""
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('crear_investigacion')
+        response = self.client.get(url)
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        assert 'Nueva Investigación de Competencia' in content
+        assert 'name="nombre"' in content
+        assert 'name="urls_objetivo"' in content
+        assert 'name="frecuencia"' in content
+        assert 'class="segmented"' in content
+        assert 'Diaria' in content and 'Semanal' in content and 'Mensual' in content
+        assert 'Activar investigación' in content
+        assert 'btn-primary' in content
+
+    def test_crear_investigacion_guardar_redirige_a_lista(self):
+        """POST válido crea la investigación y redirige a la lista."""
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('crear_investigacion')
+        response = self.client.post(url, {
+            'nombre': 'Monitoreo Competencia',
+            'urls_objetivo': 'https://ejemplo.com/sitemap.xml\nhttps://otro.com/feed',
+            'frecuencia': 'semanal',
+        })
+        assert response.status_code == 302
+        assert response.url == reverse('lista_investigaciones')
+        assert InvestigacionProgramada.objects.filter(nombre='Monitoreo Competencia').exists()
+        inv = InvestigacionProgramada.objects.get(nombre='Monitoreo Competencia')
+        assert inv.frecuencia == 'semanal'
+        assert inv.activa is True
+        assert inv.ultima_ejecucion is None
+
+    def test_crear_investigacion_nombre_obligatorio(self):
+        """POST sin nombre muestra error de validación."""
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('crear_investigacion')
+        response = self.client.post(url, {
+            'nombre': '',
+            'urls_objetivo': 'https://ejemplo.com/sitemap.xml',
+            'frecuencia': 'semanal',
+        })
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        assert 'Este campo es obligatorio.' in content or 'required' in content.lower()
+        assert not InvestigacionProgramada.objects.exists()
+
+    def test_lista_investigaciones_muestra_tarjeta(self):
+        """Una investigación creada aparece como tarjeta en la lista."""
+        InvestigacionProgramada.objects.create(
+            nombre='Investigación Test',
+            urls_objetivo='https://ejemplo.com/sitemap.xml',
+            frecuencia='diaria',
+            activa=True,
+        )
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('lista_investigaciones')
+        response = self.client.get(url)
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        assert 'Investigación Test' in content
+        assert 'Diaria' in content
+        assert 'Activa' in content
+        assert 'class="card"' in content

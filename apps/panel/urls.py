@@ -61,4 +61,6 @@ urlpatterns = [
     path('configuracion/formatos/<int:pk>/restaurar/', views.restaurar_formato, name='restaurar_formato'),
     path('configuracion/herramientas/<int:pk>/restaurar/', views.restaurar_herramienta, name='restaurar_herramienta'),
     path('design-system/', login_required(TemplateView.as_view(template_name="panel/design_system.html")), name='design_system'),
+    path('investigaciones/', views.lista_investigaciones, name='lista_investigaciones'),
+    path('investigaciones/nueva/', views.crear_investigacion, name='crear_investigacion'),
 ]

@@ -1839,3 +1839,40 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "sidebar or dashboard or integraciones or crear_tarea or detalle or editar_agente or eliminar or aprobar" -q` → `28 passed`.
 
 **Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación de plantilla y tokens CSS. Retrocompatible: las clases sobrescritas mantienen su semántica; las vistas existentes siguen funcionando.
+
+## Paso UX-1 - Módulo de Investigación Programada con diseño ARM Flow 2.0 — COMPLETADO
+
+**Objetivo:** Crear una funcionalidad que permita al usuario programar monitoreos de competencia de forma ultra-simple, usando exclusivamente las nuevas clases de diseño ARM Flow 2.0 (.card, .input, .label, .segmented, .btn-primary, .badge) y ocultando la complejidad técnica.
+
+**Archivos tocados (6, excepción aprobada):**
+- `apps/core/models.py`: nuevo modelo `InvestigacionProgramada` con campos nombre, urls_objetivo, frecuencia (diaria/semanal/mensual), activa, ultima_ejecucion, creado_en.
+- `apps/panel/forms.py`: nuevo `InvestigacionForm` con 3 campos (nombre, urls_objetivo, frecuencia). La frecuencia usa RadioSelect y se renderiza como .segmented en el template.
+- `apps/panel/views.py`: vistas `lista_investigaciones` y `crear_investigacion`, ambas con `@login_required`. Al guardar, loguea 'Programando investigación: {nombre}' y redirige a la lista.
+- `apps/panel/urls.py`: rutas `investigaciones/` (`lista_investigaciones`) y `investigaciones/nueva/` (`crear_investigacion`).
+- `apps/panel/templates/panel/investigacion_lista.html` (nuevo): lista de tarjetas .card con nombre, badge de frecuencia, estado y última ejecución.
+- `apps/panel/templates/panel/investigacion_form.html` (nuevo): formulario centrado en .card con 3 campos, control .segmented para frecuencia y botón .btn.btn-primary 'Activar investigación'. JS vanilla para toggle de .active.
+- `tests/test_panel.py`: 7 pruebas nuevas de investigación.
+
+**Reglas respetadas:**
+- CERO estilos inline (`style="..."`). Todas las clases de `app.css`.
+- `.venv\Scripts\python.exe` línea por línea, sin `&&`.
+- No se tocó lógica de herramientas, agentes ni workflows. La lógica de Huey se añade en un paso posterior.
+- Ambas vistas requieren `@login_required`.
+- No se ejecutó `git push`.
+- Commit: "UX-1: Módulo de Investigación Programada con formulario simplificado y diseño ARM Flow 2.0".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations core` → migración `0023_investigacionprogramada` creada.
+- `.venv\Scripts\python.exe manage.py migrate` → `Applying core.0023_investigacionprogramada... OK`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "investigacion" -q` → `7 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -q` → `65 passed`.
+
+**Impacto en contratos/datos:**
+- SÍ datos persistidos (nuevo modelo `InvestigacionProgramada` + migración 0023).
+- SÍ contratos (2 URLs nuevas: `lista_investigaciones`, `crear_investigacion`).
+- SÍ permisos (ambas vistas con `@login_required`).
+- NO credenciales, NO tareas en cola (Huey pendiente), NO retrocompatibilidad rota.
+
+**Pendiente:** Lógica de Huey para ejecución programada de investigaciones (paso posterior).
