@@ -1105,3 +1105,21 @@ class TestPanel(TestCase):
         assert not Ejecucion.objects.filter(pk=e1.pk).exists()
         assert Ejecucion.objects.filter(pk=e2.pk).exists()  # e2 no seleccionada
         assert not Ejecucion.objects.filter(pk=e3.pk).exists()
+
+    def test_design_system_render(self):
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('design_system')
+        response = self.client.get(url)
+        assert response.status_code == 200
+        html = response.content.decode('utf-8')
+        assert 'Sistema de Diseño ARM Flow 2.0' in html
+        assert 'btn-primary' in html
+        assert 'btn-secondary' in html
+        assert 'btn-danger' in html
+        assert 'btn-ghost' in html
+        assert 'badge badge-success' in html
+        assert 'badge badge-error' in html or 'badge badge-danger' in html
+        assert 'badge badge-warning' in html
+        assert 'badge badge-neutral' in html
+        assert 'class="card"' in html
+        assert 'class="segmented"' in html

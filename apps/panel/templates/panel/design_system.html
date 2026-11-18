@@ -1,0 +1,76 @@
+{% extends "panel/base.html" %}
+
+{% block content %}
+<div class="content">
+  <h1 class="ds-h1">Sistema de Diseño ARM Flow 2.0</h1>
+  <p class="ds-subtitulo">Catálogo de componentes y tokens de diseño. Cada bloque usa exclusivamente las clases definidas en <code class="ds-codigo">static/css/app.css</code>.</p>
+
+  <!-- Botones -->
+  <div class="ds-bloque">
+    <h2 class="ds-h2">Botones</h2>
+    <div class="ds-grupo">
+      <button class="btn btn-primary" type="button">Primario</button>
+      <button class="btn btn-secondary" type="button">Secundario</button>
+      <button class="btn btn-danger" type="button">Peligro</button>
+      <button class="btn btn-ghost" type="button">Fantasma</button>
+    </div>
+  </div>
+
+  <!-- Inputs -->
+  <div class="ds-bloque">
+    <h2 class="ds-h2">Inputs</h2>
+    <div class="ds-grupo">
+      <div class="ds-campo">
+        <label class="label">Input normal</label>
+        <input type="text" class="input" placeholder="Ejemplo de entrada">
+        <p class="help-text">Texto de ayuda asociado al campo.</p>
+      </div>
+      <div class="ds-campo">
+        <label class="label">Input con error</label>
+        <input type="text" class="input error" placeholder="Campo inválido">
+        <p class="error-text">Este campo tiene un error de validación.</p>
+      </div>
+      <div class="ds-campo">
+        <label class="label">Textarea</label>
+        <textarea class="textarea" rows="3" placeholder="Área de texto de varias líneas"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Badges -->
+  <div class="ds-bloque">
+    <h2 class="ds-h2">Badges</h2>
+    <div class="ds-grupo">
+      <span class="badge badge-success">Éxito</span>
+      <span class="badge badge-warning">Advertencia</span>
+      <span class="badge badge-danger">Peligro</span>
+      <span class="badge badge-neutral">Neutral</span>
+    </div>
+  </div>
+
+  <!-- Tarjetas -->
+  <div class="ds-bloque">
+    <h2 class="ds-h2">Tarjetas</h2>
+    <div class="ds-grid">
+      <div class="card">
+        <h3 class="ds-card-titulo">Tarjeta 1</h3>
+        <p class="ds-card-texto">Contenido de ejemplo dentro de una tarjeta con borde sutil y sombra ligera.</p>
+      </div>
+      <div class="card">
+        <h3 class="ds-card-titulo">Tarjeta 2</h3>
+        <p class="ds-card-texto">Segunda tarjeta para mostrar el estilo de superficie elevada.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Segmented control -->
+  <div class="ds-bloque">
+    <h2 class="ds-h2">Segmented Control</h2>
+    <div class="segmented">
+      <button class="active" type="button">Opción 1</button>
+      <button type="button">Opción 2</button>
+      <button type="button">Opción 3</button>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,4 +1,6 @@
+from django.contrib.auth.decorators import login_required
 from django.urls import path
+from django.views.generic import TemplateView
 from apps.panel import views
 
 urlpatterns = [
@@ -58,4 +60,5 @@ urlpatterns = [
     path('configuracion/habilidades/<int:pk>/restaurar/', views.restaurar_habilidad, name='restaurar_habilidad'),
     path('configuracion/formatos/<int:pk>/restaurar/', views.restaurar_formato, name='restaurar_formato'),
     path('configuracion/herramientas/<int:pk>/restaurar/', views.restaurar_herramienta, name='restaurar_herramienta'),
+    path('design-system/', login_required(TemplateView.as_view(template_name="panel/design_system.html")), name='design_system'),
 ]

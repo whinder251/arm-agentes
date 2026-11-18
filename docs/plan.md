@@ -1813,3 +1813,29 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 - Prueba de shell con `https://hnrss.org/frontpage`: Status 200, lista de dicts con noticias reales (title, link, pubDate, description).
 
 **Impacto en contratos/datos:** NO modelos, NO migraciones, NO credenciales, NO permisos, NO tareas en cola. Retrocompatible (rama condicional adicional por slug).
+## Paso UX-0 - Tokens de diseño y catálogo de componentes ARM Flow 2.0 — COMPLETADO
+
+**Objetivo:** Migrar el sistema de diseño actual a tokens concretos inspirados en Untitled UI (light SaaS), definir clases de componentes reutilizables y crear una plantilla de muestra donde se vean todas las piezas juntas. No tocar vistas, modelos ni lógica.
+
+**Archivos tocados (4):**
+- `static/css/app.css`: nuevos tokens CSS exactos (--bg-app #F8FAFC, --bg-card #FFFFFF, --border #E2E8F0, --text-1 #0F172A, --text-2 #64748B, --accent #4F46E5, --success #16A34A, --warning #D97706, --danger #DC2626) al inicio del archivo; clases de componentes (.btn, .btn-primary, .btn-secondary, .btn-danger, .btn-ghost, .input, .textarea, .label, .help-text, .error-text, .badge, .badge-success, .badge-warning, .badge-danger, .badge-neutral, .card, .segmented) agrupadas por tipo; sobrescritura de clases existentes (.btn-primary, .btn-secondary, .btn-danger, .input, .badge) con nuevos valores exactos; clases .ds-* de utilidad para el catálogo.
+- `apps/panel/templates/panel/design_system.html` (nuevo): plantilla de muestra que extiende base.html, título "Sistema de Diseño ARM Flow 2.0", secciones con h2 en 18px/600 y separación de 32px, botones (4 variantes), inputs (normal, error, con ayuda), badges (4 estados), tarjetas, segmented control de 3 opciones. Cero estilos inline, cero bloques <style>, autocontenido sin variables de contexto ni datos de BD.
+- `apps/panel/urls.py`: ruta `path('design-system/', login_required(TemplateView.as_view(template_name="panel/design_system.html")), name='design_system')` añadida; import de login_required y TemplateView.
+- `tests/test_panel.py`: nueva prueba `test_design_system_render` que verifica status 200 y presencia de componentes en el HTML.
+
+**Reglas respetadas:**
+- No se modificó views.py, models.py, forms.py ni lógica de negocio.
+- No se añadieron dependencias.
+- Valores hex y px exactos, no aproximados.
+- Tokens al inicio de app.css antes de cualquier otra regla; clases agrupadas por tipo con comentarios en español.
+- URL protegida con @login_required.
+- No se ejecutó git push.
+- Commit: "UX-0: Tokens de diseño y catálogo de componentes ARM Flow 2.0".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py::TestPanel::test_design_system_render -q` → `1 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "sidebar or dashboard or integraciones or crear_tarea or detalle or editar_agente or eliminar or aprobar" -q` → `28 passed`.
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación de plantilla y tokens CSS. Retrocompatible: las clases sobrescritas mantienen su semántica; las vistas existentes siguen funcionando.
