@@ -215,6 +215,36 @@ class TestObtenerConfiguracionEjecucion(TestCase):
             metadata={"base_url": "https://api.test.com", "header_scheme": "bearer"},
         )
 
+    def test_endpoint_herramienta_se_unen_con_base_url_credencial(self):
+        """El endpoint de la herramienta (ruta relativa) se une con base_url de la credencial."""
+        herramienta = Herramienta.objects.create(
+            nombre="Herramienta Test",
+            slug="herramienta-test",
+            tipo="api",
+            configuracion={"endpoint": "/v1/search", "timeout": 10},
+            credencial=self.credencial,
+        )
+        config = _obtener_configuracion_ejecucion(herramienta)
+        # base_url viene de la credencial
+        self.assertEqual(config["base_url"], "https://api.test.com")
+        # endpoint viene de la herramienta y se une con base_url en _ejecutar_herramienta_http
+        self.assertEqual(config["endpoint"], "/v1/search")
+        self.assertEqual(config["secreto_desencriptado"], "sk-test-123")
+
+    def test_endpoint_absoluto_en_herramienta_se_usa_directamente(self):
+        """Si la herramienta tiene endpoint absoluto (http...), se usa tal cual (tras validar SSRF)."""
+        herramienta = Herramienta.objects.create(
+            nombre="Herramienta Absoluta",
+            slug="herramienta-absoluta",
+            tipo="api",
+            configuracion={"endpoint": "https://api.otro.com/v1/data", "timeout": 10},
+            credencial=self.credencial,
+        )
+        config = _obtener_configuracion_ejecucion(herramienta)
+        # base_url de credencial se ignora cuando endpoint es absoluto (se valida en ejecución)
+        self.assertEqual(config["endpoint"], "https://api.otro.com/v1/data")
+        self.assertEqual(config["secreto_desencriptado"], "sk-test-123")
+
     def test_fusion_metadata_config_secreto(self):
         herramienta = Herramienta.objects.create(
             nombre="Herramienta Test",

@@ -160,7 +160,7 @@ def _obtener_configuracion_ejecucion(herramienta: Herramienta) -> dict:
     config_herramienta = dict(herramienta.configuracion or {})
     # Eliminar base_url de la herramienta - SOLO credencial define el host
     config_herramienta.pop("base_url", None)
-    # endpoint SÍ puede venir de la herramienta (ruta específica)
+    # endpoint se conserva: la herramienta define la ruta
 
     if herramienta.credencial is not None:
         credencial: Credencial = herramienta.credencial

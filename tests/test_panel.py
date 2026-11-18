@@ -782,16 +782,16 @@ class TestPanel(TestCase):
         assert 'Editar proveedor' in content
         assert self.proveedor.nombre in content
         assert '****' in content
-        assert 'Cambiar API key' in content
+        assert 'Cambiar API key' not in content  # checkbox eliminado
 
-    def test_editar_proveedor_no_cambiar_api_key_conserva_clave(self):
+    def test_editar_proveedor_dejar_vacio_conserva_clave(self):
         self.client.login(username='testuser', password='testpass123')
         url = reverse('editar_proveedor', args=[self.proveedor.pk])
         clave_original = self.proveedor.api_key
         response = self.client.post(url, {
             'nombre': 'gemini-editado',
             'base_url': 'http://editado.invalid',
-            'api_key': '****fake',
+            'api_key': '',  # vacío = conservar
             'rpm': '100',
             'limite_diario': '1000',
         })
@@ -800,15 +800,14 @@ class TestPanel(TestCase):
         self.proveedor.refresh_from_db()
         assert self.proveedor.api_key == clave_original
 
-    def test_editar_proveedor_cambiar_api_key_actualiza_clave(self):
+    def test_editar_proveedor_escribir_nueva_clave_actualiza(self):
         self.client.login(username='testuser', password='testpass123')
         url = reverse('editar_proveedor', args=[self.proveedor.pk])
         nueva_clave = 'sk-nueva-clave-secreta-1234'
         response = self.client.post(url, {
             'nombre': 'gemini-editado',
             'base_url': 'http://editado.invalid',
-            'cambiar_api_key': 'on',
-            'nueva_api_key': nueva_clave,
+            'api_key': nueva_clave,  # escribir nueva clave
             'rpm': '100',
             'limite_diario': '1000',
         })
@@ -816,6 +815,22 @@ class TestPanel(TestCase):
         assert response.url == reverse('lista_proveedores')
         self.proveedor.refresh_from_db()
         assert self.proveedor.api_key == nueva_clave
+
+    def test_editar_proveedor_placeholder_enmascarado_conserva(self):
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('editar_proveedor', args=[self.proveedor.pk])
+        clave_original = self.proveedor.api_key
+        response = self.client.post(url, {
+            'nombre': 'gemini-editado',
+            'base_url': 'http://editado.invalid',
+            'api_key': '****fake',  # placeholder enmascarado
+            'rpm': '100',
+            'limite_diario': '1000',
+        })
+        assert response.status_code == 302
+        assert response.url == reverse('lista_proveedores')
+        self.proveedor.refresh_from_db()
+        assert self.proveedor.api_key == clave_original
 
     def test_integraciones_render_muestra_destinos(self):
         self.client.login(username='testuser', password='testpass123')

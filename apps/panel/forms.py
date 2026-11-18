@@ -4,13 +4,11 @@ from apps.core.models import Agente, Credencial, FormatoSalida, Habilidad, Herra
 
 
 class ProveedorForm(forms.ModelForm):
-    cambiar_api_key = forms.BooleanField(required=False, label='Cambiar API key')
-
     class Meta:
         model = Proveedor
         fields = ["nombre", "base_url", "api_key", "rpm", "limite_diario"]
         widgets = {
-            "api_key": forms.TextInput,
+            "api_key": forms.PasswordInput(attrs={"placeholder": "sk-... o {{secreto}}"}, render_value=True),
         }
 
     def __init__(self, *args, **kwargs):
@@ -19,7 +17,18 @@ class ProveedorForm(forms.ModelForm):
             field.widget.attrs.update({'class': 'input'})
         if self.instance and self.instance.pk and self.instance.api_key:
             self.initial['api_key'] = f"****{self.instance.api_key[-4:]}"
-            self.fields['api_key'].widget.attrs.update({'readonly': 'readonly'})
+            self.fields['api_key'].required = False
+            self.fields['api_key'].widget.attrs.pop('readonly', None)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        is_edit = self.instance and self.instance.pk
+        secreto = cleaned_data.get('api_key')
+
+        if is_edit and (not secreto or (isinstance(secreto, str) and secreto.startswith('****'))):
+            # No se escribió nada o se dejó el placeholder enmascarado: conservar original
+            cleaned_data['api_key'] = self.instance.api_key
+        return cleaned_data
 
 
 class ModeloLLMForm(forms.ModelForm):
@@ -70,6 +79,9 @@ class HerramientaForm(forms.ModelForm):
         for field_name, field in self.fields.items():
             if field_name != "credencial":
                 field.widget.attrs.update({'class': 'input'})
+        # configuracion no es requerida en el form porque se construye desde campos estructurados
+        # o se proporciona en modo avanzado
+        self.fields["configuracion"].required = False
         if "credencial" in self.fields:
             self.fields["credencial"].queryset = Credencial.objects.all().order_by("nombre")
             self.fields["credencial"].empty_label = "— Sin credencial —"
@@ -103,11 +115,6 @@ class AgenteForm(forms.ModelForm):
 
 
 class CredencialForm(forms.ModelForm):
-    cambiar_api_key = forms.BooleanField(
-        required=False, label='Cambiar API Key',
-        help_text='Marca esta casilla solo si deseas reemplazar la clave existente.'
-    )
-
     class Meta:
         model = Credencial
         fields = ["nombre", "slug", "tipo", "secreto_cifrado", "metadata", "es_sistema"]
@@ -115,10 +122,10 @@ class CredencialForm(forms.ModelForm):
             "secreto_cifrado": "API Key",
         }
         help_texts = {
-            "secreto_cifrado": "Clave secreta que se usará para autenticar las peticiones. Puedes referenciarla en el Metadata usando {{secreto}}.",
+            "secreto_cifrado": "Clave secreta que se usará para autenticar las peticiones. Puedes referenciarla en el Metadata usando {{secreto}}. Déjalo vacío para conservar la clave actual.",
         }
         widgets = {
-            "secreto_cifrado": forms.PasswordInput(attrs={"placeholder": "sk-... o {{secreto}}"}),
+            "secreto_cifrado": forms.PasswordInput(attrs={"placeholder": "sk-... o {{secreto}}"}, render_value=True),
             "metadata": forms.Textarea(attrs={"rows": 4}),
         }
 
@@ -134,30 +141,22 @@ class CredencialForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
         is_edit = self.instance and self.instance.pk
-        cambiar = cleaned_data.get('cambiar_api_key')
         secreto = cleaned_data.get('secreto_cifrado')
 
-        if is_edit and not cambiar:
-            # No se marca cambiar: conservamos el valor original, eliminamos del cleaned_data
+        if is_edit and (not secreto or (isinstance(secreto, str) and secreto.startswith('****'))):
+            # No se escribió nada o se dejó el placeholder enmascarado: conservar original
             cleaned_data['secreto_cifrado'] = self.instance.secreto_cifrado
-        elif is_edit and cambiar and not secreto:
-            # Se marca cambiar pero campo vacío: error
-            self.add_error('secreto_cifrado', 'Debes escribir la nueva API Key para cambiarla.')
         return cleaned_data
 
 
 class DestinoPublicacionForm(forms.ModelForm):
     """Formulario para crear/editar un destino de publicación."""
 
-    cambiar_credenciales = forms.BooleanField(
-        required=False, label='Cambiar credenciales'
-    )
-
     class Meta:
         model = DestinoPublicacion
         fields = ["nombre", "tipo", "url", "usuario", "credenciales", "activa"]
         widgets = {
-            "credenciales": forms.PasswordInput,
+            "credenciales": forms.PasswordInput(attrs={"placeholder": "sk-... o {{secreto}}"}, render_value=True),
         }
 
     def __init__(self, *args, **kwargs):
@@ -166,4 +165,15 @@ class DestinoPublicacionForm(forms.ModelForm):
             field.widget.attrs.update({'class': 'input'})
         if self.instance and self.instance.pk and self.instance.credenciales:
             self.initial['credenciales'] = f"****{self.instance.credenciales[-4:]}"
-            self.fields['credenciales'].widget.attrs.update({'readonly': 'readonly'})
+            self.fields['credenciales'].required = False
+            self.fields['credenciales'].widget.attrs.pop('readonly', None)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        is_edit = self.instance and self.instance.pk
+        secreto = cleaned_data.get('credenciales')
+
+        if is_edit and (not secreto or (isinstance(secreto, str) and secreto.startswith('****'))):
+            # No se escribió nada o se dejó el placeholder enmascarado: conservar original
+            cleaned_data['credenciales'] = self.instance.credenciales
+        return cleaned_data

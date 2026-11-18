@@ -1633,3 +1633,36 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "herramienta or credencial or dashboard or sidebar or lista_tareas or lista_ejecuciones or lista_workflows or lista_equipos or lista_agentes or lista_habilidades or lista_formatos or lista_proveedores or lista_modelos or integraciones or detalle or aprobar or editar_destino or eliminar_herramienta or crear_herramienta" -q` → `23 passed`.
 
 **Impacto en contratos/datos:** SÍ contratos de UI (nuevas URLs de catálogo, parámetros POST `advanced_mode`, `tool_type`, `header_key[]`, `header_value[]`). NO modelos, NO migraciones, NO credenciales, NO permisos, NO tareas en cola. Retrocompatible: herramientas existentes inferen tipo y poblaron campos desde su JSON; claves no mapeadas se conservan al editar.
+
+## Paso C.7-FIX-DESIGN - Corregir arquitectura de credenciales/herramientas y UX de guardado de secretos — COMPLETADO
+
+**Objetivo:**
+1) Separación de responsabilidades: La credencial aporta exclusivamente `base_url` (host) y autenticación. La herramienta aporta `endpoint` (ruta) y parámetros. El motor los une.
+2) Convención estándar de secretos: Campo vacío = conservar secreto existente. Campo con texto = reemplazar. Sin checkbox `cambiar_api_key` / `cambiar_credenciales`.
+
+**Archivos tocados (6):**
+- `apps/engine/tool_executor.py`: En `_obtener_configuracion_ejecucion`, se elimina `pop("endpoint")` (solo se hace `pop("base_url")` para anti cross-wiring). El endpoint de la herramienta tiene prioridad; si es relativo se une con `base_url` de la credencial, si es absoluto se usa directo (tras validar SSRF).
+- `apps/panel/forms.py`: `CredencialForm`, `ProveedorForm`, `DestinoPublicacionForm`: eliminados checkboxes `cambiar_api_key`/`cambiar_credenciales`. Nuevo `clean()`: si edición y campo vacío o placeholder enmascarado (`****xxxx`), conserva original; si texto real, usa ese. En creación, requerido normal. `render_value=True` en `PasswordInput` para mostrar valor enmascarado al editar.
+- `apps/panel/views.py`: `TOOL_TYPES["tavily-search"]` añade campo `endpoint` con default `/search`. Vista `editar_proveedor` simplificada (delega al form.clean()).
+- `apps/panel/templates/panel/lista_proveedores.html`: Eliminados checkbox "Cambiar API key" y textarea oculto `nueva_api_key`. Help text actualizado.
+- `tests/test_tool_executor.py`: 2 tests nuevos (`test_endpoint_herramienta_se_unen_con_base_url_credencial`, `test_endpoint_absoluto_en_herramienta_se_usa_directamente`) + actualizados los existentes.
+- `tests/test_fase16.py`: Clase `TestCredencialEditarAPIKey` reescrita (3 tests: vacío conserva, texto actualiza, placeholder enmascarado conserva).
+- `tests/test_panel.py`: 3 tests de `editar_proveedor` actualizados al nuevo comportamiento (vacío, texto nuevo, placeholder).
+
+**Reglas respetadas:**
+- NO `models.py`, NO migraciones (`makemigrations --check --dry-run` → No changes detected).
+- Protección anti cross-wiring del HOST intacta (`base_url` solo de credencial).
+- `.venv\Scripts\python.exe` línea por línea. NO `git push`.
+- Commit: "C.7-FIX: Separar host/ruta y eliminar checkbox de cambio de API key".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe -m pytest tests/test_tool_executor.py -q` → `45 passed` (incluye 2 nuevos).
+- `.venv\Scripts\python.exe -m pytest tests/test_fase16.py -q` → `27 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "proveedor or credencial or destino" -q` → `12 passed`.
+- En navegador:
+  1. Editar credencial Tavily: metadata `{"base_url": "https://api.tavily.com", "header_scheme": "bearer"}`. Escribir clave, guardar (sin checkbox), recargar → muestra `****xxxx`.
+  2. Editar herramienta Tavily: configuración `{"endpoint": "/search", "max_results": 5}`.
+  3. Prueba shell con herramienta Tavily → Status 200 con resultados.
+
+**Impacto en contratos/datos:** NO modelos, NO migraciones, NO credenciales persistidas, NO permisos, NO tareas en cola. SÍ contratos internos de `tool_executor.py` (endpoint viene de herramienta, base_url de credencial). SÍ UX de formularios (sin checkbox, convención campo vacío = conservar). Retrocompatible: herramientas sin endpoint absoluto siguen funcionando (se une con base_url).

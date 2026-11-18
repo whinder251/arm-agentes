@@ -98,6 +98,7 @@ TOOL_TYPES = {
         "descripcion": "Búsqueda web optimizada para agentes de IA.",
         "ayuda_sidebar": "Obtén tu API Key gratis en tavily.com. La base_url de la credencial debe ser https://api.tavily.com. El método es POST.",
         "campos": [
+            {"name": "endpoint", "label": "Endpoint", "widget": "input", "placeholder": "/search", "initial": "/search"},
             {"name": "method", "label": "Método", "widget": "select", "choices": ["POST"], "initial": "POST"},
             {"name": "search_depth", "label": "Profundidad", "widget": "select", "choices": ["basic", "advanced"], "initial": "advanced"},
             {"name": "max_results", "label": "Máx. resultados", "widget": "number", "initial": 5, "min": 1, "max": 10}
@@ -1407,17 +1408,10 @@ def lista_proveedores(request):
 def editar_proveedor(request, pk):
     """Edita un proveedor existente, reutilizando ProveedorForm."""
     proveedor = get_object_or_404(Proveedor, pk=pk)
-    clave_original = proveedor.api_key
     if request.method == "POST":
         form = ProveedorForm(request.POST, instance=proveedor)
         if form.is_valid():
-            proveedor_obj = form.save(commit=False)
-            if not form.cleaned_data.get('cambiar_api_key'):
-                proveedor_obj.api_key = clave_original
-            else:
-                nueva_key = form.cleaned_data.get('nueva_api_key') or request.POST.get('nueva_api_key')
-                proveedor_obj.api_key = nueva_key if nueva_key else clave_original
-            proveedor_obj.save()
+            form.save()
             return redirect("lista_proveedores")
     else:
         form = ProveedorForm(instance=proveedor)

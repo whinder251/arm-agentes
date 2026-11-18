@@ -261,10 +261,10 @@ class TestCredencialCRUD(Fase16TestCase):
 
 
 class TestCredencialEditarAPIKey(Fase16TestCase):
-    """Pruebas para el patrón cambiar_api_key en CredencialForm."""
+    """Pruebas para la nueva convención: campo vacío = conservar secreto."""
 
-    def test_editar_credencial_sin_cambiar_api_key_conserva_secreto(self):
-        """Editar solo el nombre sin marcar 'Cambiar API Key' conserva el secreto original."""
+    def test_editar_credencial_dejar_vacio_conserva_secreto(self):
+        """Editar solo el nombre dejando el campo API Key vacío conserva el secreto original."""
         credencial = Credencial.objects.create(
             slug="credencial-test-conserva",
             nombre="Credencial Test",
@@ -277,17 +277,16 @@ class TestCredencialEditarAPIKey(Fase16TestCase):
             "nombre": "Credencial Editada",
             "slug": "credencial-test-conserva",
             "tipo": "api_key",
-            "secreto_cifrado": "",  # vacío, no se marca cambiar_api_key
+            "secreto_cifrado": "",  # vacío = conservar
             "metadata": '{"endpoint": "https://api.ejemplo.com"}',
             "es_sistema": False,
-            "cambiar_api_key": False,
         })
         self.assertEqual(response.status_code, 302)
         credencial.refresh_from_db()
         self.assertEqual(credencial.secreto_cifrado, "sk-original-secreto-1234")
 
-    def test_editar_credencial_con_cambiar_api_key_actualiza(self):
-        """Marcar 'Cambiar API Key' y escribir nueva clave actualiza el secreto."""
+    def test_editar_credencial_escribir_nueva_clave_actualiza(self):
+        """Escribir una nueva clave en el campo actualiza el secreto."""
         credencial = Credencial.objects.create(
             slug="credencial-test-actualiza",
             nombre="Credencial Test",
@@ -303,34 +302,31 @@ class TestCredencialEditarAPIKey(Fase16TestCase):
             "secreto_cifrado": "sk-nueva-clave-5678",
             "metadata": '{"endpoint": "https://api.ejemplo.com"}',
             "es_sistema": False,
-            "cambiar_api_key": True,
         })
         self.assertEqual(response.status_code, 302)
         credencial.refresh_from_db()
         self.assertEqual(credencial.secreto_cifrado, "sk-nueva-clave-5678")
 
-    def test_editar_credencial_marca_cambiar_sin_clave_error(self):
-        """Marcar 'Cambiar API Key' pero dejar el campo vacío muestra error de validación."""
+    def test_editar_credencial_placeholder_enmascarado_conserva(self):
+        """Dejar el placeholder enmascarado (****1234) conserva el secreto original."""
         credencial = Credencial.objects.create(
-            slug="credencial-test-error",
+            slug="credencial-test-placeholder",
             nombre="Credencial Test",
             tipo="api_key",
             secreto_cifrado="sk-original-secreto-1234",
             es_sistema=False,
         )
         url = reverse("editar_credencial", args=[credencial.pk])
+        # El formulario inicializa con el placeholder enmascarado
         response = self.client.post(url, {
             "nombre": "Credencial Editada",
-            "slug": "credencial-test-error",
+            "slug": "credencial-test-placeholder",
             "tipo": "api_key",
-            "secreto_cifrado": "",  # vacío
+            "secreto_cifrado": "****1234",  # placeholder enmascarado
             "metadata": '{"endpoint": "https://api.ejemplo.com"}',
             "es_sistema": False,
-            "cambiar_api_key": True,
         })
-        self.assertEqual(response.status_code, 200)  # vuelve al formulario con error
-        html = response.content.decode("utf-8")
-        self.assertIn("Debes escribir la nueva API Key para cambiarla", html)
+        self.assertEqual(response.status_code, 302)
         credencial.refresh_from_db()
         self.assertEqual(credencial.secreto_cifrado, "sk-original-secreto-1234")
 
