@@ -9,6 +9,7 @@ orquestador (Fase 4) y por el botón "Probar conexión" del panel.
 import base64
 import logging
 import socket
+import xml.etree.ElementTree as ET
 from typing import Any
 from urllib.parse import urljoin, urlparse
 
@@ -217,6 +218,48 @@ def _construir_headers_autenticacion(config: dict) -> dict:
     return headers
 
 
+_NAMESPACE_SITEMAP = "http://www.sitemaps.org/schemas/sitemap/0.9"
+
+
+def _parsear_sitemap(xml_text: str) -> list[dict]:
+    """Parsea un sitemap.xml y devuelve una lista de diccionarios con url, lastmod y priority.
+
+    Si el XML es inválido, está vacío o no tiene estructura de sitemap,
+    devuelve [{"error": "..."}] sin lanzar excepción.
+    """
+    if not xml_text or not xml_text.strip():
+        return [{"error": "No es un sitemap.xml válido o la estructura es inesperada"}]
+
+    try:
+        raiz = ET.fromstring(xml_text.strip())
+    except ET.ParseError:
+        return [{"error": "No es un sitemap.xml válido o la estructura es inesperada"}]
+
+    # Quitar namespaces para buscar etiquetas sin prefijo (más robusto ante variantes)
+    for elem in raiz.iter():
+        if "}" in elem.tag:
+            elem.tag = elem.tag.split("}", 1)[1]
+
+    urls = []
+    for url_elem in raiz.findall("url"):
+        loc_elem = url_elem.find("loc")
+        lastmod_elem = url_elem.find("lastmod")
+        priority_elem = url_elem.find("priority")
+        changefreq_elem = url_elem.find("changefreq")
+
+        urls.append({
+            "url": (loc_elem.text.strip() if loc_elem is not None and loc_elem.text else ""),
+            "lastmod": (lastmod_elem.text.strip() if lastmod_elem is not None and lastmod_elem.text else ""),
+            "priority": (priority_elem.text.strip() if priority_elem is not None and priority_elem.text else ""),
+            "changefreq": (changefreq_elem.text.strip() if changefreq_elem is not None and changefreq_elem.text else ""),
+        })
+
+    if not urls:
+        return [{"error": "No es un sitemap.xml válido o la estructura es inesperada"}]
+
+    return urls
+
+
 def _ejecutar_herramienta_http(herramienta: Herramienta, payload: dict) -> dict:
     """Ejecuta una petición HTTP usando la herramienta y su credencial.
 
@@ -233,32 +276,29 @@ def _ejecutar_herramienta_http(herramienta: Herramienta, payload: dict) -> dict:
     """
     config = _obtener_configuracion_ejecucion(herramienta)
 
-    # Determinar endpoint: base_url OBLIGATORIO de credencial, endpoint de herramienta
+    # Determinar endpoint
     endpoint = config.get("endpoint")
     base_url = config.get("base_url")
-
-    if not base_url:
-        raise ValueError(
-            f"La credencial de la herramienta '{herramienta.nombre}' "
-            f"no tiene 'base_url' configurado en metadata (requerido para prevenir cross-wiring)."
-        )
 
     if not endpoint:
         raise ValueError(
             f"La herramienta '{herramienta.nombre}' no tiene 'endpoint' configurado."
         )
 
-    if base_url and not endpoint.startswith(("http://", "https://")):
-        endpoint = urljoin(base_url.rstrip("/") + "/", endpoint.lstrip("/"))
-    elif not base_url and not endpoint.startswith(("http://", "https://")):
-        # Si no hay base_url, el endpoint debe ser URL absoluta
-        raise ValueError(
-            f"La herramienta '{herramienta.nombre}' requiere 'base_url' en la credencial "
-            f"cuando 'endpoint' es una ruta relativa."
-        )
+    if endpoint.startswith(("http://", "https://")):
+        # URL absoluta: se usa directamente (herramientas sin credencial como sitemap-reader)
+        url_final = endpoint
+    else:
+        # Ruta relativa: exige base_url de la credencial (anti cross-wiring)
+        if not base_url:
+            raise ValueError(
+                f"La credencial de la herramienta '{herramienta.nombre}' "
+                f"no tiene 'base_url' configurado en metadata (requerido para prevenir cross-wiring)."
+            )
+        url_final = urljoin(base_url.rstrip("/") + "/", endpoint.lstrip("/"))
 
     # Validar SSRF ANTES de cualquier petición
-    _validar_endpoint_seguro(endpoint)
+    _validar_endpoint_seguro(url_final)
 
     # Timeout obligatorio: forzar float, rango 1-120, default 30
     # Rechazar strings aunque sean numéricos (solo int/float permitidos)
@@ -320,7 +360,7 @@ def _ejecutar_herramienta_http(herramienta: Herramienta, payload: dict) -> dict:
     try:
         response = requests.request(
             method=metodo,
-            url=endpoint,
+            url=url_final,
             json=json_payload,
             headers=headers,
             timeout=timeout,
@@ -334,6 +374,11 @@ def _ejecutar_herramienta_http(herramienta: Herramienta, payload: dict) -> dict:
         body = response.json()
     except (ValueError, requests.exceptions.JSONDecodeError):
         body = response.text
+
+    # Post-procesamiento condicional para sitemap-reader: parsear el XML y devolver lista de URLs
+    if herramienta.slug == "sitemap-reader" and response.status_code == 200:
+        if isinstance(body, str):
+            body = _parsear_sitemap(body)
 
     return {"status": response.status_code, "body": body}
 

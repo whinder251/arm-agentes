@@ -596,7 +596,7 @@ class TestEjecutarHerramientaHttp(TestCase):
             nombre="Sin URL",
             slug="sin-url",
             tipo="api",
-            configuracion={"timeout": 10},  # Sin endpoint
+            configuracion={"endpoint": "/v1/data", "timeout": 10},  # Endpoint relativo, sin base_url en credencial
             credencial=credencial_sin_url,
         )
 
@@ -763,6 +763,77 @@ class TestEjecutarHerramientaHttp(TestCase):
             _ejecutar_herramienta_http(self.herramienta, {"api_key": "user-provided"})
         self.assertIn("ya existe en el payload", str(ctx.exception))
         mock_request.assert_not_called()
+
+    @patch("apps.engine.tool_executor.requests.request")
+    @patch("apps.engine.tool_executor._validar_endpoint_seguro")
+    def test_sitemap_reader_parsea_xml_valido(self, mock_validar, mock_request):
+        """Verifica que sitemap-reader parsea un XML válido y devuelve lista de dicts con url y lastmod."""
+        xml_sitemap = """<?xml version="1.0" encoding="UTF-8"?>
+        <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+            <url>
+                <loc>https://ejemplo.com/pagina-1</loc>
+                <lastmod>2026-01-15</lastmod>
+                <priority>0.8</priority>
+                <changefreq>weekly</changefreq>
+            </url>
+            <url>
+                <loc>https://ejemplo.com/pagina-2</loc>
+                <lastmod>2026-02-20</lastmod>
+                <priority>0.5</priority>
+            </url>
+        </urlset>"""
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.side_effect = ValueError("No es JSON")
+        mock_response.text = xml_sitemap
+        mock_request.return_value = mock_response
+        mock_validar.return_value = None
+
+        herramienta = Herramienta.objects.create(
+            nombre="Sitemap Reader",
+            slug="sitemap-reader",
+            tipo="api",
+            configuracion={"endpoint": "https://ejemplo.com/sitemap.xml", "method": "GET", "timeout": 15},
+        )
+
+        resultado = _ejecutar_herramienta_http(herramienta, {})
+
+        self.assertEqual(resultado["status"], 200)
+        self.assertIsInstance(resultado["body"], list)
+        self.assertEqual(len(resultado["body"]), 2)
+        self.assertEqual(resultado["body"][0]["url"], "https://ejemplo.com/pagina-1")
+        self.assertEqual(resultado["body"][0]["lastmod"], "2026-01-15")
+        self.assertEqual(resultado["body"][0]["priority"], "0.8")
+        self.assertEqual(resultado["body"][1]["url"], "https://ejemplo.com/pagina-2")
+        self.assertEqual(resultado["body"][1]["lastmod"], "2026-02-20")
+
+    @patch("apps.engine.tool_executor.requests.request")
+    @patch("apps.engine.tool_executor._validar_endpoint_seguro")
+    def test_sitemap_reader_maneja_xml_invalido(self, mock_validar, mock_request):
+        """Verifica que sitemap-reader con HTML plano devuelve dict con 'error' sin romper el flujo."""
+        html_plano = "<html><body><h1>No es un sitemap</h1></body></html>"
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.side_effect = ValueError("No es JSON")
+        mock_response.text = html_plano
+        mock_request.return_value = mock_response
+        mock_validar.return_value = None
+
+        herramienta = Herramienta.objects.create(
+            nombre="Sitemap Reader",
+            slug="sitemap-reader",
+            tipo="api",
+            configuracion={"endpoint": "https://ejemplo.com/sitemap.xml", "method": "GET", "timeout": 15},
+        )
+
+        resultado = _ejecutar_herramienta_http(herramienta, {})
+
+        self.assertEqual(resultado["status"], 200)
+        self.assertIsInstance(resultado["body"], list)
+        self.assertEqual(len(resultado["body"]), 1)
+        self.assertIn("error", resultado["body"][0])
 
 
 from apps.engine.tool_executor import _resolver_placeholders

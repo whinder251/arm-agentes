@@ -92,4 +92,14 @@ HERRAMIENTAS_SISTEMA = {
             "tabla_defecto": "nombre_tabla",
         },
     },
+    "sitemap-reader": {
+        "nombre": "Sitemap Reader",
+        "slug": "sitemap-reader",
+        "tipo": "api",
+        "descripcion": "Lee y parsea archivos sitemap.xml para mapear la estructura de contenido de un sitio.",
+        "configuracion": {
+            "method": "GET",
+            "timeout": 15,
+        },
+    },
 }
