@@ -1615,3 +1615,20 @@ def ejecutar_investigacion_ahora(request, pk):
         )
         messages.error(request, "No se pudo re-ejecutar la investigación.")
     return redirect("lista_investigaciones")
+
+
+@login_required
+def detalle_investigacion(request, pk):
+    """Muestra los hallazgos detectados por una investigación programada."""
+    investigacion = get_object_or_404(
+        InvestigacionProgramada.objects.prefetch_related("hallazgos"), pk=pk
+    )
+    hallazgos = investigacion.hallazgos.all().order_by("-detectado_en")
+    return render(
+        request,
+        "panel/investigacion_detalle.html",
+        {
+            "investigacion": investigacion,
+            "hallazgos": hallazgos,
+        },
+    )

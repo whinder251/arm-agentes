@@ -64,4 +64,5 @@ urlpatterns = [
     path('investigaciones/', views.lista_investigaciones, name='lista_investigaciones'),
     path('investigaciones/nueva/', views.crear_investigacion, name='crear_investigacion'),
     path('investigaciones/<int:pk>/ejecutar/', views.ejecutar_investigacion_ahora, name='ejecutar_investigacion_ahora'),
+    path('investigaciones/<int:pk>/detalle/', views.detalle_investigacion, name='detalle_investigacion'),
 ]

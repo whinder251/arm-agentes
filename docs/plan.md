@@ -1938,3 +1938,29 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 - Verificación en shell: `ejecutar_investigacion` sobre "Monitor Hacker News" devolvió `{"ejecutadas": 1, "hallazgos_nuevos": 20, "fallos": []}` y 20 `Hallazgo` guardados con títulos reales de hnrss.org.
 
 **Impacto en contratos/datos:** NO modelos, NO migraciones, NO credenciales, NO permisos, NO tareas en cola, NO contratos de API. Retrocompatible. SÍ comportamiento de red (se siguen redirecciones) y mensaje de error más informativo.
+
+
+## Paso UX-2B - Interfaz de hallazgos y botones de acción en lista de investigaciones — COMPLETADO
+
+**Objetivo:** Permitir al usuario ver los artículos detectados por una investigación y ejecutarla manualmente, usando exclusivamente el diseño ARM Flow 2.0.
+
+**Archivos tocados (4):**
+- `apps/panel/templates/panel/investigacion_lista.html`: botones "Ejecutar ahora" (`.btn.btn-secondary`, POST a `ejecutar_investigacion_ahora`) y "Ver hallazgos" (`.btn.btn-primary`, enlace a detalle) en cada tarjeta `.card`.
+- `apps/panel/views.py`: nueva vista `detalle_investigacion(request, pk)` con `@login_required`, obtiene `InvestigacionProgramada` y sus `hallazgos` ordenados por `-detectado_en` usando `prefetch_related`.
+- `apps/panel/urls.py`: ruta `investigaciones/<int:pk>/detalle/` → `detalle_investigacion`.
+- `apps/panel/templates/panel/investigacion_detalle.html` (nuevo): extiende `base.html`, encabezado con título y badge de frecuencia, botón `.btn.btn-secondary` "← Volver a la lista", lista de hallazgos con título truncado a 80 chars, badge `.badge.badge-neutral` (RSS/Sitemap), fecha en `.help-text`, enlace externo con icono SVG Lucide (16x16, stroke 2px, currentColor, `target="_blank"`, `rel="noopener noreferrer"`). CERO estilos inline.
+
+**Reglas respetadas:**
+- Máximo 4 archivos modificados.
+- CERO CSS inline; solo clases de `app.css` (`.card`, `.badge`, `.btn`, `.help-text`, `btn-sm`).
+- Vista rápida con `prefetch_related("hallazgos")`.
+- No se ejecutó `git push`.
+- Commit: "UX-2B: Interfaz de hallazgos y botones de acción en investigaciones".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "investigacion" -q` → `7 passed`.
+- Cada tarjeta de la lista muestra "Ejecutar ahora" y "Ver hallazgos".
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos nuevos, NO tareas en cola. Sí añade una URL y una vista read-only protegida por `@login_required`. Retrocompatible.

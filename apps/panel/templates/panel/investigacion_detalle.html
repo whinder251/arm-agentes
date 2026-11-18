@@ -1,0 +1,40 @@
+{% extends "panel/base.html" %}
+
+{% block content %}
+<div class="page-header">
+    <h1>{{ investigacion.nombre }}</h1>
+    <span class="badge badge-neutral">{{ investigacion.get_frecuencia_display }}</span>
+    <a href="{% url 'lista_investigaciones' %}" class="btn btn-secondary">← Volver a la lista</a>
+</div>
+
+{% if not hallazgos %}
+<div class="vacio">
+    <p class="help-text">Aún no se han detectado artículos. Ejecuta la investigación manualmente.</p>
+</div>
+{% else %}
+<div class="grid-investigaciones">
+    {% for h in hallazgos %}
+    <div class="card">
+        <div class="fila-investigacion">
+            <div class="info-investigacion">
+                <h3>{{ h.titulo|default:"Sin título"|truncatechars:80 }}</h3>
+                <span class="badge badge-neutral">{{ h.get_tipo_fuente_display }}</span>
+                {% if h.fecha_publicacion %}
+                <div class="help-text">{{ h.fecha_publicacion }}</div>
+                {% else %}
+                <div class="help-text">Sin fecha</div>
+                {% endif %}
+            </div>
+            <div class="acciones-investigacion">
+                {% if h.url_articulo %}
+                <a href="{{ h.url_articulo }}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}
