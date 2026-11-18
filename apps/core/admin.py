@@ -3,6 +3,7 @@ from django.contrib import admin
 from .models import (
     Agente,
     Artefacto,
+    CacheRespuesta,
     Ejecucion,
     Habilidad,
     ModeloLLM,
@@ -54,3 +55,10 @@ class EjecucionAdmin(admin.ModelAdmin):
 class ArtefactoAdmin(admin.ModelAdmin):
     list_display = ("id", "tarea", "version")
     search_fields = ("tarea__id",)
+
+
+@admin.register(CacheRespuesta)
+class CacheRespuestaAdmin(admin.ModelAdmin):
+    list_display = ("clave", "modelo", "creada", "expira")
+    list_filter = ("modelo", "expira")
+    search_fields = ("clave", "modelo")

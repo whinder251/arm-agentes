@@ -668,3 +668,29 @@ class DestinoPublicacion(models.Model):
 
     def __str__(self):
         return self.nombre
+
+
+class CacheRespuesta(models.Model):
+    """Entrada de caché de respuestas de IA con caducidad (TTL).
+
+    Almacena respuestas por clave de huella, con fecha de caducidad para
+    permitir limpieza automática y gestión desde el admin.
+    """
+
+    clave = models.CharField(max_length=255, unique=True, db_index=True)
+    modelo = models.CharField(max_length=100)
+    texto = models.TextField()
+    tokens_in = models.PositiveIntegerField(default=0)
+    tokens_out = models.PositiveIntegerField(default=0)
+    crudo = models.JSONField(null=True, blank=True)
+    creada = models.DateTimeField(auto_now_add=True)
+    expira = models.DateTimeField(
+        db_index=True,
+        help_text="Fecha y hora de caducidad de la caché",
+    )
+
+    class Meta:
+        ordering = ["-creada"]
+
+    def __str__(self):
+        return f"Cache {self.clave[:16]}... ({self.modelo})"

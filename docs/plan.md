@@ -1711,3 +1711,33 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 - `.venv\Scripts\python.exe -m pytest tests/test_engine.py tests/test_tool_executor.py tests/test_fase16.py tests/test_api.py -q` → `88 passed` (sin regresiones).
 
 **Impacto en contratos/datos:** NO contratos de API, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola. SÍ contratos internos: `transicionar()` ahora permite OK→REVISION y toca `actualizado_en`. Retrocompatible: el resto de transiciones se mantienen igual.
+
+
+## Paso 0.5 - Modelo CacheRespuesta con TTL y eliminación de tabla SQL cruda — COMPLETADO
+
+**Objetivo:** Reemplazar la tabla SQL cruda `providers_cache_respuestas` por un modelo Django `CacheRespuesta` con soporte de TTL (caducidad), permitiendo gestión, limpieza automática y visibilidad en el admin.
+
+**Archivos tocados (6, excepción aprobada):**
+- `apps/core/models.py`: añadido modelo `CacheRespuesta` con `clave` (CharField unique, db_index), `modelo`, `texto`, `tokens_in`/`tokens_out` (PositiveIntegerField default 0), `crudo` (JSONField null/blank), `creada` (auto_now_add), `expira` (DateTimeField db_index); `ordering = ['-creada']`.
+- `apps/core/migrations/0021_cacherespuesta.py`: generada con `makemigrations` (CreateModel CacheRespuesta).
+- `apps/core/migrations/0022_migrar_cache_existente.py`: data migration; lee filas de `providers_cache_respuestas` solo si la tabla existe (`connection.introspection.table_names`), crea `CacheRespuesta` con `expira = creada + 30 días`, ejecuta `DROP TABLE IF EXISTS providers_cache_respuestas`; reverse no-op.
+- `apps/providers/cache.py`: eliminadas `_asegurar_tabla()` y todas las consultas SQL crudas; implementadas `obtener_cache(clave)` (filtra `expira__gt=now`, retorna dict o None), `guardar_cache(clave, modelo, texto, tokens_in, tokens_out, crudo, ttl_dias=30)` (update_or_create con `expira = now + ttl_dias`), `limpiar_cache_vencida()` (`expira__lt=now`). Conservada clase `CacheRespuestas` con `get`/`set` sobre ORM para no romper `router.py`.
+- `apps/core/admin.py`: registrado `CacheRespuestaAdmin` con `list_display = ('clave', 'modelo', 'creada', 'expira')` y `list_filter = ('modelo', 'expira')`.
+- `tests/test_cache.py` (nuevo): entrada vencida → None; `guardar_cache` actualiza `expira`; `limpiar_cache_vencida` elimina vencidas; `CacheRespuestas.get/set` sobre ORM.
+
+**Reglas respetadas:**
+- No se tocó `apps/engine/tasks.py`.
+- No se instalaron dependencias.
+- `makemigrations` y `migrate` en orden correcto.
+- Comandos PowerShell línea por línea, sin `&&`.
+- No se ejecutó `git push`.
+- Commit: "0.5: Modelo CacheRespuesta con TTL y eliminación de tabla SQL cruda".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe manage.py showmigrations core` → `0021_cacherespuesta` y `0022_migrar_cache_existente` [X].
+- `.venv\Scripts\python.exe -m pytest tests/test_cache.py tests/test_providers.py tests/test_router.py -q` → `26 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_engine.py tests/test_tool_executor.py tests/test_fase16.py tests/test_api.py tests/test_providers.py tests/test_router.py -q` → `110 passed` (sin regresiones).
+
+**Impacto en contratos/datos:** SÍ datos persistidos (nueva tabla `core_cacherespuesta`; migra y elimina tabla cruda `providers_cache_respuestas`). SÍ contratos internos de `apps/providers/cache.py` (ya no usa SQL crudo; `CacheRespuestas.get/set` mantiene firma para `router.py`). NO contratos de API, NO credenciales, NO permisos, NO tareas en cola. Retrocompatible: `router.py` y `test_router.py` siguen funcionando sin cambios.
