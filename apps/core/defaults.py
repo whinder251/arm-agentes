@@ -112,4 +112,14 @@ HERRAMIENTAS_SISTEMA = {
             "timeout": 20,
         },
     },
+    "rss-reader": {
+        "nombre": "RSS Reader",
+        "slug": "rss-reader",
+        "tipo": "api",
+        "descripcion": "Lee y parsea feeds RSS o Atom para monitorear novedades de sitios web.",
+        "configuracion": {
+            "method": "GET",
+            "timeout": 15,
+        },
+    },
 }

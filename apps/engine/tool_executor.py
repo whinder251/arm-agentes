@@ -264,6 +264,67 @@ def _parsear_sitemap(xml_text: str) -> list[dict]:
     return urls
 
 
+def _parsear_rss(xml_text: str) -> list[dict]:
+    """Parsea un feed RSS 2.0 o Atom y devuelve una lista de artículos con
+    title, link, pubDate y description.
+
+    Si el XML es inválido, está vacío o no tiene items/entries,
+    devuelve [{"error": "No es un feed RSS/Atom válido o está vacío"}].
+    """
+    if not xml_text or not xml_text.strip():
+        return [{"error": "No es un feed RSS/Atom válido o está vacío"}]
+
+    try:
+        raiz = ET.fromstring(xml_text.strip())
+    except ET.ParseError:
+        return [{"error": "No es un feed RSS/Atom válido o está vacío"}]
+
+    # Quitar namespaces para buscar etiquetas sin prefijo
+    for elem in raiz.iter():
+        if "}" in elem.tag:
+            elem.tag = elem.tag.split("}", 1)[1]
+
+    items = raiz.findall(".//item") or raiz.findall(".//entry")
+    if not items:
+        return [{"error": "No es un feed RSS/Atom válido o está vacío"}]
+
+    resultados = []
+    for item in items:
+        title_elem = item.find("title")
+        link_elem = item.find("link")
+        pubdate_elem = item.find("pubDate")
+        if pubdate_elem is None:
+            pubdate_elem = item.find("published")
+        if pubdate_elem is None:
+            pubdate_elem = item.find("updated")
+        desc_elem = item.find("description")
+        if desc_elem is None:
+            desc_elem = item.find("summary")
+        if desc_elem is None:
+            desc_elem = item.find("content")
+
+        # En Atom, link puede ser atributo href; en RSS, texto del tag <link>
+        link = ""
+        if link_elem is not None:
+            href = link_elem.get("href")
+            if href:
+                link = href.strip()
+            elif link_elem.text:
+                link = link_elem.text.strip()
+
+        resultados.append({
+            "title": (title_elem.text.strip() if title_elem is not None and title_elem.text else ""),
+            "link": link,
+            "pubDate": (pubdate_elem.text.strip() if pubdate_elem is not None and pubdate_elem.text else ""),
+            "description": (desc_elem.text.strip() if desc_elem is not None and desc_elem.text else ""),
+        })
+
+    if not resultados:
+        return [{"error": "No es un feed RSS/Atom válido o está vacío"}]
+
+    return resultados
+
+
 # Stopwords español/inglés para filtrar en el cálculo de densidad de palabras clave.
 _STOPWORDS_ES_EN = {
     # español
@@ -594,6 +655,11 @@ def _ejecutar_herramienta_http(herramienta: Herramienta, payload: dict) -> dict:
     if herramienta.slug == "seo-analyzer" and response.status_code == 200:
         if isinstance(body, str):
             body = _analizar_seo_on_page(body, url_final)
+
+    # Post-procesamiento condicional para rss-reader: parsear feed RSS/Atom y devolver lista de artículos
+    if herramienta.slug == "rss-reader" and response.status_code == 200:
+        if isinstance(body, str):
+            body = _parsear_rss(body)
 
     return {"status": response.status_code, "body": body}
 

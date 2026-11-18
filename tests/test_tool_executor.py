@@ -904,6 +904,80 @@ class TestEjecutarHerramientaHttp(TestCase):
         self.assertEqual(body["external_links"], 2)
         self.assertEqual(body["error"], "")
 
+    @patch("apps.engine.tool_executor.requests.request")
+    @patch("apps.engine.tool_executor._validar_endpoint_seguro")
+    def test_rss_reader_parsea_xml_valido(self, mock_validar, mock_request):
+        """Verifica que rss-reader parsea un RSS 2.0 válido y devuelve lista de dicts con title, link y pubDate."""
+        xml_rss = """<?xml version="1.0" encoding="UTF-8"?>
+        <rss version="2.0">
+            <channel>
+                <item>
+                    <title>Noticia 1</title>
+                    <link>https://ejemplo.com/noticia-1</link>
+                    <pubDate>Wed, 18 Nov 2026 10:00:00 GMT</pubDate>
+                    <description>Resumen de la noticia 1</description>
+                </item>
+                <item>
+                    <title>Noticia 2</title>
+                    <link>https://ejemplo.com/noticia-2</link>
+                    <pubDate>Wed, 18 Nov 2026 09:00:00 GMT</pubDate>
+                    <description>Resumen de la noticia 2</description>
+                </item>
+            </channel>
+        </rss>"""
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.side_effect = ValueError("No es JSON")
+        mock_response.text = xml_rss
+        mock_request.return_value = mock_response
+        mock_validar.return_value = None
+
+        herramienta = Herramienta.objects.create(
+            nombre="RSS Reader",
+            slug="rss-reader",
+            tipo="api",
+            configuracion={"endpoint": "https://ejemplo.com/feed.xml", "method": "GET", "timeout": 15},
+        )
+
+        resultado = _ejecutar_herramienta_http(herramienta, {})
+
+        self.assertEqual(resultado["status"], 200)
+        self.assertIsInstance(resultado["body"], list)
+        self.assertEqual(len(resultado["body"]), 2)
+        self.assertEqual(resultado["body"][0]["title"], "Noticia 1")
+        self.assertEqual(resultado["body"][0]["link"], "https://ejemplo.com/noticia-1")
+        self.assertEqual(resultado["body"][0]["pubDate"], "Wed, 18 Nov 2026 10:00:00 GMT")
+        self.assertEqual(resultado["body"][1]["title"], "Noticia 2")
+        self.assertEqual(resultado["body"][1]["link"], "https://ejemplo.com/noticia-2")
+
+    @patch("apps.engine.tool_executor.requests.request")
+    @patch("apps.engine.tool_executor._validar_endpoint_seguro")
+    def test_rss_reader_maneja_xml_invalido(self, mock_validar, mock_request):
+        """Verifica que rss-reader con HTML plano devuelve dict con 'error' sin romper el flujo."""
+        html_plano = "<html><body><h1>No es un feed RSS</h1></body></html>"
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.side_effect = ValueError("No es JSON")
+        mock_response.text = html_plano
+        mock_request.return_value = mock_response
+        mock_validar.return_value = None
+
+        herramienta = Herramienta.objects.create(
+            nombre="RSS Reader",
+            slug="rss-reader",
+            tipo="api",
+            configuracion={"endpoint": "https://ejemplo.com/feed.xml", "method": "GET", "timeout": 15},
+        )
+
+        resultado = _ejecutar_herramienta_http(herramienta, {})
+
+        self.assertEqual(resultado["status"], 200)
+        self.assertIsInstance(resultado["body"], list)
+        self.assertEqual(len(resultado["body"]), 1)
+        self.assertIn("error", resultado["body"][0])
+
 
 from apps.engine.tool_executor import _resolver_placeholders
 

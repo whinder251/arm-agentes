@@ -1789,3 +1789,27 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 - Prueba de shell con URL absoluta (https://example.com): NO ejecutable en este entorno por falta de resolución DNS externa (`getaddrinfo failed`). La lógica queda validada por los 49 tests unitarios con mocks, sin red real.
 
 **Impacto en contratos/datos:** NO modelos, NO migraciones, NO credenciales, NO permisos, NO tareas en cola. Retrocompatible (rama condicional por slug).
+
+## Paso C.7-I - Herramienta nativa de lectura de RSS para monitoreo de competencia — COMPLETADO
+
+**Objetivo:** Crear una herramienta `rss-reader` que, dada la URL de un feed RSS o Atom, lo descargue, lo parsee y devuelva una lista limpia de los últimos artículos con título, enlace, fecha y resumen.
+
+**Archivos tocados (3):**
+- `apps/core/defaults.py`: entrada `rss-reader` en `HERRAMIENTAS_SISTEMA` (slug=`rss-reader`, tipo=`api`, descripcion="Lee y parsea feeds RSS o Atom para monitorear novedades de sitios web.", configuracion `{"method":"GET","timeout":15}`, sin credencial).
+- `apps/engine/tool_executor.py`: función `_parsear_rss(xml_text)` usando `xml.etree.ElementTree` (stdlib) que normaliza namespaces, busca `<item>` (RSS 2.0) o `<entry>` (Atom), extrae title/link/pubDate/description, y devuelve `[{"error": "..."}]` si el XML es inválido o vacío. Post-procesamiento condicional en `_ejecutar_herramienta_http` para `slug == "rss-reader"` y status 200. Endpoint desde configuracion o payload como fallback.
+- `tests/test_tool_executor.py`: 2 tests nuevos (`test_rss_reader_parsea_xml_valido`, `test_rss_reader_maneja_xml_invalido`).
+
+**Reglas respetadas:**
+- NO models.py, NO migraciones, NO credenciales (herramienta sin credencial, endpoint absoluto como sitemap-reader/seo-analyzer).
+- Cero dependencias externas: `xml.etree.ElementTree` de stdlib.
+- Eliminación de namespaces con `elem.tag.split("}", 1)[1]` (misma técnica que `_parsear_sitemap`).
+- SSRF validado por `_validar_endpoint_seguro` existente antes de la petición.
+- Manejo de errores: XML inválido/vacío/sin items devuelve `[{"error": "No es un feed RSS/Atom válido o está vacío"}]` sin lanzar excepciones.
+- No se ejecutó `git push`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe -m pytest tests/test_tool_executor.py -q` → `51 passed` (49 anteriores + 2 nuevos).
+- Prueba de shell con `https://hnrss.org/frontpage`: Status 200, lista de dicts con noticias reales (title, link, pubDate, description).
+
+**Impacto en contratos/datos:** NO modelos, NO migraciones, NO credenciales, NO permisos, NO tareas en cola. Retrocompatible (rama condicional adicional por slug).
