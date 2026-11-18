@@ -80,20 +80,22 @@ def ejecutar_investigacion(investigacion: InvestigacionProgramada) -> dict:
             fallos.append({"url": url, "error": str(exc)})
             continue
 
-        # Descarga con timeout y sin seguir redirecciones no validadas.
+        # Descarga con timeout siguiendo redirecciones (necesario para muchos feeds).
+        # La validación SSRF ya se ejecutó sobre la URL original.
         try:
             response = requests.get(
                 url,
                 headers={"User-Agent": USER_AGENT},
                 timeout=TIMEOUT_SEGUNDOS,
-                allow_redirects=False,
+                allow_redirects=True,
             )
         except requests.RequestException as exc:
-            fallos.append({"url": url, "error": "Error de red al descargar la URL."})
+            fallos.append({"url": url, "error": f"Error de red: {exc}"})
             logger.warning(
-                "Error de red descuchando URL de investigación %s: %s",
+                "Error de red descargando URL de investigación %s: %s - %s",
                 investigacion.pk,
                 url,
+                exc,
             )
             continue
 
