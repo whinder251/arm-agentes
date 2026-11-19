@@ -2319,3 +2319,26 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 - Prueba en shell real contra `https://hnrss.org/frontpage`: requiere `ARM_ENCRYPTION_KEY` (secreto de entorno no autorizado para leer) y la red está bloqueada por WAF/DNS (documentado en FIX-UA). Los 10 tests unitarios con mocks validan el comportamiento sin red.
 
 **Impacto en contratos/datos:** SÍ datos persistidos (nueva columna `contenido_extraido` en `core_hallazgo` vía migración 0025). NO contratos de API, NO credenciales, NO permisos, NO tareas en cola. Retrocompatible (campo con default vacío).
+
+## Paso CONTENT-01-FIX - Fallback con Jina AI Reader para extraer contenido de sitios SPA/JS — COMPLETADO
+
+**Objetivo:** Cuando `trafilatura` no pueda extraer texto (sitio SPA que renderiza con JS), usar la API gratuita de Jina AI Reader (`https://r.jina.ai/{url}`) como segundo intento para obtener el contenido.
+
+**Archivos tocados (2):**
+- `apps/engine/investigaciones.py`: en `_extraer_contenido(url)`, tras `trafilatura.extract(html)` devolver `None` o vacío, se añade bloque de fallback que consulta `https://r.jina.ai/{url}` con `USER_AGENT`, `TIMEOUT_SEGUNDOS` y `allow_redirects=True`; si `status_code == 200` y hay texto, retorna truncado a `LIMITE_CARACTERES_CONTENIDO` (8000); si falla, retorna `""` sin lanzar excepciones.
+- `tests/test_investigaciones.py`: nueva prueba `test_ejecutar_investigacion_extraccion_fallback_jina_ai` que mockea `trafilatura.extract` (devuelve "") y `requests.get` (segunda llamada a Jina devuelve texto simulado) y verifica que el hallazgo guarda ese texto. Test `test_ejecutar_investigacion_no_rompe_con_url_fallando` actualizado para mockear trafilatura con texto no vacío (preserva call_count == 4).
+
+**Reglas respetadas:**
+- No se tocó `models.py`, ni se crearon migraciones, ni se añadieron librerías a `requirements.txt`.
+- CERO estilos inline, CERO emojis.
+- Fallback solo si trafilatura falla o devuelve vacío; límite 8000 respetado también para Jina.
+- Comandos PowerShell línea por línea, sin `&&`. No se ejecutó `git push`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_investigaciones.py -q` → `11 passed in 12.76s` (incluye la prueba nueva de fallback Jina).
+
+**Criterio 4 (shell real):** no verificable en este entorno por bloqueo WAF/DNS documentado en FIX-UA (misma causa que impidió validar `https://somostuvoz.net` y `https://hnrss.org/frontpage`). Los 11 tests unitarios con mocks validan el comportamiento del fallback sin red real.
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo servicio interno de extracción de contenido. Retrocompatible.

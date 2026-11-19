@@ -94,6 +94,21 @@ def _extraer_contenido(url: str) -> str:
         logger.warning("Fallo de trafilatura extrayendo %s: %s", url, exc)
         return ""
     if not texto:
+        try:
+            jina_url = f"https://r.jina.ai/{url}"
+            jina_response = requests.get(
+                jina_url,
+                headers={"User-Agent": USER_AGENT},
+                timeout=TIMEOUT_SEGUNDOS,
+                allow_redirects=True,
+            )
+            if jina_response.status_code == 200 and jina_response.text.strip():
+                logger.info(
+                    "Contenido extraído exitosamente con Jina AI fallback para %s", url
+                )
+                return jina_response.text[:LIMITE_CARACTERES_CONTENIDO]
+        except requests.RequestException as exc:
+            logger.warning("Fallo del fallback Jina AI para %s: %s", url, exc)
         return ""
     return texto[:LIMITE_CARACTERES_CONTENIDO]
 

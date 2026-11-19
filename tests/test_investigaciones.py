@@ -150,7 +150,12 @@ class TestEjecutarInvestigacion:
 
         with patch("socket.getaddrinfo", return_value=respuesta_publica), patch(
             "apps.engine.investigaciones.requests.get", side_effect=efecto_lateral
-        ) as mock_get:
+        ) as mock_get, patch(
+            "apps.engine.investigaciones.trafilatura.extract",
+            return_value="Texto extraído del artículo.",
+        ), patch(
+            "apps.engine.investigaciones.time.sleep"
+        ):
             resultado = ejecutar_investigacion(investigacion)
 
         # Se intentó descargar ambas URLs más la extracción de contenido de
@@ -238,3 +243,36 @@ class TestEjecutarInvestigacion:
         assert hallazgos.count() == 2
         for h in hallazgos:
             assert h.contenido_extraido == ""
+
+    def test_ejecutar_investigacion_extraccion_fallback_jina_ai(self):
+        investigacion = self._crear_investigacion()
+
+        def efecto_get(url, **kwargs):
+            respuesta = Mock()
+            if url.startswith("https://r.jina.ai/"):
+                # Fallback de Jina AI: devuelve texto simulado de SPA.
+                respuesta.status_code = 200
+                respuesta.text = "Contenido extraído por Jina AI del artículo SPA."
+            else:
+                # Descarga del feed RSS.
+                respuesta.status_code = 200
+                respuesta.text = XML_RSS
+            return respuesta
+
+        with patch(
+            "apps.engine.investigaciones.requests.get", side_effect=efecto_get
+        ), patch(
+            "apps.engine.investigaciones.trafilatura.extract", return_value=""
+        ), patch(
+            "apps.engine.investigaciones.time.sleep"
+        ):
+            resultado = ejecutar_investigacion(investigacion)
+
+        assert resultado["hallazgos_nuevos"] == 2
+
+        hallazgos = Hallazgo.objects.filter(investigacion=investigacion).order_by(
+            "url_articulo"
+        )
+        assert hallazgos.count() == 2
+        for h in hallazgos:
+            assert h.contenido_extraido == "Contenido extraído por Jina AI del artículo SPA."
