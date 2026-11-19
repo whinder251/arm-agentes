@@ -1965,7 +1965,7 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 
 **Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos nuevos, NO tareas en cola. Sí añade una URL y una vista read-only protegida por `@login_required`. Retrocompatible.
  
- # #   P a s o   F I X - U I - 0 1   -   C o r r e g i r   t o g g l e   d e   A P I   K e y   y   c o n s o l i d a r   e s t i l o s   d e   b o t o n e s   e n   C S S   � �    C O M P L E T A D O  
+ # #   P a s o   F I X - U I - 0 1   -   C o r r e g i r   t o g g l e   d e   A P I   K e y   y   c o n s o l i d a r   e s t i l o s   d e   b o t o n e s   e n   C S S   � �    C O M P L E T A D O  
   
  * * O b j e t i v o : * *   ( 1 )   A r r e g l a r   e l   b o t o n   M o s t r a r / O c u l t a r   d e   l a   A R M   A P I   K e y   q u e   s i e m p r e   m o s t r a b a   l a   c l a v e   y   n u n c a   l a   o c u l t a b a .   ( 2 )   Q u e   l a s   v a r i a n t e s   . b t n - p r i m a r y ,   . b t n - s e c o n d a r y ,   . b t n - d a n g e r ,   . b t n - g h o s t   t e n g a n   f o r m a   c o m p l e t a   ( a l t o ,   p a d d i n g ,   r a d i o )   s i n   d e p e n d e r   d e   . b t n .   ( 3 )   E l i m i n a r   d e f i n i c i o n   d u p l i c a d a   d e   - - s u c c e s s / - - w a r n i n g   e n   : r o o t ,   d e j a n d o   v a l o r e s   T a i l w i n d   y   T O D O   p a r a   u n i f i c a r   - - e r r o r / - - d a n g e r .  
   
@@ -2207,3 +2207,29 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 - La generación es síncrona: una llamada lenta al LLM mantiene la petición HTTP abierta y cada clic consume tokens. No se añadió rate-limit ni idempotencia en este paso.
 - `markdownify` usa `mark_safe`; el HTML devuelto por el LLM no se sanitiza. Es el mismo riesgo ya documentado para los artefactos en `tareas.html`.
 - `docs/plan.md` contenía bytes NUL y secuencias UTF-8 inválidas preexistentes; esta sección se añadió al final en UTF-8 sin modificar el contenido anterior.
+## Paso TEST-FIX - Corregir 5 tests preexistentes — COMPLETADO
+
+**Objetivo:** Dejar la suite de pruebas en verde corrigiendo 5 fallos preexistentes (desalineaciones entre tests y el estado actual del código), sin tocar lógica de negocio.
+
+**Archivos tocados (3):**
+- `tests/test_fase16.py`: en `test_lista_credenciales_render`, la aserción que buscaba `"Rotar Clave del Sistema"` se cambió por `"Rotar Clave"` para coincidir con el texto del botón acortado implementado en pasos UI previos (`lista_credenciales.html` renderiza `<button ...>Rotar Clave</button>`).
+- `tests/test_pipeline.py`: en el fixture `_crear_escenario`, el `Proveedor` de prueba ahora declara explícitamente `tipo_adaptador="gemini"` para que el Router use el adaptador registrado en lugar de intentar `"custom"` (no implementado en `ADAPTADORES`), que causaba `ValueError`.
+- `tests/test_skills_sistema.py`: en `test_crear_herramienta`, al hacer POST a `crear_herramienta` sin `?tipo=` la vista renderiza el catálogo y devuelve 200 (sin crear herramienta); la aserción cambió de `302` a `200`, se verifica que el contenido del catálogo esté presente y se confirma que no se creó herramienta.
+
+**Reglas respetadas:**
+- CERO cambios en `views.py`, `models.py`, `apps/checks/` ni lógica de negocio. Solo expectativas de tests y datos de fixtures.
+- Máximo 3 archivos modificados (dentro del límite de 4).
+- No se creó migración (`makemigrations --check --dry-run` → No changes detected).
+- No se ejecutó `git push`.
+- Commit: "TEST-FIX: Corregir 5 tests preexistentes (credenciales, pipeline y herramientas)".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe -m pytest tests/test_fase16.py::TestListaCredenciales::test_lista_credenciales_render -q` → `1 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_pipeline.py -q` → `4 passed` (incluye los 3 tests de pipeline).
+- `.venv\Scripts\python.exe -m pytest tests/test_skills_sistema.py::TestCRUDHerramienta::test_crear_herramienta -q` → `1 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_analisis.py -q` → `8 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "credencial or sidebar or dashboard or integraciones or detalle or crear_tarea" -q` → `23 passed` (sin regresiones en panel).
+- Nota: `pytest tests/test_panel.py -q` completo tiene un cuelgue preexistente de entorno (documentado en pasos C.2/C.3a/C.4/C.9b/UX-3/UX-4), no relacionado con este cambio.
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo ajustes de expectativas de tests y datos de fixtures. Retrocompatible.

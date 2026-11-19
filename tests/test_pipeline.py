@@ -77,6 +77,7 @@ def _crear_escenario(texto_original: str) -> Tarea:
         nombre="gemini",
         base_url=GEMINI_BASE,
         api_key="test-gemini-key",
+        tipo_adaptador="gemini",
         limite_diario=100,
     )
     modelo = ModeloLLM.objects.create(

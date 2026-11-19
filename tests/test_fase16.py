@@ -120,7 +120,7 @@ class TestListaCredenciales(Fase16TestCase):
         self.assertIn('id="btn-toggle-arm-key"', html)
 
         # Botón rotar
-        self.assertIn("Rotar Clave del Sistema", html)
+        self.assertIn("Rotar Clave", html)
         self.assertIn('btn-danger', html)
 
         # Tabla de credenciales

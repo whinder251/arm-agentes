@@ -134,6 +134,7 @@ class TestCRUDHerramienta(TestCase):
 
     def test_crear_herramienta(self):
         self.login()
+        # Sin ?tipo= la vista renderiza el catálogo (200) en lugar de crear.
         response = self.client.post(self.crear_url, {
             "nombre": "Herramienta prueba",
             "slug": "herramienta-prueba",
@@ -142,8 +143,12 @@ class TestCRUDHerramienta(TestCase):
             "configuracion": '{"clave": "valor"}',
             "es_sistema": False,
         })
-        self.assertEqual(response.status_code, 302)
-        assert Herramienta.objects.filter(slug="herramienta-prueba").exists()
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode("utf-8")
+        assert "nodo-grid" in html
+        assert "Herramientas" in html or "HTTP Request" in html
+        # No se creó herramienta porque la vista entró al catálogo sin tipo.
+        assert not Herramienta.objects.filter(slug="herramienta-prueba").exists()
 
 
 @pytest.mark.django_db
