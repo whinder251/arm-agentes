@@ -2170,3 +2170,40 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 **Impacto en contratos/datos:** SÍ datos persistidos al ejecutar `seed_demo`: crea/actualiza la habilidad `analista-competencia` con `es_sistema=True` en la BD (idempotente). NO modelos, NO migraciones, NO credenciales, NO permisos, NO tareas en cola, NO contratos de API. Retrocompatible: el resto de habilidades y flujos no cambian.
 
 **Pendiente/deuda:** El reporte real incluyó términos vetados por `docs/estilo.md` (p. ej. "panorama"); si estos reportes se publican, deben pasar por el linter de estilo. Validación visual del módulo no ejecutada en esta sesión.
+
+## Paso UI-IA-01 - Integrar botón de generación de reporte de IA en el detalle de investigaciones — COMPLETADO
+
+**Objetivo:** Permitir generar y visualizar el reporte estratégico de competencia desde el detalle de una investigación, reutilizando el servicio `generar_reporte_competencia` y el sistema de diseño ARM Flow 2.0.
+
+**Archivos tocados (4, autorizados):**
+- `apps/panel/views.py`: importación de `generar_reporte_competencia`; `detalle_investigacion` acepta POST además de GET. En POST llama al servicio con `pk`; si devuelve texto no vacío lo pasa como `reporte_ia`; si devuelve vacío o lanza una excepción, define `error_reporte=True` y registra el fallo real con `logger.exception` sin exponerlo. El GET conserva el contexto y comportamiento anteriores.
+- `apps/panel/templates/panel/investigacion_detalle.html`: `{% load markdown_tags %}`; bloque `{% if error_reporte %}` con `.alerta-error` y mensaje genérico; formulario POST con `{% csrf_token %}` sin `action`; botón `.btn.btn-primary` "Generar Reporte de IA" con icono SVG Lucide sparkles (16x16, stroke 2px, currentColor, `aria-hidden`), sin emoji; bloque `{% if reporte_ia %}` con `.card`, título "Reporte de Análisis de Competencia" y `{{ reporte_ia|markdownify }}` dentro de `.markdown-content`.
+- `tests/test_panel.py`: 5 pruebas nuevas: GET muestra botón y conserva hallazgos sin `reporte_ia`; GET/POST requieren login; POST exitoso llama al servicio una vez y renderiza Markdown como HTML; reporte vacío muestra error visible; excepción inesperada muestra mensaje genérico sin filtrar el detalle interno.
+- `docs/plan.md`: esta sección.
+
+**Reglas respetadas:**
+- Filtro real reutilizado: `markdownify` de `apps/panel/templatetags/markdown_tags.py` (devuelve HTML seguro). No se usó `markdown` ni `render_markdown`, que no existen.
+- CERO emojis en la interfaz; icono SVG inline Lucide.
+- CERO estilos inline y CERO bloques `<style>`; solo clases de `app.css` (`.card`, `.markdown-content`, `.btn`, `.btn-primary`, `.acciones-formulario`, `.alerta-error`, `.help-text`, `.badge`).
+- El mensaje de error no incluye `{error}` crudo; el detalle se registra en logs del servidor.
+- No se modificaron modelos, migraciones, `generar_reporte_competencia`, credenciales, permisos ni tareas en cola.
+- Comandos PowerShell línea por línea, sin `&&`. No se ejecutó `git push`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "detalle_investigacion" -q` → `5 passed, 71 deselected, 2 warnings in 44.70s`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "investigacion" tests/test_analisis.py -q` → `19 passed, 65 deselected, 2 warnings in 134.49s`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -q` → `76 passed, 2 warnings in 689.32s (0:11:29)`.
+- `.venv\Scripts\python.exe -m pytest -q` → timeout a los 1200 s en ~43% del suite; se observó 1 fallo preexistente al 21%. No se completó por el cuelgue de entorno ya documentado en pasos C.2/C.3a/C.4/C.9b/UX-3/UX-4.
+- `.venv\Scripts\python.exe -m pytest tests/test_fase16.py tests/test_pipeline.py tests/test_skills_sistema.py -q` → `5 failed, 36 passed, 2 warnings in 142.12s`. Fallos preexistentes ajenos a este paso: `test_fase16` espera "Rotar Clave del Sistema" y el template muestra "Rotar Clave"; los 3 de `test_pipeline` usan un proveedor sin `tipo_adaptador` y el router no encuentra adaptador; `test_skills_sistema` espera 302 y la vista de catálogo devuelve 200.
+- Verificación estática del template: sin `style=`, sin `✨`, con `markdownify`, `.alerta-error` y el texto "Generar Reporte de IA".
+- Validación visual en navegador: NO ejecutada en esta sesión; queda pendiente.
+
+**Impacto en contratos/datos:** SÍ contrato interno: la URL `detalle_investigacion` ahora acepta POST para generar el reporte; el GET se mantiene intacto y sin `reporte_ia` en contexto. NO modelos, NO migraciones, NO datos persistidos, NO credenciales, NO permisos nuevos, NO tareas en cola. Retrocompatible.
+
+**Pendiente/deuda:**
+- Validar visualmente en navegador el botón, el mensaje de error y el reporte renderizado en escritorio y móvil.
+- La generación es síncrona: una llamada lenta al LLM mantiene la petición HTTP abierta y cada clic consume tokens. No se añadió rate-limit ni idempotencia en este paso.
+- `markdownify` usa `mark_safe`; el HTML devuelto por el LLM no se sanitiza. Es el mismo riesgo ya documentado para los artefactos en `tareas.html`.
+- `docs/plan.md` contenía bytes NUL y secuencias UTF-8 inválidas preexistentes; esta sección se añadió al final en UTF-8 sin modificar el contenido anterior.

@@ -17,6 +17,7 @@ import secrets
 import logging
 from pathlib import Path
 from dotenv import set_key
+from apps.checks.analisis import generar_reporte_competencia
 from apps.core.models import (
     Tarea, Proveedor, ModeloLLM, Habilidad, FormatoSalida, Herramienta, Agente, Equipo,
     Workflow, PasoWorkflow, Ejecucion, IntegracionConfig, DestinoPublicacion, Credencial,
@@ -1652,16 +1653,32 @@ def ejecutar_investigacion_ahora(request, pk):
 
 @login_required
 def detalle_investigacion(request, pk):
-    """Muestra los hallazgos detectados por una investigación programada."""
+    """Muestra los hallazgos y permite generar el reporte estratégico de IA."""
     investigacion = get_object_or_404(
         InvestigacionProgramada.objects.prefetch_related("hallazgos"), pk=pk
     )
     hallazgos = investigacion.hallazgos.all().order_by("-detectado_en")
+    contexto = {
+        "investigacion": investigacion,
+        "hallazgos": hallazgos,
+    }
+
+    if request.method == "POST":
+        try:
+            reporte = generar_reporte_competencia(pk)
+        except Exception:
+            logger.exception(
+                "Error inesperado generando reporte de investigación %s", pk
+            )
+            contexto["error_reporte"] = True
+        else:
+            if reporte:
+                contexto["reporte_ia"] = reporte
+            else:
+                contexto["error_reporte"] = True
+
     return render(
         request,
         "panel/investigacion_detalle.html",
-        {
-            "investigacion": investigacion,
-            "hallazgos": hallazgos,
-        },
+        contexto,
     )

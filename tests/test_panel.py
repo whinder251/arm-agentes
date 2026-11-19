@@ -1349,3 +1349,113 @@ class TestPanel(TestCase):
         assert response.url == reverse('lista_investigaciones')
         assert not InvestigacionProgramada.objects.filter(pk=inv.pk).exists()
         assert not Hallazgo.objects.filter(pk=hallazgo.pk).exists()
+
+    def test_detalle_investigacion_muestra_boton_reporte(self):
+        """El GET conserva los hallazgos y ofrece el botón de reporte."""
+        inv = InvestigacionProgramada.objects.create(
+            nombre='Con Reporte',
+            urls_objetivo='https://ejemplo.com/rss',
+            frecuencia='semanal',
+            activa=True,
+        )
+        Hallazgo.objects.create(
+            investigacion=inv,
+            url_fuente='https://ejemplo.com/rss',
+            tipo_fuente='rss',
+            titulo='Hallazgo visible',
+            url_articulo='https://ejemplo.com/articulo',
+        )
+        self.client.login(username='testuser', password='testpass123')
+        response = self.client.get(
+            reverse('detalle_investigacion', args=[inv.pk])
+        )
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        assert 'Hallazgo visible' in content
+        assert 'Generar Reporte de IA' in content
+        assert 'csrfmiddlewaretoken' in content
+        assert 'reporte_ia' not in response.context
+
+    def test_detalle_investigacion_requiere_login(self):
+        """GET y POST del detalle exigen sesión."""
+        inv = InvestigacionProgramada.objects.create(
+            nombre='Privada',
+            urls_objetivo='https://ejemplo.com/rss',
+            frecuencia='semanal',
+            activa=True,
+        )
+        url = reverse('detalle_investigacion', args=[inv.pk])
+        assert self.client.get(url).status_code == 302
+        assert self.client.post(url).status_code == 302
+
+    def test_detalle_investigacion_post_genera_reporte(self):
+        """El POST llama al servicio y renderiza el Markdown como HTML."""
+        inv = InvestigacionProgramada.objects.create(
+            nombre='Genera Reporte',
+            urls_objetivo='https://ejemplo.com/rss',
+            frecuencia='semanal',
+            activa=True,
+        )
+        self.client.login(username='testuser', password='testpass123')
+        with patch(
+            'apps.panel.views.generar_reporte_competencia'
+        ) as mock_generar:
+            mock_generar.return_value = (
+                '# Reporte\n\n## Resumen\nTexto **clave**.'
+            )
+            response = self.client.post(
+                reverse('detalle_investigacion', args=[inv.pk])
+            )
+        assert response.status_code == 200
+        mock_generar.assert_called_once_with(inv.pk)
+        assert response.context['reporte_ia'].startswith('# Reporte')
+        content = response.content.decode('utf-8')
+        assert 'Reporte de Análisis de Competencia' in content
+        assert 'class="markdown-content"' in content
+        assert '<h1>Reporte</h1>' in content
+        assert '<strong>clave</strong>' in content
+
+    def test_detalle_investigacion_post_reporte_vacio_muestra_error(self):
+        """Un reporte vacío se trata como error visible en la interfaz."""
+        inv = InvestigacionProgramada.objects.create(
+            nombre='Reporte Vacío',
+            urls_objetivo='https://ejemplo.com/rss',
+            frecuencia='semanal',
+            activa=True,
+        )
+        self.client.login(username='testuser', password='testpass123')
+        with patch(
+            'apps.panel.views.generar_reporte_competencia',
+            return_value='',
+        ):
+            response = self.client.post(
+                reverse('detalle_investigacion', args=[inv.pk])
+            )
+        assert response.status_code == 200
+        assert response.context['error_reporte'] is True
+        assert 'reporte_ia' not in response.context
+        content = response.content.decode('utf-8')
+        assert 'No se pudo generar el reporte. Intenta de nuevo más tarde.' in content
+
+    def test_detalle_investigacion_post_error_no_expone_detalle(self):
+        """Un fallo inesperado muestra un mensaje genérico, no la excepción."""
+        inv = InvestigacionProgramada.objects.create(
+            nombre='Error Interno',
+            urls_objetivo='https://ejemplo.com/rss',
+            frecuencia='semanal',
+            activa=True,
+        )
+        self.client.login(username='testuser', password='testpass123')
+        with patch(
+            'apps.panel.views.generar_reporte_competencia',
+            side_effect=RuntimeError('detalle interno sensible'),
+        ):
+            response = self.client.post(
+                reverse('detalle_investigacion', args=[inv.pk])
+            )
+        assert response.status_code == 200
+        assert response.context['error_reporte'] is True
+        assert 'reporte_ia' not in response.context
+        content = response.content.decode('utf-8')
+        assert 'No se pudo generar el reporte. Intenta de nuevo más tarde.' in content
+        assert 'detalle interno sensible' not in content
