@@ -21,6 +21,7 @@ from apps.core.models import (
     ModeloLLM,
     Proveedor,
     Artefacto,
+    Agente,
 )
 from apps.providers.base import CuotaAgotada, RespuestaChat
 
@@ -238,3 +239,64 @@ def test_generar_reporte_crea_artefacto_con_metadata():
     artefacto = Artefacto.objects.get(id=resultado["artefacto_id"])
     assert artefacto.contenido == "# Reporte\n\n## Resumen\nContenido del reporte."
     assert artefacto.metadata["investigacion_id"] == investigacion.pk
+
+
+@pytest.mark.django_db
+def test_usa_instrucciones_del_agente_si_tiene_una():
+    """Con agente asignado, el prompt del sistema usa sus instrucciones (o rol)."""
+    crear_modelo()
+    habilidad_agente = Habilidad.objects.create(
+        nombre="Habilidad del agente",
+        slug="habilidad-agente-test",
+        instrucciones="Instrucciones del agente X.",
+        modo_ejecucion="auto",
+    )
+    agente = Agente.objects.create(
+        nombre="Agente Analista", modelo=None, rol="System prompt fallback del agente."
+    )
+    agente.habilidades.add(habilidad_agente)
+    investigacion = InvestigacionProgramada.objects.create(
+        nombre="Con agente",
+        urls_objetivo="https://ejemplo.com/feed",
+        frecuencia="semanal",
+        agente=agente,
+    )
+    crear_hallazgos(investigacion, 3)
+
+    with patch("apps.checks.analisis.Router") as router_cls:
+        router_cls.return_value.completar.return_value = respuesta_markdown()
+        generar_reporte_competencia(investigacion.pk)
+
+    mensajes = router_cls.return_value.completar.call_args.args[0]
+    assert mensajes[0] == {
+        "role": "system",
+        "content": "Instrucciones del agente X." + REGLA_IDIOMA,
+    }
+
+
+@pytest.mark.django_db
+def test_inyecta_palabras_clave_en_prompt_usuario():
+    """Las palabras clave de la investigación se inyectan en el prompt de usuario."""
+    crear_modelo()
+    investigacion = InvestigacionProgramada.objects.create(
+        nombre="Con palabras clave",
+        urls_objetivo="https://ejemplo.com/feed",
+        frecuencia="semanal",
+        palabras_clave="seo, tendencia, competencia",
+    )
+    crear_hallazgos(investigacion, 3)
+    Habilidad.objects.create(
+        nombre="Analista de Competencia",
+        slug=SLUG,
+        instrucciones="Prompt de prueba.",
+        modo_ejecucion="auto",
+    )
+
+    with patch("apps.checks.analisis.Router") as router_cls:
+        router_cls.return_value.completar.return_value = respuesta_markdown()
+        generar_reporte_competencia(investigacion.pk)
+
+    mensajes = router_cls.return_value.completar.call_args.args[0]
+    contenido = mensajes[1]["content"]
+    assert "ENFOQUE DEL ANÁLISIS" in contenido
+    assert "seo, tendencia, competencia" in contenido

@@ -27,6 +27,24 @@
             </div>
 
             <div class="form-group">
+                <label class="label" for="{{ form.agente.id_for_label }}">Agente encargado del análisis</label>
+                {{ form.agente }}
+                <p class="help-text">Si se deja vacío, se usa el analista por defecto.</p>
+                {% if form.agente.errors %}
+                <p class="error-text">{{ form.agente.errors|first }}</p>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label class="label" for="{{ form.palabras_clave.id_for_label }}">Palabras clave de enfoque</label>
+                {{ form.palabras_clave }}
+                <p class="help-text">Términos separados por comas para priorizar en el análisis.</p>
+                {% if form.palabras_clave.errors %}
+                <p class="error-text">{{ form.palabras_clave.errors|first }}</p>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
                 <label class="label" for="frecuencia">Frecuencia de revisión</label>
                 <div class="segmented" id="segmented-frecuencia">
                     {% for valor, etiqueta in form.fields.frecuencia.choices %}

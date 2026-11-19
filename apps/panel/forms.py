@@ -188,9 +188,11 @@ class InvestigacionForm(forms.ModelForm):
 
     class Meta:
         model = InvestigacionProgramada
-        fields = ["nombre", "urls_objetivo", "frecuencia"]
+        fields = ["nombre", "urls_objetivo", "frecuencia", "agente", "palabras_clave"]
         widgets = {
             "urls_objetivo": forms.Textarea(attrs={"rows": 4}),
+            "palabras_clave": forms.Textarea(attrs={"rows": 3}),
+            "agente": forms.Select(attrs={"class": "input"}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -199,3 +201,4 @@ class InvestigacionForm(forms.ModelForm):
         self.fields["urls_objetivo"].widget.attrs.update({"class": "textarea"})
         self.fields["frecuencia"].widget = forms.RadioSelect()
         self.fields["frecuencia"].widget.attrs.update({"class": "segmented-radio"})
+        self.fields["palabras_clave"].widget.attrs.update({"class": "textarea"})

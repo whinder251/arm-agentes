@@ -718,6 +718,19 @@ class InvestigacionProgramada(models.Model):
         choices=FRECUENCIAS,
         default="semanal",
     )
+    agente = models.ForeignKey(
+        "Agente",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="investigaciones_asignadas",
+        help_text="Agente encargado del análisis. Si está vacío, se usa el analista por defecto.",
+    )
+    palabras_clave = models.TextField(
+        blank=True,
+        default="",
+        help_text="Términos específicos para enfocar o filtrar el análisis, separados por comas.",
+    )
     activa = models.BooleanField(default=True)
     ultima_ejecucion = models.DateTimeField(null=True, blank=True)
     creado_en = models.DateTimeField(auto_now_add=True)

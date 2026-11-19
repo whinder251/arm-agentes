@@ -1160,10 +1160,43 @@ class TestPanel(TestCase):
         assert 'name="nombre"' in content
         assert 'name="urls_objetivo"' in content
         assert 'name="frecuencia"' in content
+        assert 'name="agente"' in content
+        assert 'name="palabras_clave"' in content
         assert 'class="segmented"' in content
         assert 'Diaria' in content and 'Semanal' in content and 'Mensual' in content
         assert 'Activar investigación' in content
         assert 'btn-primary' in content
+
+    def test_crear_investigacion_con_agente_y_palabras_clave(self):
+        """POST con agente y palabras clave guarda los nuevos campos."""
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('crear_investigacion')
+        respuesta_publica = [(2, 1, 6, "", ("93.184.216.34", 0))]
+        xml_sitemap = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+            '<url><loc>https://ejemplo.com/pagina-1</loc><lastmod>2024-01-01</lastmod></url>'
+            '</urlset>'
+        )
+        with patch("socket.getaddrinfo", return_value=respuesta_publica), patch(
+            "apps.engine.investigaciones.requests.get"
+        ) as mock_get:
+            mock_resp = Mock()
+            mock_resp.status_code = 200
+            mock_resp.text = xml_sitemap
+            mock_get.return_value = mock_resp
+            response = self.client.post(url, {
+                'nombre': 'Monitoreo con Agente',
+                'urls_objetivo': 'https://ejemplo.com/sitemap.xml',
+                'frecuencia': 'semanal',
+                'agente': str(self.agente.pk),
+                'palabras_clave': 'seo, competencia, tendencia',
+            })
+        assert response.status_code == 302
+        assert response.url == reverse('lista_investigaciones')
+        inv = InvestigacionProgramada.objects.get(nombre='Monitoreo con Agente')
+        assert inv.agente_id == self.agente.pk
+        assert inv.palabras_clave == 'seo, competencia, tendencia'
 
     def test_crear_investigacion_guardar_redirige_a_lista(self):
         """POST válido crea la investigación, ejecuta inmediatamente y redirige a la lista."""
