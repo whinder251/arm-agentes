@@ -23,6 +23,13 @@ logger = logging.getLogger(__name__)
 SLUG_HABILIDAD = "analista-competencia"
 SLUG_HABILIDAD_ARTEFACTO = "analista-artefacto-minimo"
 MAX_HALLAZGOS = 15
+MAX_CARACTERES_CONTENIDO_PROMPT = 4000
+
+REGLA_IDIOMA = (
+    "\n\nIDIOMA: Responde siempre en español neutro profesional, aunque los hallazgos "
+    "proporcionados estén en inglés. Evita calcos sintácticos del inglés. Los títulos "
+    "sugeridos deben estar en español."
+)
 
 MENSAJE_SIN_DATOS = (
     "## Sin datos para analizar\n\n"
@@ -60,8 +67,8 @@ def _obtener_prompt_sistema() -> str:
         .first()
     )
     if instrucciones:
-        return instrucciones
-    return defaults.HABILIDADES_SISTEMA[SLUG_HABILIDAD]["instrucciones"]
+        return instrucciones + REGLA_IDIOMA
+    return defaults.HABILIDADES_SISTEMA[SLUG_HABILIDAD]["instrucciones"] + REGLA_IDIOMA
 
 
 def _formatear_hallazgos(hallazgos: list[Hallazgo]) -> str:
@@ -70,7 +77,12 @@ def _formatear_hallazgos(hallazgos: list[Hallazgo]) -> str:
     for hallazgo in hallazgos:
         titulo = hallazgo.titulo or "(sin título)"
         url = hallazgo.url_articulo or "(sin URL)"
-        lineas.append(f"- [{hallazgo.tipo_fuente}] {titulo} | URL: {url}")
+        texto = (
+            hallazgo.contenido_extraido[:MAX_CARACTERES_CONTENIDO_PROMPT]
+            if hallazgo.contenido_extraido
+            else (hallazgo.resumen or "Sin contenido disponible")
+        )
+        lineas.append(f"- [{hallazgo.tipo_fuente}] {titulo} | URL: {url}\nContenido: {texto}")
     return "\n".join(lineas)
 
 

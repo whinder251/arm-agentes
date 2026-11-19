@@ -10,6 +10,7 @@ from django.core.management import call_command
 from apps.checks.analisis import (
     MAX_HALLAZGOS,
     MENSAJE_SIN_DATOS,
+    REGLA_IDIOMA,
     generar_reporte_competencia,
 )
 from apps.core import defaults
@@ -43,6 +44,9 @@ def crear_hallazgos(investigacion: InvestigacionProgramada, cantidad: int = 3):
             titulo=f"Hallazgo {indice:02d}",
             url_articulo=f"https://ejemplo.com/articulo-{indice}",
             resumen=f"Resumen {indice}",
+            contenido_extraido=(
+                f"Texto completo del artículo {indice} para análisis profundo."
+            ),
         )
         for indice in range(1, cantidad + 1)
     ]
@@ -103,13 +107,16 @@ def test_generar_reporte_construye_prompt_y_llama_una_vez():
     mensajes = router_cls.return_value.completar.call_args.args[0]
     assert mensajes[0] == {
         "role": "system",
-        "content": "Prompt personalizado de prueba.",
+        "content": "Prompt personalizado de prueba." + REGLA_IDIOMA,
     }
     assert mensajes[1]["role"] == "user"
     assert "Hallazgo 01" in mensajes[1]["content"]
     assert "Hallazgo 02" in mensajes[1]["content"]
     assert "Hallazgo 03" in mensajes[1]["content"]
     assert "URL: https://ejemplo.com/articulo-1" in mensajes[1]["content"]
+    assert "Texto completo del artículo 1 para análisis profundo." in mensajes[1]["content"]
+    assert "Contenido: " in mensajes[1]["content"]
+    assert "Resumen 01" not in mensajes[1]["content"]
     assert mensajes[1]["content"].count("- [rss]") == 3
 
 
@@ -125,7 +132,7 @@ def test_usa_prompt_de_defaults_si_no_existe_la_habilidad():
 
     mensajes = router_cls.return_value.completar.call_args.args[0]
     assert mensajes[0]["content"] == (
-        defaults.HABILIDADES_SISTEMA[SLUG]["instrucciones"]
+        defaults.HABILIDADES_SISTEMA[SLUG]["instrucciones"] + REGLA_IDIOMA
     )
 
 
