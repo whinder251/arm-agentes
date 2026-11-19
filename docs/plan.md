@@ -2233,3 +2233,24 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 - Nota: `pytest tests/test_panel.py -q` completo tiene un cuelgue preexistente de entorno (documentado en pasos C.2/C.3a/C.4/C.9b/UX-3/UX-4), no relacionado con este cambio.
 
 **Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo ajustes de expectativas de tests y datos de fixtures. Retrocompatible.
+
+## Paso CACHE-BUST - Forzar generación nueva de reportes de IA ignorando caché — COMPLETADO
+
+**Objetivo:** El Router devolvía respuestas cacheadas cuando el usuario solicitaba regenerar un reporte. Se fuerza una llamada real al LLM en cada clic de "Generar Reporte de IA" añadiendo un `request_id` único al `prompt_usuario`, cambiando el hash de caché del Router sin alterar la tarea del LLM.
+
+**Archivos tocados (1):**
+- `apps/checks/analisis.py`: import `uuid` al inicio; al final del `prompt_usuario` se añade `prompt_usuario += f"\n\n[request_id: {uuid.uuid4().hex}]"`.
+
+**Reglas respetadas:**
+- 1 solo archivo modificado.
+- CERO cambios en `apps/providers/router.py`, `views.py`, `models.py`, templates, tests de otros módulos ni migraciones.
+- Comandos PowerShell línea por línea, sin `&&`.
+- No se ejecutó `git push`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_analisis.py -q` → `8 passed in 2.19s`.
+- Prueba en shell: `generar_reporte_competencia(id)` dos veces → `Llamadas al Router.completar: 2`, `Prompts distintos: True`, `T1: 0.3476s`, `T2: 0.6101s` (segunda no es hit instantáneo de caché).
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Retrocompatible. El `request_id` viaja al LLM dentro del prompt (mecanismo solicitado) y no es una credencial.
