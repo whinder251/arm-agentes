@@ -40,6 +40,11 @@ MENSAJE_SIN_MODELOS = (
     "No hay modelos de IA activos. Configura un proveedor y un modelo "
     "antes de generar el reporte."
 )
+
+MENSAJE_SIN_MODELO_AGENTE = (
+    "## El agente asignado no tiene modelo\n\n"
+    "El agente asignado no tiene modelo. Asígnale uno en el panel de Agentes."
+)
 MENSAJE_INVESTIGACION_NO_ENCONTRADA = (
     "## Investigación no encontrada\n\n"
     "No se encontró la investigación indicada."
@@ -60,17 +65,20 @@ MENSAJE_RESPUESTA_VACIA = (
 
 
 def _obtener_prompt_sistema(agente=None) -> str:
-    """Devuelve las instrucciones de la habilidad del agente o del sistema.
+    """Devuelve las instrucciones del agente o del sistema.
 
-    Si se pasa un agente, prioriza las instrucciones de su habilidad
-    principal (o su ``rol`` como fallback). Si no hay agente, usa el
-    analista por defecto de ``SLUG_HABILIDAD``.
+    Si hay agente, construye el prompt concatenando el rol, las instrucciones
+    de TODAS sus habilidades (separadas por doble salto de línea) y al final
+    REGLA_IDIOMA. Si no hay agente, usa el analista por defecto de
+    ``SLUG_HABILIDAD`` como fallback del sistema.
     """
     if agente is not None:
-        habilidad = agente.habilidades.first()
-        if habilidad and getattr(habilidad, "instrucciones", ""):
-            return habilidad.instrucciones + REGLA_IDIOMA
-        return agente.rol + REGLA_IDIOMA
+        partes = [agente.rol]
+        for habilidad in agente.habilidades.all():
+            instrucciones = getattr(habilidad, "instrucciones", "")
+            if instrucciones:
+                partes.append(instrucciones)
+        return "\n\n".join(partes) + REGLA_IDIOMA
     instrucciones = (
         Habilidad.objects.filter(slug=SLUG_HABILIDAD)
         .values_list("instrucciones", flat=True)
@@ -79,6 +87,14 @@ def _obtener_prompt_sistema(agente=None) -> str:
     if instrucciones:
         return instrucciones + REGLA_IDIOMA
     return defaults.HABILIDADES_SISTEMA[SLUG_HABILIDAD]["instrucciones"] + REGLA_IDIOMA
+
+
+def _modelos_del_agente(agente) -> list[ModeloLLM]:
+    """Devuelve [agente.modelo] si el agente tiene uno asignado, [] en otro caso."""
+    modelo = getattr(agente, "modelo", None)
+    if modelo is None:
+        return []
+    return [modelo]
 
 
 def _formatear_hallazgos(hallazgos: list[Hallazgo]) -> str:
@@ -160,11 +176,20 @@ def generar_reporte_competencia(investigacion_id: int) -> str:
     if not hallazgos:
         return {"reporte": MENSAJE_SIN_DATOS, "artefacto_id": None}
 
-    modelos = _modelos_activos()
-    if not modelos:
-        return {"reporte": MENSAJE_SIN_MODELOS, "artefacto_id": None}
+    agente = investigacion.agente
+    if agente is not None:
+        modelos = _modelos_del_agente(agente)
+        if not modelos:
+            return {
+                "reporte": MENSAJE_SIN_MODELO_AGENTE,
+                "artefacto_id": None,
+            }
+    else:
+        modelos = _modelos_activos()
+        if not modelos:
+            return {"reporte": MENSAJE_SIN_MODELOS, "artefacto_id": None}
 
-    prompt_sistema = _obtener_prompt_sistema(investigacion.agente)
+    prompt_sistema = _obtener_prompt_sistema(agente)
 
     palabras_clave_lower = (investigacion.palabras_clave or "").lower()
     es_auditoria = any(

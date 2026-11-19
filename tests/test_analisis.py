@@ -242,19 +242,30 @@ def test_generar_reporte_crea_artefacto_con_metadata():
 
 
 @pytest.mark.django_db
-def test_usa_instrucciones_del_agente_si_tiene_una():
-    """Con agente asignado, el prompt del sistema usa sus instrucciones (o rol)."""
-    crear_modelo()
-    habilidad_agente = Habilidad.objects.create(
-        nombre="Habilidad del agente",
-        slug="habilidad-agente-test",
-        instrucciones="Instrucciones del agente X.",
+def test_usa_modelo_del_agente_y_concatena_todas_las_habilidades():
+    """Con agente con modelo propio y dos habilidades, el Router recibe el
+    modelo del agente (no el global) y el prompt del sistema concatena
+    rol + instrucciones de todas las habilidades + REGLA_IDIOMA al final."""
+    modelo_agente = crear_modelo()
+    habilidad_1 = Habilidad.objects.create(
+        nombre="Habilidad A",
+        slug="habilidad-a-test",
+        instrucciones="Tono profesional y extenso.",
+        modo_ejecucion="auto",
+    )
+    habilidad_2 = Habilidad.objects.create(
+        nombre="Habilidad B",
+        slug="habilidad-b-test",
+        instrucciones="Entregable en formato Markdown.",
         modo_ejecucion="auto",
     )
     agente = Agente.objects.create(
-        nombre="Agente Analista", modelo=None, rol="System prompt fallback del agente."
+        nombre="Agente Analista",
+        modelo=modelo_agente,
+        rol="Eres un analista experto.",
+        temperatura=0.7,
     )
-    agente.habilidades.add(habilidad_agente)
+    agente.habilidades.add(habilidad_1, habilidad_2)
     investigacion = InvestigacionProgramada.objects.create(
         nombre="Con agente",
         urls_objetivo="https://ejemplo.com/feed",
@@ -267,11 +278,45 @@ def test_usa_instrucciones_del_agente_si_tiene_una():
         router_cls.return_value.completar.return_value = respuesta_markdown()
         generar_reporte_competencia(investigacion.pk)
 
+    assert router_cls.called
+    modelos = router_cls.call_args.args[0]
+    assert modelos == [modelo_agente]
     mensajes = router_cls.return_value.completar.call_args.args[0]
-    assert mensajes[0] == {
-        "role": "system",
-        "content": "Instrucciones del agente X." + REGLA_IDIOMA,
-    }
+    contenido = mensajes[0]["content"]
+    assert "Eres un analista experto." in contenido
+    assert "Tono profesional y extenso." in contenido
+    assert "Entregable en formato Markdown." in contenido
+    assert REGLA_IDIOMA in contenido
+    assert contenido.index("Tono profesional y extenso.") < contenido.index(
+        "Entregable en formato Markdown."
+    )
+    assert contenido.rstrip().endswith(REGLA_IDIOMA)
+
+
+@pytest.mark.django_db
+def test_agente_sin_modelo_devuelve_error_sin_llamar_router():
+    """Agente sin modelo: devuelve mensaje claro, artefacto_id None y no llama al Router."""
+    agente = Agente.objects.create(
+        nombre="Agente Sin Modelo",
+        modelo=None,
+        rol="Eres un analista.",
+        temperatura=0.7,
+    )
+    investigacion = InvestigacionProgramada.objects.create(
+        nombre="Agente sin modelo",
+        urls_objetivo="https://ejemplo.com/feed",
+        frecuencia="semanal",
+        agente=agente,
+    )
+    crear_hallazgos(investigacion, 3)
+
+    with patch("apps.checks.analisis.Router") as router_cls:
+        resultado = generar_reporte_competencia(investigacion.pk)
+
+    assert resultado["artefacto_id"] is None
+    assert "El agente asignado no tiene modelo" in resultado["reporte"]
+    assert "Asígnale uno en el panel de Agentes." in resultado["reporte"]
+    router_cls.assert_not_called()
 
 
 @pytest.mark.django_db

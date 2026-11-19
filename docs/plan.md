@@ -2383,3 +2383,21 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 - `.venv\Scripts\python.exe -m pytest tests/test_analisis.py -q` → `12 passed in 4.25s` (incluye la prueba nueva).
 
 **Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Retrocompatible. Commit: `f3267a1`.
+
+## Paso AGENT-MODEL-01 - El reporte usa el modelo del Agente y concatena todas sus habilidades — COMPLETADO
+
+**Objetivo:** `generar_reporte_competencia` use el `modelo` del `Agente` asignado y concatene en `prompt_sistema` el `rol` + las instrucciones de TODAS sus habilidades (`agente.habilidades.all()`, doble salto de línea) + `REGLA_IDIOMA` al final. Sin agente → fallback `_modelos_activos()`. Agente sin modelo → mensaje de error + `artefacto_id None`, sin llamar al Router.
+
+**Archivos tocados (2):**
+- `apps/checks/analisis.py`: constante `MENSAJE_SIN_MODELO_AGENTE`; nueva función `_modelos_del_agente(agente)` ([agente.modelo] o []); `_obtener_prompt_sistema` reescrito para concatenar rol + instrucciones de todas las habilidades + REGLA_IDIOMA cuando hay agente; `generar_reporte_competencia` usa `_modelos_del_agente` si hay agente, si no `_modelos_activos()`; conserva `es_auditoria`, `palabras_clave`, `request_id` y contrato dict de retorno.
+- `tests/test_analisis.py`: `test_usa_modelo_del_agente_y_concatena_todas_las_habilidades` (agente con modelo propio + 2 habilidades; verifica Router recibe el modelo del agente, prompt con rol + ambas instrucciones + REGLA_IDIOMA al final); `test_agente_sin_modelo_devuelve_error_sin_llamar_router` (verifica mensaje de error, artefacto_id None, Router no llamado).
+
+**Reglas respetadas:** Máximo 2 archivos; NO models.py, NO migraciones, NO views, NO templates; CERO estilos inline, CERO emojis fuera del string del prompt; pruebas sin APIs reales (patch).
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_analisis.py -q` → `13 passed in 7.72s` (incluye las 2 pruebas nuevas).
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "detalle_investigacion" -q` → `5 passed` (sin regresiones).
+
+**Impacto en contratos/datos:** Cambia contrato interno de `analisis.py` (qué modelo recibe el Router y longitud del prompt_sistema). NO modelos, NO migraciones, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola. Investigaciones sin agente conservan el comportamiento anterior. Retrocompatible para consumidores del dict de retorno.
