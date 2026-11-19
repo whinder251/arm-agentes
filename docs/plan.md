@@ -2078,3 +2078,33 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 **Impacto en contratos/datos:** SÍ tareas en cola: nueva tarea periódica `chequear_y_ejecutar_investigaciones` registrada con schedule persistido en Huey. NO contratos públicos, NO modelos, NO migraciones, NO credenciales, NO permisos. Los datos persistidos existentes (`ultima_ejecucion`, `Hallazgo`) solo se actualizan mediante el servicio ya probado. Retrocompatible: la ejecución manual de investigaciones sigue intacta.
 
 **Pendiente/deuda:** UX-3B (lock por investigación para evitar descargas solapadas si el consumidor se reinicia a mitad de una corrida). Se acepta el comportamiento actual de `ultima_ejecucion` (se actualiza aunque fallen todas las URLs), ya probado y documentado. Quedan pendientes los dos fallos preexistentes (`test_fase16`, `test_skills_sistema`) y el cuelgue del suite completo; no se corrigieron por estar fuera del alcance.
+
+## Paso UX-4 - Completar CRUD de Investigaciones (Editar y Eliminar) — COMPLETADO
+
+**Objetivo:** Cerrar el ciclo CRUD del módulo de investigaciones con edición de nombre/URLs/frecuencia y eliminación con confirmación, reutilizando `InvestigacionForm`, el patrón de acciones de `lista_herramientas.html` y el diseño ARM Flow 2.0.
+
+**Archivos tocados (6, con excepción aprobada):**
+- `apps/panel/templates/panel/investigacion_lista.html`: segunda fila `.acciones-investigacion` con `.tabla-acciones` (gap 8px y anulación del margen de `.enlace-editar`), enlace `.enlace-editar` "Editar" y `<form class="form-eliminar">` con `.btn-danger-sm` "Eliminar" + `onsubmit confirm`, CSRF incluido.
+- `apps/panel/templates/panel/investigacion_form.html`: título y botón dinámicos con `{% if form.instance.pk %}`: "Editar/Nueva Investigación de Competencia" y "Guardar cambios/Activar investigación".
+- `apps/panel/views.py`: `editar_investigacion` (GET precarga `InvestigacionForm(instance=...)`; POST válido guarda y redirige con `messages.success`; NO re-ejecuta) y `eliminar_investigacion` (`@login_required`, `@require_POST`, borra y redirige con `messages.success`).
+- `apps/panel/urls.py`: rutas `investigaciones/<int:pk>/editar/` y `investigaciones/<int:pk>/eliminar/`.
+- `tests/test_panel.py`: 6 pruebas nuevas (acciones en tarjeta, formulario precargado, guardado sin re-ejecución, login requerido, GET rechazado en eliminar, borrado con cascada de `Hallazgo`).
+- `docs/plan.md`: esta sección.
+
+**Reglas respetadas:**
+- CERO cambios en `models.py`, `forms.py` o migraciones.
+- CERO estilos inline ni bloques `<style>`; clases existentes de `app.css`.
+- Reutilización de `InvestigacionForm` y del patrón AUDIT-UI-01.
+- Comandos PowerShell línea por línea, sin `&&`.
+- No se ejecutó `git push`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "investigacion" -q` → `13 passed, 58 deselected, 2 warnings in 76.38s`.
+- `.venv\Scripts\python.exe -m pytest -q` → timeout a los 900s en ~95%; se observaron 5 fallos preexistentes ajenos a este paso: 3 en `tests/test_pipeline.py` (el escenario crea `Proveedor` sin `tipo_adaptador`, por lo que usa el default `custom` y el router no tiene adaptador), 1 en `tests/test_fase16.py` (texto "Rotar Clave del Sistema" vs "Rotar Clave") y 1 en `tests/test_skills_sistema.py` (200 != 302). Confirmado `tests/test_pipeline.py -q` aislado → `3 failed, 1 passed`, con la misma causa raíz.
+- Validación visual en navegador: NO ejecutada en esta sesión; pendiente.
+
+**Impacto en contratos/datos:** SÍ 2 URLs nuevas y SÍ borrado en cascada de `Hallazgo` al eliminar una investigación. NO credenciales, NO permisos nuevos (las vistas exigen `@login_required`; el borrado exige `@require_POST` y CSRF), NO tareas en cola, NO migraciones. Retrocompatible: las rutas y el flujo de creación/ejecución existentes no cambian.
+
+**Pendiente/deuda:** Validación visual de la alineación de Editar/Eliminar en la tarjeta; los 5 fallos preexistentes del suite (`test_pipeline`, `test_fase16`, `test_skills_sistema`) y el timeout del suite completo quedan fuera de este paso.

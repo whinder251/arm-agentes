@@ -3,7 +3,7 @@
 {% block content %}
 <div class="pagina-crear">
     <div class="card">
-        <h2>Nueva Investigación de Competencia</h2>
+        <h2>{% if form.instance.pk %}Editar{% else %}Nueva{% endif %} Investigación de Competencia</h2>
         <p class="help-text">El sistema revisará estas fuentes automáticamente y guardará los hallazgos para tu agente.</p>
 
         <form method="post" novalidate>
@@ -39,7 +39,7 @@
                 {% endif %}
             </div>
 
-            <button type="submit" class="btn btn-primary">Activar investigación</button>
+            <button type="submit" class="btn btn-primary">{% if form.instance.pk %}Guardar cambios{% else %}Activar investigación{% endif %}</button>
         </form>
     </div>
 </div>

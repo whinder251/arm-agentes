@@ -6,7 +6,7 @@ from django.urls import reverse
 from apps.core.models import (
     Proveedor, ModeloLLM, Habilidad, Agente, Equipo, Tarea, Artefacto, Ejecucion,
     Workflow, PasoWorkflow, DestinoPublicacion, IntegracionConfig,
-    InvestigacionProgramada,
+    InvestigacionProgramada, Hallazgo,
 )
 from apps.engine.tasks import continuar_workflow
 
@@ -1228,3 +1228,124 @@ class TestPanel(TestCase):
         assert 'Diaria' in content
         assert 'Activa' in content
         assert 'class="card"' in content
+
+    def test_lista_investigaciones_muestra_acciones_editar_eliminar(self):
+        """Cada tarjeta expone enlaces de edición y eliminación."""
+        inv = InvestigacionProgramada.objects.create(
+            nombre='Con Acciones',
+            urls_objetivo='https://ejemplo.com/sitemap.xml',
+            frecuencia='semanal',
+            activa=True,
+        )
+        self.client.login(username='testuser', password='testpass123')
+        response = self.client.get(reverse('lista_investigaciones'))
+        content = response.content.decode('utf-8')
+        assert reverse('editar_investigacion', args=[inv.pk]) in content
+        assert reverse('eliminar_investigacion', args=[inv.pk]) in content
+        assert 'enlace-editar' in content
+        assert 'form-eliminar' in content
+        assert 'btn-danger-sm' in content
+        assert 'tabla-acciones' in content
+
+    def test_editar_investigacion_formulario_precargado(self):
+        """El formulario de edición carga los datos actuales y cambia sus textos."""
+        inv = InvestigacionProgramada.objects.create(
+            nombre='Editable',
+            urls_objetivo='https://ejemplo.com/feed',
+            frecuencia='mensual',
+            activa=True,
+        )
+        self.client.login(username='testuser', password='testpass123')
+        response = self.client.get(
+            reverse('editar_investigacion', args=[inv.pk])
+        )
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        assert 'Editar Investigación de Competencia' in content
+        assert 'Guardar cambios' in content
+        assert 'Editable' in content
+        assert 'https://ejemplo.com/feed' in content
+        assert 'value="mensual"' in content
+
+    def test_editar_investigacion_guarda_sin_reejecutar(self):
+        """Guardar cambios actualiza el registro y no vuelve a ejecutarlo."""
+        inv = InvestigacionProgramada.objects.create(
+            nombre='Original',
+            urls_objetivo='https://ejemplo.com/feed',
+            frecuencia='semanal',
+            activa=True,
+        )
+        self.client.login(username='testuser', password='testpass123')
+        with patch('apps.panel.views.ejecutar_investigacion') as mock_ejecutar:
+            response = self.client.post(
+                reverse('editar_investigacion', args=[inv.pk]),
+                {
+                    'nombre': 'Actualizada',
+                    'urls_objetivo': 'https://nuevo.com/rss',
+                    'frecuencia': 'diaria',
+                },
+            )
+        assert response.status_code == 302
+        assert response.url == reverse('lista_investigaciones')
+        inv.refresh_from_db()
+        assert inv.nombre == 'Actualizada'
+        assert inv.urls_objetivo == 'https://nuevo.com/rss'
+        assert inv.frecuencia == 'diaria'
+        mock_ejecutar.assert_not_called()
+
+    def test_editar_y_eliminar_investigacion_requieren_login(self):
+        """Las acciones de edición y borrado exigen sesión."""
+        inv = InvestigacionProgramada.objects.create(
+            nombre='Privada',
+            urls_objetivo='https://ejemplo.com/rss',
+            frecuencia='semanal',
+            activa=True,
+        )
+        response_edit = self.client.get(
+            reverse('editar_investigacion', args=[inv.pk])
+        )
+        response_delete = self.client.post(
+            reverse('eliminar_investigacion', args=[inv.pk])
+        )
+        assert response_edit.status_code == 302
+        assert response_delete.status_code == 302
+        assert InvestigacionProgramada.objects.filter(pk=inv.pk).exists()
+
+    def test_eliminar_investigacion_solo_post(self):
+        """El borrado rechaza GET y conserva el registro."""
+        inv = InvestigacionProgramada.objects.create(
+            nombre='Solo POST',
+            urls_objetivo='https://ejemplo.com/rss',
+            frecuencia='semanal',
+            activa=True,
+        )
+        self.client.login(username='testuser', password='testpass123')
+        response = self.client.get(
+            reverse('eliminar_investigacion', args=[inv.pk])
+        )
+        assert response.status_code == 405
+        assert InvestigacionProgramada.objects.filter(pk=inv.pk).exists()
+
+    def test_eliminar_investigacion_borra_y_redirige(self):
+        """El POST elimina la investigación y sus hallazgos en cascada."""
+        inv = InvestigacionProgramada.objects.create(
+            nombre='Eliminable',
+            urls_objetivo='https://ejemplo.com/sitemap.xml',
+            frecuencia='semanal',
+            activa=True,
+        )
+        hallazgo = Hallazgo.objects.create(
+            investigacion=inv,
+            url_fuente='https://ejemplo.com/sitemap.xml',
+            tipo_fuente='sitemap',
+            titulo='Artículo',
+            url_articulo='https://ejemplo.com/articulo',
+        )
+        self.client.login(username='testuser', password='testpass123')
+        response = self.client.post(
+            reverse('eliminar_investigacion', args=[inv.pk])
+        )
+        assert response.status_code == 302
+        assert response.url == reverse('lista_investigaciones')
+        assert not InvestigacionProgramada.objects.filter(pk=inv.pk).exists()
+        assert not Hallazgo.objects.filter(pk=hallazgo.pk).exists()

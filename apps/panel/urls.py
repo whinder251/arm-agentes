@@ -63,6 +63,8 @@ urlpatterns = [
     path('design-system/', login_required(TemplateView.as_view(template_name="panel/design_system.html")), name='design_system'),
     path('investigaciones/', views.lista_investigaciones, name='lista_investigaciones'),
     path('investigaciones/nueva/', views.crear_investigacion, name='crear_investigacion'),
+    path('investigaciones/<int:pk>/editar/', views.editar_investigacion, name='editar_investigacion'),
+    path('investigaciones/<int:pk>/eliminar/', views.eliminar_investigacion, name='eliminar_investigacion'),
     path('investigaciones/<int:pk>/ejecutar/', views.ejecutar_investigacion_ahora, name='ejecutar_investigacion_ahora'),
     path('investigaciones/<int:pk>/detalle/', views.detalle_investigacion, name='detalle_investigacion'),
 ]

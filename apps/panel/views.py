@@ -1588,6 +1588,39 @@ def crear_investigacion(request):
 
 
 @login_required
+def editar_investigacion(request, pk):
+    """Edita nombre, URLs y frecuencia sin re-ejecutar la investigación."""
+    investigacion = get_object_or_404(InvestigacionProgramada, pk=pk)
+    if request.method == "POST":
+        form = InvestigacionForm(request.POST, instance=investigacion)
+        if form.is_valid():
+            form.save()
+            messages.success(
+                request,
+                f"Investigación '{investigacion.nombre}' actualizada.",
+            )
+            return redirect("lista_investigaciones")
+    else:
+        form = InvestigacionForm(instance=investigacion)
+    return render(
+        request,
+        "panel/investigacion_form.html",
+        {"form": form, "investigacion": investigacion},
+    )
+
+
+@login_required
+@require_POST
+def eliminar_investigacion(request, pk):
+    """Elimina una investigación y sus hallazgos en cascada."""
+    investigacion = get_object_or_404(InvestigacionProgramada, pk=pk)
+    nombre = investigacion.nombre
+    investigacion.delete()
+    messages.success(request, f"Investigación '{nombre}' eliminada.")
+    return redirect("lista_investigaciones")
+
+
+@login_required
 @require_POST
 def ejecutar_investigacion_ahora(request, pk):
     """Re-ejecuta una investigación programada a petición del usuario."""

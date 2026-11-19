@@ -39,6 +39,15 @@
             </form>
             <a href="{% url 'detalle_investigacion' inv.pk %}" class="btn btn-primary">Ver hallazgos</a>
         </div>
+        <div class="acciones-investigacion">
+            <div class="tabla-acciones">
+                <a href="{% url 'editar_investigacion' inv.pk %}" class="enlace-editar">Editar</a>
+                <form method="post" action="{% url 'eliminar_investigacion' inv.pk %}" class="form-eliminar" onsubmit="return confirm('¿Estás seguro de que quieres eliminar esta investigación y todos sus hallazgos?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-danger-sm">Eliminar</button>
+                </form>
+            </div>
+        </div>
     </div>
     {% endfor %}
 </div>
