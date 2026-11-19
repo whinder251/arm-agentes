@@ -10,4 +10,3 @@ respx==0.23.1
 markdown>=3.5
 psycopg2-binary==2.9.9
 trafilatura==2.3.1
-crawl4ai>=0.3.0

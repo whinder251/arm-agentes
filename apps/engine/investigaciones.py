@@ -8,7 +8,6 @@ El módulo es resiliente: un fallo de red en una URL no aborta el procesamiento
 de las demás y no lanza excepciones que afecten al registro de la investigación.
 """
 
-import asyncio
 import logging
 import random
 import time
@@ -16,7 +15,6 @@ import xml.etree.ElementTree as ET
 
 import requests
 import trafilatura
-from crawl4ai import AsyncWebCrawler
 from django.utils import timezone
 
 from apps.core.models import Hallazgo, InvestigacionProgramada
@@ -62,19 +60,17 @@ def _detectar_tipo(texto_xml: str) -> str:
     return "desconocido"
 
 
-# NOTA: Tras instalar crawl4ai, ejecutar 'crawl4ai-setup' en la terminal para descargar el navegador.
+# NOTA: Crawl4AI eliminado; la cascada ahora tiene 2 niveles (Trafilatura -> Jina AI).
 
 
 def _extraer_contenido(url: str) -> str:
-    """Descarga la URL y extrae el texto principal con cascada de 3 niveles.
+    """Descarga la URL y extrae el texto principal con cascada de 2 niveles.
 
     Nivel 1: trafilatura sobre el HTML descargado.
     Nivel 2: Jina AI (https://r.jina.ai/{url}) si trafilatura falla.
-    Nivel 3: Crawl4AI (AsyncWebCrawler con bypass_cache) como último recurso
-    para sitios con JavaScript complejo.
 
     Best-effort: cualquier error de red, HTTP 429/503/403, HTML vacío o
-    fallo de todos los niveles devuelve cadena vacía sin lanzar excepción,
+    fallo de ambos niveles devuelve cadena vacía sin lanzar excepción,
     para que un artículo que no carga nunca aborte la investigación completa.
     """
     try:
@@ -125,26 +121,8 @@ def _extraer_contenido(url: str) -> str:
     except requests.RequestException as exc:
         logger.warning("Fallo del fallback Jina AI para %s: %s", url, exc)
 
-    # Nivel 3: Crawl4AI como último recurso para sitios con JavaScript complejo.
-    try:
-
-        async def _crawl_with_crawl4ai() -> str:
-            async with AsyncWebCrawler(verbose=False) as crawler:
-                result = await crawler.arun(url=url, bypass_cache=True)
-                return result.markdown if result and result.markdown else ""
-
-        logger.info("Intentando extracción con Crawl4AI para %s", url)
-        texto_crawl = asyncio.run(_crawl_with_crawl4ai())
-        if texto_crawl and texto_crawl.strip():
-            logger.info(
-                "Contenido extraído exitosamente con Crawl4AI para %s", url
-            )
-            return texto_crawl[:LIMITE_CARACTERES_CONTENIDO]
-    except Exception as exc:  # noqa: BLE001 - best-effort, nunca aborta
-        logger.warning("Fallo del fallback Crawl4AI para %s: %s", url, exc)
-
-    # Si los 3 niveles fallan.
-    logger.warning("No se pudo extraer contenido de %s tras 3 intentos", url)
+    # Si los 2 niveles fallan.
+    logger.warning("No se pudo extraer contenido de %s tras 2 intentos", url)
     return ""
 
 

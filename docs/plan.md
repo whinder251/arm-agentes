@@ -2342,3 +2342,29 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 **Criterio 4 (shell real):** no verificable en este entorno por bloqueo WAF/DNS documentado en FIX-UA (misma causa que impidió validar `https://somostuvoz.net` y `https://hnrss.org/frontpage`). Los 11 tests unitarios con mocks validan el comportamiento del fallback sin red real.
 
 **Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo servicio interno de extracción de contenido. Retrocompatible.
+
+## Paso CONTENT-02 - Implementar cascada de extracción de 3 niveles (Trafilatura -> Jina AI -> Crawl4AI) — COMPLETADO
+
+**Objetivo:** Crear un pipeline de extracción de contenido robusto con 3 niveles de fallback. Si `trafilatura` falla, intenta `Jina AI`. Si `Jina AI` falla, intenta `Crawl4AI` como último recurso definitivo para sitios con JavaScript complejo.
+
+**Archivos tocados (3):**
+- `requirements.txt`: añadido `crawl4ai>=0.3.0`.
+- `apps/engine/investigaciones.py`: importado `asyncio` y `AsyncWebCrawler` de `crawl4ai`; reestructurado `_extraer_contenido(url)` en 3 niveles: Nivel 1 `trafilatura.extract(html)` sobre el HTML descargado; Nivel 2 `Jina AI` (`https://r.jina.ai/{url}`); Nivel 3 `asyncio.run()` con `AsyncWebCrawler` (`bypass_cache=True`, `result.markdown`) envuelto en `try/except Exception`; añadido comentario destacado con `crawl4ai-setup`; si los 3 niveles fallan, `logger.warning` y retorno `""`. Se respeta `time.sleep(random.uniform(1.0, 2.5))` antes de iniciar cualquier extracción.
+- `tests/test_investigaciones.py`: prueba `test_ejecutar_investigacion_extraccion_cascada_tres_niveles` actualizada: `trafilatura.extract` devuelve `""`, `requests.get` (Jina) devuelve `status_code=429`, `asyncio.run` mockeado devuelve texto simulado de Crawl4AI; verifica que el hallazgo guarda ese texto.
+
+**Reglas respetadas:**
+- No se modificó `apps/core/models.py` ni se crearon migraciones.
+- CERO estilos inline, CERO emojis.
+- Llamada a Crawl4AI envuelta en `try/except Exception` para que un fallo de navegador nunca bloquee la investigación.
+- `time.sleep(random.uniform(1.0, 2.5))` respetado antes de cada extracción.
+- `.venv\Scripts\python.exe` línea por línea, sin `&&`. No se ejecutó `git push`.
+- Commit: "CONTENT-02: Implementar cascada de extracción de 3 niveles (Trafilatura -> Jina AI -> Crawl4AI)".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_investigaciones.py -q` → `11 passed in 20.41s` (incluye la prueba de la cascada de 3 niveles).
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Retrocompatible. La dependencia `crawl4ai` requiere ejecutar `crawl4ai-setup` en la terminal para descargar el navegador antes de usar el nivel 3 en producción (documentado como comentario en el código).
+ 
+ 
