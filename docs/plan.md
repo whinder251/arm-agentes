@@ -2108,3 +2108,31 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 **Impacto en contratos/datos:** SÍ 2 URLs nuevas y SÍ borrado en cascada de `Hallazgo` al eliminar una investigación. NO credenciales, NO permisos nuevos (las vistas exigen `@login_required`; el borrado exige `@require_POST` y CSRF), NO tareas en cola, NO migraciones. Retrocompatible: las rutas y el flujo de creación/ejecución existentes no cambian.
 
 **Pendiente/deuda:** Validación visual de la alineación de Editar/Eliminar en la tarjeta; los 5 fallos preexistentes del suite (`test_pipeline`, `test_fase16`, `test_skills_sistema`) y el timeout del suite completo quedan fuera de este paso.
+
+## Paso FIX-UA - User-Agent de navegador real para evitar bloqueos de WAF en sitemaps — IMPLEMENTADO (criterio de red no verificable desde este entorno)
+
+**Objetivo:** Sustituir el User-Agent de producto (`ARM-Investigacion/1.0`) por uno de navegador moderno para que WAF como SiteGround (sgcaptcha) o Cloudflare no bloqueen la descarga de sitemaps y feeds por detección de script.
+
+**Archivos tocados (2):**
+- `apps/engine/investigaciones.py`: constante `USER_AGENT` reemplazada por `"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"`; comentario actualizado explicando el motivo. Sin cambios en `_detectar_tipo`, validación SSRF, parsers, `TIMEOUT_SEGUNDOS`, `allow_redirects` ni en el resto del flujo.
+- `docs/plan.md`: esta sección.
+
+**Reglas respetadas:**
+- Solo se modificó código en `apps/engine/investigaciones.py`; `docs/plan.md` es la actualización documental exigida por el flujo.
+- CERO cambios en modelos, vistas, formularios, URLs, migraciones o tests.
+- CERO llamadas a APIs reales dentro de la suite; las pruebas siguen mockeando `requests.get`.
+- Comandos PowerShell línea por línea, sin `&&`. No se ejecutó `git push`.
+- Commit: "FIX-UA: Usar User-Agent de navegador real para evitar bloqueos WAF en descargas de sitemaps".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`. (Criterio 1: CUMPLIDO)
+- `.venv\Scripts\python.exe -m pytest tests/test_investigaciones.py -q` → `8 passed in 4.00s`.
+- `.venv\Scripts\python.exe -m pytest tests/test_investigaciones.py tests/test_schedules.py tests/test_tool_executor.py -q` → `69 passed in 8.88s`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "investigacion" -q` → `13 passed, 58 deselected, 2 warnings in 104.93s`.
+- Criterio 2 (comprobación manual de red) → **NO CUMPLIDO en este entorno**: `requests.get('https://somostuvoz.net/post-sitemap3.xml', headers={'User-Agent': <Chrome 120>}, timeout=15)` devolvió `202 False`. Diagnóstico: respuesta `Content-Type: text/html` con cabeceras `sg-captcha: challenge` y `Server: cloudflare`, es decir, un desafío JS de SiteGround, no un sitemap.
+- Se comparó el mismo destino con tres User-Agent (`ARM-Investigacion/1.0`, Chrome 120, Safari 17): los tres devolvieron `202`. El bloqueo es por reputación de la IP de este entorno (`82.86.108.253`), no por el User-Agent. El cambio de código es correcto y necesario, pero no puede desbloquear un challenge ligado a IP/cookie desde una petición sin JavaScript.
+- Suite completa `pytest -q` no ejecutada: cuelgue de entorno ya documentado (pasos C.2/C.3a/C.4/C.9b/UX-3/UX-4). Fallos preexistentes conocidos (`test_pipeline` x3, `test_fase16`, `test_skills_sistema`) ajenos a este paso.
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo cambia la cabecera `User-Agent` enviada en las descargas de investigaciones.
+
+**Pendiente/deuda:** Validar el criterio 2 desde una IP no bloqueada por SiteGround o mediante una fuente sin challenge (por ejemplo, un sitemap público sin WAF). Si el WAF exige ejecución de JavaScript, el User-Agent por sí solo no basta y habría que evaluar en un paso aparte un enfoque distinto (fuente alternativa, API del sitio o cliente que resuelva el challenge), con su propio análisis de riesgos.

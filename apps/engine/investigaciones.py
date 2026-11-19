@@ -23,8 +23,9 @@ from apps.engine.tool_executor import (
 
 logger = logging.getLogger(__name__)
 
-# User-Agent de producto para las peticiones de descarga.
-USER_AGENT = "ARM-Investigacion/1.0"
+# User-Agent de navegador real: los WAF (SiteGround/sgcaptcha, Cloudflare)
+# bloquean los User-Agent de script al descargar sitemaps y feeds.
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 TIMEOUT_SEGUNDOS = 15
 
 
