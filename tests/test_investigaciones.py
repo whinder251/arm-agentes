@@ -153,8 +153,9 @@ class TestEjecutarInvestigacion:
         ) as mock_get:
             resultado = ejecutar_investigacion(investigacion)
 
-        # Se intentó descargar ambas URLs
-        assert mock_get.call_count == 2
+        # Se intentó descargar ambas URLs más la extracción de contenido de
+        # los 2 artículos del feed válido (4 llamadas en total).
+        assert mock_get.call_count == 4
         # La fallida se registra, la buena se procesa
         assert len(resultado["fallos"]) == 1
         assert "host-falla" in resultado["fallos"][0]["url"]
@@ -173,3 +174,67 @@ class TestEjecutarInvestigacion:
         assert len(resultado["fallos"]) == 1
         assert "HTTP 404" in resultado["fallos"][0]["error"]
         assert Hallazgo.objects.filter(investigacion=investigacion).count() == 0
+
+    def test_ejecutar_investigacion_extrae_contenido_hallazgo(self):
+        investigacion = self._crear_investigacion()
+
+        def efecto_get(url, **kwargs):
+            respuesta = Mock()
+            respuesta.status_code = 200
+            respuesta.text = XML_RSS
+            return respuesta
+
+        with patch(
+            "apps.engine.investigaciones.requests.get", side_effect=efecto_get
+        ), patch(
+            "apps.engine.investigaciones.trafilatura.extract",
+            return_value="Texto principal del artículo extraído.",
+        ), patch(
+            "apps.engine.investigaciones.time.sleep"
+        ):
+            resultado = ejecutar_investigacion(investigacion)
+
+        assert resultado["hallazgos_nuevos"] == 2
+
+        hallazgos = Hallazgo.objects.filter(investigacion=investigacion).order_by(
+            "url_articulo"
+        )
+        assert hallazgos.count() == 2
+        for h in hallazgos:
+            assert h.contenido_extraido == "Texto principal del artículo extraído."
+
+    def test_ejecutar_investigacion_extraccion_http429_deja_campo_vacio(self):
+        investigacion = self._crear_investigacion()
+
+        llamadas = {"n": 0}
+
+        def efecto_get(url, **kwargs):
+            llamadas["n"] += 1
+            respuesta = Mock()
+            if llamadas["n"] == 1:
+                # Primera llamada: descarga del feed (200 OK).
+                respuesta.status_code = 200
+                respuesta.text = XML_RSS
+            else:
+                # Llamadas de extracción de artículos: HTTP 429, sin reintento.
+                respuesta.status_code = 429
+                respuesta.text = ""
+            return respuesta
+
+        with patch(
+            "apps.engine.investigaciones.requests.get", side_effect=efecto_get
+        ), patch(
+            "apps.engine.investigaciones.trafilatura.extract"
+        ) as mock_extract, patch(
+            "apps.engine.investigaciones.time.sleep"
+        ):
+            resultado = ejecutar_investigacion(investigacion)
+
+        assert resultado["hallazgos_nuevos"] == 2
+        # trafilatura nunca se invocó porque HTTP 429 se detiene antes.
+        mock_extract.assert_not_called()
+
+        hallazgos = Hallazgo.objects.filter(investigacion=investigacion)
+        assert hallazgos.count() == 2
+        for h in hallazgos:
+            assert h.contenido_extraido == ""

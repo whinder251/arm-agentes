@@ -9,9 +9,12 @@ de las demás y no lanza excepciones que afecten al registro de la investigació
 """
 
 import logging
+import random
+import time
 import xml.etree.ElementTree as ET
 
 import requests
+import trafilatura
 from django.utils import timezone
 
 from apps.core.models import Hallazgo, InvestigacionProgramada
@@ -27,6 +30,12 @@ logger = logging.getLogger(__name__)
 # bloquean los User-Agent de script al descargar sitemaps y feeds.
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 TIMEOUT_SEGUNDOS = 15
+
+# Códigos de HTTP que se respetan sin reintentar (no somos insistentes).
+CODIGOS_NO_REINTENTAR = {429, 503, 403}
+
+# Límite duro de caracteres por artículo extraído.
+LIMITE_CARACTERES_CONTENIDO = 8000
 
 
 def _detectar_tipo(texto_xml: str) -> str:
@@ -49,6 +58,44 @@ def _detectar_tipo(texto_xml: str) -> str:
     if tag in ("rss", "feed", "rdf:RDF"):
         return "rss"
     return "desconocido"
+
+
+def _extraer_contenido(url: str) -> str:
+    """Descarga la URL y extrae el texto principal con trafilatura.
+
+    Best-effort: cualquier error de red, HTTP 429/503/403, HTML vacío o
+    fallo de trafilatura devuelve cadena vacía sin lanzar excepción, para que
+    un artículo que no carga nunca aborte la investigación completa.
+    """
+    try:
+        response = requests.get(
+            url,
+            headers={"User-Agent": USER_AGENT},
+            timeout=TIMEOUT_SEGUNDOS,
+            allow_redirects=True,
+        )
+    except requests.RequestException as exc:
+        logger.warning("Error de red extrayendo contenido de %s: %s", url, exc)
+        return ""
+    if response.status_code in CODIGOS_NO_REINTENTAR:
+        logger.warning(
+            "HTTP %s extrayendo contenido de %s, sin reintento",
+            response.status_code,
+            url,
+        )
+        return ""
+    html = response.text or ""
+    if not html.strip():
+        logger.warning("HTML vacío extrayendo contenido de %s", url)
+        return ""
+    try:
+        texto = trafilatura.extract(html)
+    except Exception as exc:  # noqa: BLE001 - best-effort, nunca aborta
+        logger.warning("Fallo de trafilatura extrayendo %s: %s", url, exc)
+        return ""
+    if not texto:
+        return ""
+    return texto[:LIMITE_CARACTERES_CONTENIDO]
 
 
 def ejecutar_investigacion(investigacion: InvestigacionProgramada) -> dict:
@@ -125,7 +172,7 @@ def ejecutar_investigacion(investigacion: InvestigacionProgramada) -> dict:
                 url_articulo = entrada.get("url") or ""
                 if not url_articulo:
                     continue
-                _, creado = Hallazgo.objects.update_or_create(
+                hallazgo, creado = Hallazgo.objects.update_or_create(
                     investigacion=investigacion,
                     url_articulo=url_articulo,
                     defaults={
@@ -137,6 +184,12 @@ def ejecutar_investigacion(investigacion: InvestigacionProgramada) -> dict:
                     },
                 )
                 if creado:
+                    if url_articulo:
+                        time.sleep(random.uniform(1.0, 2.5))
+                        contenido = _extraer_contenido(url_articulo)
+                        if contenido:
+                            hallazgo.contenido_extraido = contenido
+                            hallazgo.save(update_fields=["contenido_extraido"])
                     hallazgos_nuevos += 1
         else:  # rss
             items = _parsear_rss(texto_xml)
@@ -147,7 +200,7 @@ def ejecutar_investigacion(investigacion: InvestigacionProgramada) -> dict:
                 url_articulo = item.get("link") or ""
                 if not url_articulo:
                     continue
-                _, creado = Hallazgo.objects.update_or_create(
+                hallazgo, creado = Hallazgo.objects.update_or_create(
                     investigacion=investigacion,
                     url_articulo=url_articulo,
                     defaults={
@@ -159,6 +212,12 @@ def ejecutar_investigacion(investigacion: InvestigacionProgramada) -> dict:
                     },
                 )
                 if creado:
+                    if url_articulo:
+                        time.sleep(random.uniform(1.0, 2.5))
+                        contenido = _extraer_contenido(url_articulo)
+                        if contenido:
+                            hallazgo.contenido_extraido = contenido
+                            hallazgo.save(update_fields=["contenido_extraido"])
                     hallazgos_nuevos += 1
 
     # Actualizar última ejecución fuera de cualquier transacción abierta

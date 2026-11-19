@@ -2284,3 +2284,38 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 - Prueba en shell: `generar_reporte_competencia(id)` dos veces → `Llamadas al Router.completar: 2`, `Prompts distintos: True`, `T1: 0.3476s`, `T2: 0.6101s` (segunda no es hit instantáneo de caché).
 
 **Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Retrocompatible. El `request_id` viaja al LLM dentro del prompt (mecanismo solicitado) y no es una credencial.
+
+## Paso CONTENT-01 - Extraer contenido completo de hallazgos con trafilatura — COMPLETADO
+
+**Objetivo:** Cuando el sistema detecta un Hallazgo nuevo con `url_articulo`, descargar el artículo, extraer el texto principal con trafilatura y guardarlo en `Hallazgo.contenido_extraido` (máximo 8000 caracteres). Best-effort: si falla, el hallazgo se conserva y la investigación continúa.
+
+**Archivos tocados (4):**
+- `apps/core/models.py`: añadido `contenido_extraido = models.TextField(blank=True, default="", help_text="Texto principal del artículo extraído con trafilatura.")` a `Hallazgo`.
+- `apps/core/migrations/0025_hallazgo_contenido_extraido.py` (nueva): `Add field contenido_extraido to hallazgo`, generada con `makemigrations` y aplicada con `migrate`.
+- `apps/engine/investigaciones.py`: añadidas importaciones `time`, `random`, `trafilatura`; nuevas constantes `CODIGOS_NO_REINTENTAR = {429, 503, 403}` y `LIMITE_CARACTERES_CONTENIDO = 8000`; nueva función `_extraer_contenido(url)` que hace GET con `USER_AGENT` y timeout 15s, devuelve `""` sin reintentar ante HTTP 429/503/403, extrae con `trafilatura.extract()`, trunca a 8000 caracteres, y envuelve todo en try/except que loguea `logger.warning` sin romper el flujo. Antes de extraer cada artículo nuevo se ejecuta `time.sleep(random.uniform(1.0, 2.5))` (ética de scraping). La extracción se llama tras `update_or_create` cuando `creado` es True y hay `url_articulo`, guardando con `update_fields=["contenido_extraido"]`.
+- `requirements.txt`: añadida `trafilatura==2.3.1`.
+- `tests/test_investigaciones.py`: 2 pruebas nuevas (`test_ejecutar_investigacion_extrae_contenido_hallazgo`, `test_ejecutar_investigacion_extraccion_http429_deja_campo_vacio`). Test preexistente `test_ejecutar_investigacion_no_rompe_con_url_fallando` ajustado (`call_count` 2→4 por las extracciones).
+
+**Reglas respetadas:**
+- No se modificó `apps/checks/analisis.py` (pendiente ANALYST-02).
+- La extracción es best-effort: un artículo que no carga nunca aborta la investigación.
+- Límite duro de 8000 caracteres por artículo.
+- `time.sleep(random.uniform(1.0, 2.5))` antes de cada extracción para no saturar los sitios objetivo.
+- HTTP 429/503/403: logger.warning, string vacío, sin reintento.
+- SSRF: se reusa `_validar_endpoint_seguro` ya aplicado a la fuente; mismo `USER_AGENT`/timeout/redirects del módulo.
+- Pruebas sin APIs reales; HTTP y trafilatura mockeados.
+- Comandos PowerShell línea por línea, sin `&&`. No se ejecutó `git push`.
+- Commit: "CONTENT-01: Extracción ética de contenido con trafilatura, retraso aleatorio y respeto a códigos de estado".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations core` → migración `0025_hallazgo_contenido_extraido` creada.
+- `.venv\Scripts\python.exe manage.py migrate` → `Applying core.0025_hallazgo_contenido_extraido... OK`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_investigaciones.py -q` → `10 passed in 19.84s` (incluye las 2 pruebas nuevas).
+- `pip install trafilatura` → `Successfully installed trafilatura-2.3.1` (y dependencias).
+
+**Pendiente / no verificable en este entorno:**
+- Prueba en shell real contra `https://hnrss.org/frontpage`: requiere `ARM_ENCRYPTION_KEY` (secreto de entorno no autorizado para leer) y la red está bloqueada por WAF/DNS (documentado en FIX-UA). Los 10 tests unitarios con mocks validan el comportamiento sin red.
+
+**Impacto en contratos/datos:** SÍ datos persistidos (nueva columna `contenido_extraido` en `core_hallazgo` vía migración 0025). NO contratos de API, NO credenciales, NO permisos, NO tareas en cola. Retrocompatible (campo con default vacío).

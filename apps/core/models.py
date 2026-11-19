@@ -775,6 +775,11 @@ class Hallazgo(models.Model):
         blank=True,
         help_text="Resumen o descripción del artículo (vacío para sitemaps).",
     )
+    contenido_extraido = models.TextField(
+        blank=True,
+        default="",
+        help_text="Texto principal del artículo extraído con trafilatura.",
+    )
     detectado_en = models.DateTimeField(auto_now_add=True)
 
     class Meta:
