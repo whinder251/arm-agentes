@@ -300,3 +300,30 @@ def test_inyecta_palabras_clave_en_prompt_usuario():
     contenido = mensajes[1]["content"]
     assert "ENFOQUE DEL ANÁLISIS" in contenido
     assert "seo, tendencia, competencia" in contenido
+
+
+@pytest.mark.django_db
+def test_formato_auditoria_si_palabras_clave_coinciden():
+    """Las palabras clave tipo SEO/diseño activan el formato de auditoría en el prompt del sistema."""
+    crear_modelo()
+    investigacion = InvestigacionProgramada.objects.create(
+        nombre="Auditoría SEO",
+        urls_objetivo="https://ejemplo.com/feed",
+        frecuencia="semanal",
+        palabras_clave="seo, diseño",
+    )
+    crear_hallazgos(investigacion, 3)
+    Habilidad.objects.create(
+        nombre="Analista de Competencia",
+        slug=SLUG,
+        instrucciones="Prompt de prueba.",
+        modo_ejecucion="auto",
+    )
+
+    with patch("apps.checks.analisis.Router") as router_cls:
+        router_cls.return_value.completar.return_value = respuesta_markdown()
+        generar_reporte_competencia(investigacion.pk)
+
+    mensajes = router_cls.return_value.completar.call_args.args[0]
+    assert "FORMATO DE SALIDA" in mensajes[0]["content"]
+    assert "Hallazgos Críticos" in mensajes[0]["content"]
