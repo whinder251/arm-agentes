@@ -244,17 +244,17 @@ class TestEjecutarInvestigacion:
         for h in hallazgos:
             assert h.contenido_extraido == ""
 
-    def test_ejecutar_investigacion_extraccion_fallback_jina_ai(self):
+    def test_ejecutar_investigacion_extraccion_cascada_tres_niveles(self):
         investigacion = self._crear_investigacion()
 
         def efecto_get(url, **kwargs):
             respuesta = Mock()
             if url.startswith("https://r.jina.ai/"):
-                # Fallback de Jina AI: devuelve texto simulado de SPA.
-                respuesta.status_code = 200
-                respuesta.text = "Contenido extraído por Jina AI del artículo SPA."
+                # Nivel 2: Jina AI falla con HTTP 429.
+                respuesta.status_code = 429
+                respuesta.text = ""
             else:
-                # Descarga del feed RSS.
+                # Descarga del feed RSS (el HTML se usa para trafilatura en Nivel 1).
                 respuesta.status_code = 200
                 respuesta.text = XML_RSS
             return respuesta
@@ -263,6 +263,9 @@ class TestEjecutarInvestigacion:
             "apps.engine.investigaciones.requests.get", side_effect=efecto_get
         ), patch(
             "apps.engine.investigaciones.trafilatura.extract", return_value=""
+        ), patch(
+            "apps.engine.investigaciones.asyncio.run",
+            return_value="Contenido extraído por Crawl4AI del artículo SPA."
         ), patch(
             "apps.engine.investigaciones.time.sleep"
         ):
@@ -275,4 +278,4 @@ class TestEjecutarInvestigacion:
         )
         assert hallazgos.count() == 2
         for h in hallazgos:
-            assert h.contenido_extraido == "Contenido extraído por Jina AI del artículo SPA."
+            assert h.contenido_extraido == "Contenido extraído por Crawl4AI del artículo SPA."
