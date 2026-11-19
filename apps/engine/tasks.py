@@ -7,7 +7,7 @@ import logging
 import re
 import threading
 import time
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any, Literal
 
 from django.conf import settings
@@ -22,6 +22,7 @@ from apps.core.models import (
     Ejecucion,
     FormatoSalida,
     Habilidad,
+    InvestigacionProgramada,
     ModeloLLM,
     PasoWorkflow,
     Proveedor,
@@ -29,6 +30,7 @@ from apps.core.models import (
     Workflow,
 )
 from apps.core.schemas import ErrorEstructurado, ResultadoAgente
+from apps.engine.investigaciones import ejecutar_investigacion
 from apps.providers.router import Router
 from apps.engine.tool_executor import (
     _ejecutar_herramienta_http,
@@ -433,6 +435,53 @@ def recuperar_huerfanas(ahora=None) -> int:
 def revisar_huerfanas() -> int:
     """Barrido periódico de tareas cuyo worker desapareció."""
     return recuperar_huerfanas()
+
+
+FRECUENCIAS_DIAS = {
+    "diaria": 1,
+    "semanal": 7,
+    "mensual": 30,
+}
+
+
+def _debe_ejecutar(inv: InvestigacionProgramada, ahora: datetime) -> bool:
+    """Determina si una investigación ya cumplió el periodo de su frecuencia.
+
+    No evalúa ``activa``: la tarea filtra por ese campo en el queryset.
+    """
+    if inv.ultima_ejecucion is None:
+        return True
+    dias = FRECUENCIAS_DIAS.get(inv.frecuencia)
+    if dias is None:
+        return False
+    return (ahora - inv.ultima_ejecucion) >= timedelta(days=dias)
+
+
+@db_periodic_task(crontab(minute="0"))
+def chequear_y_ejecutar_investigaciones() -> int:
+    """Ejecuta las investigaciones activas cuyo periodo ya venció."""
+    ahora = timezone.now()
+    ejecutadas = 0
+    for investigacion in InvestigacionProgramada.objects.filter(activa=True):
+        if not _debe_ejecutar(investigacion, ahora):
+            continue
+        try:
+            resultado = ejecutar_investigacion(investigacion)
+        except Exception:
+            logger.error(
+                "Investigación %s falló durante la ejecución periódica",
+                investigacion.pk,
+                exc_info=True,
+            )
+            continue
+        ejecutadas += 1
+        logger.info(
+            "Investigación %s ejecutada: %s hallazgos nuevos, %s fallos",
+            investigacion.pk,
+            resultado.get("hallazgos_nuevos", 0),
+            len(resultado.get("fallos", [])),
+        )
+    return ejecutadas
 
 
 @db_task()

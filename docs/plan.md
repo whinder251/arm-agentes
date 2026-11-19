@@ -2047,3 +2047,34 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 **Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación. Se conservan ids, names, CSRF, acciones de formulario y JavaScript. `.card` usa padding de 20px y borde `--border` (ARM Flow 2.0) frente a los 24px y `--border-subtle` de `.tarjeta`; es el cambio visual buscado.
 
 **Pendiente:** Validación visual en navegador de `/panel/configuracion/agente/nuevo/`, `/panel/tarea/nueva/` y `/panel/configuracion/herramientas/` (no ejecutada en esta sesión). Corregir en un paso aparte los dos fallos preexistentes de `test_skills_sistema.py` y `test_fase16.py`, y el cuelgue del suite completo.
+
+## Paso UX-3 - Tarea programada de Huey para ejecuciones automáticas de investigaciones — COMPLETADO
+
+**Objetivo:** Ejecutar cada hora las `InvestigacionProgramada` activas cuyo periodo de frecuencia ya venció, reutilizando `ejecutar_investigacion` y aislando el fallo de una investigación para que no detenga las demás.
+
+**Archivos tocados (3):**
+- `apps/engine/tasks.py`: añadidos `datetime` al import existente, `InvestigacionProgramada` y `ejecutar_investigacion`; constante `FRECUENCIAS_DIAS` (diaria=1, semanal=7, mensual=30); helper puro `_debe_ejecutar(inv, ahora)` que no lee `activa`; tarea `@db_periodic_task(crontab(minute="0"))` `chequear_y_ejecutar_investigaciones`, que filtra `activa=True`, evalúa la frecuencia y ejecuta cada investigación dentro de `try/except`, con `logger.info` en éxito y `logger.error(..., exc_info=True)` en fallo. Se usó `db_periodic_task` (patrón ya existente de `revisar_huerfanas`) en lugar de `periodic_task` para persistir el schedule en la BD de Huey con `SqliteHuey`/`djhuey`.
+- `tests/test_schedules.py` (nuevo): 10 pruebas. Cubren `ultima_ejecucion=None`, diaria 25h/23h, semanal 7 días exactos/6 días y 23h, mensual 30/29 días, exclusión de inactivas en el queryset, aislamiento de errores entre investigaciones y registro de la tarea en Huey. La ejecución real se mockea; cero llamadas de red.
+- `docs/plan.md`: esta sección.
+
+**Reglas respetadas:**
+- Máximo 3 archivos modificados.
+- CERO cambios en modelos, vistas, templates o migraciones.
+- CERO llamadas a APIs reales en las pruebas; `ejecutar_investigacion` se mockea en las pruebas de la tarea.
+- `_debe_ejecutar` es una función pura separada y no evalúa `activa`; el filtro vive en el queryset.
+- Comandos PowerShell línea por línea, sin `&&`.
+- No se ejecutó `git push`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_schedules.py -q` → `10 passed in 6.74s`.
+- `.venv\Scripts\python.exe -m pytest tests/test_investigaciones.py tests/test_engine.py -q` → `20 passed in 39.27s` (sin regresiones en el servicio ni en el motor).
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "investigacion" -q` → `7 passed, 58 deselected, 2 warnings in 70.68s`.
+- Registro en Huey verificado por `test_tarea_registrada_en_huey`: la clave `apps.engine.tasks.chequear_y_ejecutar_investigaciones` existe en `HUEY._registry._registry`.
+- `.venv\Scripts\python.exe -m pytest -q` → no terminó dentro de 900s; alcanzó ~45% y quedó colgado. Antes se registró 1 fallo en `tests/test_fase16.py::TestListaCredenciales::test_lista_credenciales_render` (espera "Rotar Clave del Sistema"; el template renderiza "Rotar Clave"). Confirmado individualmente como fallo preexistente documentado en AUDIT-UI-01, ajeno a este paso.
+- Confirmado individualmente el otro fallo preexistente documentado en AUDIT-UI-01: `tests/test_skills_sistema.py::TestCRUDHerramienta::test_crear_herramienta` → `200 != 302` (la vista responde 200; no es un archivo tocado en este paso).
+
+**Impacto en contratos/datos:** SÍ tareas en cola: nueva tarea periódica `chequear_y_ejecutar_investigaciones` registrada con schedule persistido en Huey. NO contratos públicos, NO modelos, NO migraciones, NO credenciales, NO permisos. Los datos persistidos existentes (`ultima_ejecucion`, `Hallazgo`) solo se actualizan mediante el servicio ya probado. Retrocompatible: la ejecución manual de investigaciones sigue intacta.
+
+**Pendiente/deuda:** UX-3B (lock por investigación para evitar descargas solapadas si el consumidor se reinicia a mitad de una corrida). Se acepta el comportamiento actual de `ultima_ejecucion` (se actualiza aunque fallen todas las URLs), ya probado y documentado. Quedan pendientes los dos fallos preexistentes (`test_fase16`, `test_skills_sistema`) y el cuelgue del suite completo; no se corrigieron por estar fuera del alcance.
