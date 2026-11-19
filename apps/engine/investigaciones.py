@@ -38,6 +38,19 @@ CODIGOS_NO_REINTENTAR = {429, 503, 403}
 LIMITE_CARACTERES_CONTENIDO = 8000
 
 
+def _coincide_con_palabras_clave(texto: str, palabras_clave: str) -> bool:
+    """Devuelve True si el texto contiene alguna de las palabras clave.
+
+    La comparación es insensible a mayúsculas. Si no hay palabras clave
+    definidas, devuelve True (comportamiento retrocompatible: guarda todo).
+    """
+    if not palabras_clave:
+        return True
+    texto_lower = texto.lower()
+    claves = [k.strip().lower() for k in palabras_clave.split(",") if k.strip()]
+    return any(clave in texto_lower for clave in claves)
+
+
 def _detectar_tipo(texto_xml: str) -> str:
     """Detecta el tipo de fuente a partir del texto XML.
 
@@ -200,6 +213,11 @@ def ejecutar_investigacion(investigacion: InvestigacionProgramada) -> dict:
                 url_articulo = entrada.get("url") or ""
                 if not url_articulo:
                     continue
+                texto_a_evaluar = f"{entrada.get('title', '')} {url_articulo}"
+                if not _coincide_con_palabras_clave(
+                    texto_a_evaluar, investigacion.palabras_clave
+                ):
+                    continue  # Descartar el artículo, no guardar como Hallazgo
                 hallazgo, creado = Hallazgo.objects.update_or_create(
                     investigacion=investigacion,
                     url_articulo=url_articulo,
@@ -228,6 +246,11 @@ def ejecutar_investigacion(investigacion: InvestigacionProgramada) -> dict:
                 url_articulo = item.get("link") or ""
                 if not url_articulo:
                     continue
+                texto_a_evaluar = f"{item.get('title', '')} {item.get('description', '')}"
+                if not _coincide_con_palabras_clave(
+                    texto_a_evaluar, investigacion.palabras_clave
+                ):
+                    continue  # Descartar el artículo, no guardar como Hallazgo
                 hallazgo, creado = Hallazgo.objects.update_or_create(
                     investigacion=investigacion,
                     url_articulo=url_articulo,

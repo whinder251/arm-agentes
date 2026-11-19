@@ -66,11 +66,12 @@ class TestDetectarTipo:
 
 @pytest.mark.django_db
 class TestEjecutarInvestigacion:
-    def _crear_investigacion(self, urls="https://ejemplo.com/feed.rss"):
+    def _crear_investigacion(self, urls="https://ejemplo.com/feed.rss", palabras_clave=""):
         return InvestigacionProgramada.objects.create(
             nombre="Investigación de prueba",
             urls_objetivo=urls,
             frecuencia="semanal",
+            palabras_clave=palabras_clave,
             activa=True,
         )
 
@@ -277,3 +278,51 @@ class TestEjecutarInvestigacion:
         assert hallazgos.count() == 2
         for h in hallazgos:
             assert h.contenido_extraido == "Contenido extraído por Jina AI del artículo."
+
+    def test_filtrado_por_palabras_clave_en_fuente(self):
+        investigacion = self._crear_investigacion(
+            urls="https://ejemplo.com/feed.rss",
+            palabras_clave="python, seguridad",
+        )
+
+        xml_filtrado = """<?xml version="1.0" encoding="UTF-8" ?>
+        <rss version="2.0">
+        <channel>
+          <title>Feed de prueba</title>
+          <item>
+            <title>Aprender Python desde cero</title>
+            <link>https://ejemplo.com/python</link>
+            <pubDate>Mon, 01 Jan 2024 00:00:00 GMT</pubDate>
+            <description>Introducción a Python</description>
+          </item>
+          <item>
+            <title>Seguridad en aplicaciones web</title>
+            <link>https://ejemplo.com/seguridad</link>
+            <pubDate>Tue, 02 Jan 2024 00:00:00 GMT</pubDate>
+            <description>Buenas prácticas de seguridad</description>
+          </item>
+          <item>
+            <title>Recetas de cocina italiana</title>
+            <link>https://ejemplo.com/cocina</link>
+            <pubDate>Wed, 03 Jan 2024 00:00:00 GMT</pubDate>
+            <description>Pasta y pizza casera</description>
+          </item>
+        </channel>
+        </rss>"""
+
+        with patch("apps.engine.investigaciones.requests.get") as mock_get:
+            mock_get.return_value = _mock_get(status_code=200, text=xml_filtrado)
+            resultado = ejecutar_investigacion(investigacion)
+
+        assert resultado["ejecutadas"] == 1
+        assert resultado["hallazgos_nuevos"] == 2
+        assert resultado["fallos"] == []
+
+        hallazgos = Hallazgo.objects.filter(investigacion=investigacion).order_by(
+            "url_articulo"
+        )
+        assert hallazgos.count() == 2
+        titulos = {h.titulo for h in hallazgos}
+        assert "Aprender Python desde cero" in titulos
+        assert "Seguridad en aplicaciones web" in titulos
+        assert "Recetas de cocina italiana" not in titulos
