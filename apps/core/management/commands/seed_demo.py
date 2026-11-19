@@ -178,6 +178,46 @@ Si suena a 'plantilla gen�rica de IA', reescribe la estructura para que sea as
         )
         return creadas, actualizadas
 
+    def _sembrar_habilidades_sistema(self):
+        """Crea o actualiza las habilidades declaradas en defaults.py.
+
+        Garantiza que las habilidades del sistema estén disponibles en la BD
+        sin que el usuario tenga que crearlas manualmente. Es idempotente.
+        """
+        creadas = 0
+        actualizadas = 0
+        for slug, datos in defaults.HABILIDADES_SISTEMA.items():
+            habilidad, created = Habilidad.objects.get_or_create(
+                slug=slug,
+                defaults={
+                    "nombre": datos["nombre"],
+                    "instrucciones": datos["instrucciones"],
+                    "modo_ejecucion": datos["modo_ejecucion"],
+                    "es_sistema": True,
+                },
+            )
+            if created:
+                creadas += 1
+                continue
+            habilidad.nombre = datos["nombre"]
+            habilidad.instrucciones = datos["instrucciones"]
+            habilidad.modo_ejecucion = datos["modo_ejecucion"]
+            habilidad.es_sistema = True
+            habilidad.save(
+                update_fields=[
+                    "nombre",
+                    "instrucciones",
+                    "modo_ejecucion",
+                    "es_sistema",
+                ]
+            )
+            actualizadas += 1
+        self.stdout.write(
+            f"  Habilidades del sistema: {creadas} creadas, "
+            f"{actualizadas} actualizadas."
+        )
+        return creadas, actualizadas
+
     FORMATOS_SALIDA = [
         {
             "slug": "informe-investigacion",
@@ -785,6 +825,8 @@ Si suena a 'plantilla gen�rica de IA', reescribe la estructura para que sea as
         )
 
         self._sembrar_skills_sistema(modelo)
+
+        self._sembrar_habilidades_sistema()
 
         self._sembrar_herramientas_sistema()
 

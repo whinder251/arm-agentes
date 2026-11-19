@@ -2136,3 +2136,37 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 **Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo cambia la cabecera `User-Agent` enviada en las descargas de investigaciones.
 
 **Pendiente/deuda:** Validar el criterio 2 desde una IP no bloqueada por SiteGround o mediante una fuente sin challenge (por ejemplo, un sitemap público sin WAF). Si el WAF exige ejecución de JavaScript, el User-Agent por sí solo no basta y habría que evaluar en un paso aparte un enfoque distinto (fuente alternativa, API del sitio o cliente que resuelva el challenge), con su propio análisis de riesgos.
+
+## Paso IA-01 - Habilidad "Analista de Competencia" y servicio de reporte estratégico — COMPLETADO
+
+**Objetivo:** Crear una habilidad de sistema "Analista de Competencia" que, a partir de los hallazgos de una investigación, genere un reporte ejecutivo en Markdown mediante el Router de proveedores existente, sin acoplar el motor a un proveedor concreto.
+
+**Archivos tocados (5):**
+- `apps/core/defaults.py`: entrada `analista-competencia` en `HABILIDADES_SISTEMA` (nombre, instrucciones, `modo_ejecucion="auto"`; sin campos inexistentes en `Habilidad`).
+- `apps/core/management/commands/seed_demo.py`: método `_sembrar_habilidades_sistema()` que crea o actualiza con `get_or_create` cada habilidad de `defaults.HABILIDADES_SISTEMA` y la marca `es_sistema=True`; invocado desde `handle()`.
+- `apps/checks/analisis.py` (nuevo): `generar_reporte_competencia(investigacion_id)`; toma hasta 15 hallazgos (`-detectado_en`, `-pk`), elige modelos activos por `prioridad`/`model_id`, usa las instrucciones de la habilidad en BD con fallback a `defaults`, y llama a `Router(modelos).completar(mensajes)`.
+- `tests/test_analisis.py` (nuevo): 8 pruebas con `Router` mockeado (sin red): construcción del prompt, fallback a defaults, sin hallazgos, sin modelos, error de proveedor, límite de 15, investigación inexistente e idempotencia del seed.
+- `docs/plan.md`: esta sección.
+
+**Reglas respetadas:**
+- NO se modificó `models.py` ni se creó migración (`makemigrations --check --dry-run` → No changes detected).
+- CERO claves de API o clientes hardcodeados; toda llamada pasa por `Router`.
+- La función nunca lanza excepción por falta de datos/modelos ni por fallo del LLM: devuelve Markdown legible.
+- Mensajes sin emojis, conforme a la regla de UI del proyecto.
+- Comandos PowerShell línea por línea, sin `&&`. No se ejecutó `git push`.
+- Commit: "IA-01: Crear habilidad 'Analista de Competencia' para generar reportes estratégicos".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_analisis.py -q` → `8 passed in 7.98s`.
+- `.venv\Scripts\python.exe manage.py seed_demo` (1.ª ejecución) → `Habilidades del sistema: 1 creadas, 1 actualizadas` (creó `analista-competencia`).
+- `.venv\Scripts\python.exe manage.py seed_demo` (2.ª ejecución) → `Habilidades del sistema: 0 creadas, 2 actualizadas` (idempotente).
+- Verificación en BD: `Habilidad.objects.get(slug="analista-competencia")` → id 15, `modo_ejecucion="auto"`, `es_sistema=True`, 406 caracteres de instrucciones.
+- Prueba real de shell: `generar_reporte_competencia(3)` sobre "Prueba Sitemap Abierto" (20 hallazgos) con 6 modelos activos → reporte Markdown de 3.367 caracteres con las 3 secciones solicitadas (resumen, brechas, ideas de títulos); sin excepciones. Los acentos se ven degradados en la consola PowerShell por la página de códigos, no por la función.
+- `.venv\Scripts\python.exe -m pytest -q` → no terminó dentro de 900 s (cuelgue de entorno preexistente documentado en C.2/C.3a/C.4/C.9b/UX-3/UX-4). Antes del cuelgue se observó 1 fallo preexistente.
+- `.venv\Scripts\python.exe -m pytest -q -x` → `1 failed, 38 passed` en `tests/test_fase16.py::TestListaCredenciales::test_lista_credenciales_render` (espera "Rotar Clave del Sistema"; el template renderiza "Rotar Clave"). Fallo ajeno a IA-01, ya documentado en AUDIT-UI-01/UX-3/UX-4.
+
+**Impacto en contratos/datos:** SÍ datos persistidos al ejecutar `seed_demo`: crea/actualiza la habilidad `analista-competencia` con `es_sistema=True` en la BD (idempotente). NO modelos, NO migraciones, NO credenciales, NO permisos, NO tareas en cola, NO contratos de API. Retrocompatible: el resto de habilidades y flujos no cambian.
+
+**Pendiente/deuda:** El reporte real incluyó términos vetados por `docs/estilo.md` (p. ej. "panorama"); si estos reportes se publican, deben pasar por el linter de estilo. Validación visual del módulo no ejecutada en esta sesión.

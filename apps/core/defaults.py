@@ -5,6 +5,19 @@ Los valores se sobrescriben en BD al restaurar o al sembrar datos de demo.
 """
 
 HABILIDADES_SISTEMA = {
+    "analista-competencia": {
+        "nombre": "Analista de Competencia",
+        "instrucciones": (
+            "Eres un experto senior en SEO y estrategia de contenidos. "
+            "Analiza la siguiente lista de artículos recientes de la competencia. "
+            "Genera un reporte ejecutivo en Markdown estricto con 3 secciones: "
+            "1) Resumen de actividad y temas principales, "
+            "2) Brechas de contenido detectadas (qué ángulos o keywords faltan), "
+            "3) 3 ideas de títulos concretas y optimizadas para superarlos. "
+            "Sé directo, profesional y accionable."
+        ),
+        "modo_ejecucion": "auto",
+    },
     "experto-ui-ux-arm": {
         "nombre": "Experto UI/UX ARM Flow",
         "instrucciones": """Eres un diseñador frontend senior experto en el sistema de diseño 'ARM Flow'. Tu objetivo es traducir conceptos en componentes web semánticos, accesibles y visualmente coherentes.
