@@ -19,6 +19,7 @@ from apps.core.models import (
     InvestigacionProgramada,
     ModeloLLM,
     Proveedor,
+    Artefacto,
 )
 from apps.providers.base import CuotaAgotada, RespuestaChat
 
@@ -86,11 +87,16 @@ def test_generar_reporte_construye_prompt_y_llama_una_vez():
 
     with patch("apps.checks.analisis.Router") as router_cls:
         router_cls.return_value.completar.return_value = esperada
-        reporte = generar_reporte_competencia(investigacion.pk)
+        resultado = generar_reporte_competencia(investigacion.pk)
 
-    assert reporte == esperada.texto
+    assert resultado["reporte"] == esperada.texto
+    assert resultado["artefacto_id"] is not None
     router_cls.assert_called_once()
     router_cls.return_value.completar.assert_called_once()
+
+    artefacto = Artefacto.objects.get(id=resultado["artefacto_id"])
+    assert artefacto.contenido == esperada.texto
+    assert artefacto.metadata["investigacion_id"] == investigacion.pk
 
     modelos = router_cls.call_args.args[0]
     assert len(modelos) == 1
@@ -128,9 +134,10 @@ def test_sin_hallazgos_devuelve_mensaje_sin_llamar_al_llm():
     investigacion = crear_investigacion()
 
     with patch("apps.checks.analisis.Router") as router_cls:
-        reporte = generar_reporte_competencia(investigacion.pk)
+        resultado = generar_reporte_competencia(investigacion.pk)
 
-    assert reporte == MENSAJE_SIN_DATOS
+    assert resultado["reporte"] == MENSAJE_SIN_DATOS
+    assert resultado["artefacto_id"] is None
     router_cls.assert_not_called()
 
 
@@ -140,9 +147,9 @@ def test_sin_modelos_activos_devuelve_mensaje_sin_llamar_al_llm():
     crear_hallazgos(investigacion, 3)
 
     with patch("apps.checks.analisis.Router") as router_cls:
-        reporte = generar_reporte_competencia(investigacion.pk)
+        resultado = generar_reporte_competencia(investigacion.pk)
 
-    assert "No hay modelos de IA activos" in reporte
+    assert "No hay modelos de IA activos" in resultado["reporte"]
     router_cls.assert_not_called()
 
 
@@ -156,10 +163,11 @@ def test_error_del_llm_devuelve_mensaje_markdown_legible():
         router_cls.return_value.completar.side_effect = CuotaAgotada(
             "sin cuota diaria"
         )
-        reporte = generar_reporte_competencia(investigacion.pk)
+        resultado = generar_reporte_competencia(investigacion.pk)
 
-    assert "## No se pudo generar el reporte" in reporte
-    assert "Error al contactar al LLM: sin cuota diaria" in reporte
+    assert "## No se pudo generar el reporte" in resultado["reporte"]
+    assert "Error al contactar al LLM: sin cuota diaria" in resultado["reporte"]
+    assert resultado["artefacto_id"] is None
 
 
 @pytest.mark.django_db
@@ -180,9 +188,10 @@ def test_limita_a_quince_hallazgos():
 
 @pytest.mark.django_db
 def test_investigacion_inexistente_devuelve_mensaje():
-    reporte = generar_reporte_competencia(999999)
+    resultado = generar_reporte_competencia(999999)
 
-    assert "No se encontró la investigación indicada" in reporte
+    assert "No se encontró la investigación indicada" in resultado["reporte"]
+    assert resultado["artefacto_id"] is None
 
 
 @pytest.mark.django_db
@@ -199,3 +208,26 @@ def test_seed_demo_crea_habilidad_analista_de_competencia():
         defaults.HABILIDADES_SISTEMA[SLUG]["instrucciones"]
     )
     assert Habilidad.objects.filter(slug=SLUG).count() == 1
+
+
+@pytest.mark.django_db
+def test_generar_reporte_crea_artefacto_con_metadata():
+    """Tras generar, existe un Artefacto con el contenido y el vínculo a la investigación."""
+    investigacion = crear_investigacion()
+    crear_hallazgos(investigacion, 3)
+    crear_modelo()
+    Habilidad.objects.create(
+        nombre="Analista de Competencia",
+        slug=SLUG,
+        instrucciones="Prompt de prueba.",
+        modo_ejecucion="auto",
+    )
+
+    with patch("apps.checks.analisis.Router") as router_cls:
+        router_cls.return_value.completar.return_value = respuesta_markdown()
+        resultado = generar_reporte_competencia(investigacion.pk)
+
+    assert resultado["artefacto_id"] is not None
+    artefacto = Artefacto.objects.get(id=resultado["artefacto_id"])
+    assert artefacto.contenido == "# Reporte\n\n## Resumen\nContenido del reporte."
+    assert artefacto.metadata["investigacion_id"] == investigacion.pk

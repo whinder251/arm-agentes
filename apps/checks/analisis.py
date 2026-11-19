@@ -11,6 +11,9 @@ from apps.core.models import (
     Habilidad,
     InvestigacionProgramada,
     ModeloLLM,
+    Agente,
+    Tarea,
+    Artefacto,
 )
 from apps.providers.base import ErrorProveedor
 from apps.providers.router import Router
@@ -18,6 +21,7 @@ from apps.providers.router import Router
 logger = logging.getLogger(__name__)
 
 SLUG_HABILIDAD = "analista-competencia"
+SLUG_HABILIDAD_ARTEFACTO = "analista-artefacto-minimo"
 MAX_HALLAZGOS = 15
 
 MENSAJE_SIN_DATOS = (
@@ -79,6 +83,39 @@ def _modelos_activos() -> list[ModeloLLM]:
     )
 
 
+def _obtener_o_crear_tarea_minima() -> Tarea:
+    """Obtiene o crea una tarea mínima vinculable a un Artefacto.
+
+    ``Artefacto.tarea`` es obligatoria y no hay FK directa a
+    ``InvestigacionProgramada``, por eso se reusa una tarea mínima del
+    sistema y se deja el vínculo real en ``Artefacto.metadata``.
+    """
+    habilidad, _ = Habilidad.objects.get_or_create(
+        slug=SLUG_HABILIDAD_ARTEFACTO,
+        defaults={
+            "nombre": "Analista (artefacto mínimo)",
+            "instrucciones": "Tarea interna para persistencia de artefactos.",
+            "modo_ejecucion": "auto",
+        },
+    )
+    agente, _ = Agente.objects.get_or_create(
+        nombre="Agente mínimo para artefactos",
+        defaults={
+            "rol": "Agente interno sin modelo asignado.",
+            "modelo": None,
+        },
+    )
+    if not agente.habilidades.filter(pk=habilidad.pk).exists():
+        agente.habilidades.add(habilidad)
+    tarea = Tarea.objects.create(
+        agente=agente,
+        habilidad=habilidad,
+        estado=Tarea.Estado.COLA,
+        payload={},
+    )
+    return tarea
+
+
 def generar_reporte_competencia(investigacion_id: int) -> str:
     """Genera un reporte Markdown a partir de los últimos hallazgos.
 
@@ -89,18 +126,21 @@ def generar_reporte_competencia(investigacion_id: int) -> str:
         InvestigacionProgramada.objects.filter(pk=investigacion_id).first()
     )
     if investigacion is None:
-        return MENSAJE_INVESTIGACION_NO_ENCONTRADA
+        return {
+            "reporte": MENSAJE_INVESTIGACION_NO_ENCONTRADA,
+            "artefacto_id": None,
+        }
 
     hallazgos = list(
         Hallazgo.objects.filter(investigacion=investigacion)
         .order_by("-detectado_en", "-pk")[:MAX_HALLAZGOS]
     )
     if not hallazgos:
-        return MENSAJE_SIN_DATOS
+        return {"reporte": MENSAJE_SIN_DATOS, "artefacto_id": None}
 
     modelos = _modelos_activos()
     if not modelos:
-        return MENSAJE_SIN_MODELOS
+        return {"reporte": MENSAJE_SIN_MODELOS, "artefacto_id": None}
 
     prompt_sistema = _obtener_prompt_sistema()
     prompt_usuario = (
@@ -118,12 +158,21 @@ def generar_reporte_competencia(investigacion_id: int) -> str:
         respuesta = Router(modelos).completar(mensajes)
     except ErrorProveedor as error:
         logger.warning("Error del proveedor al generar reporte: %s", error)
-        return MENSAJE_ERROR_LLM.format(error=error)
+        return {
+            "reporte": MENSAJE_ERROR_LLM.format(error=error),
+            "artefacto_id": None,
+        }
     except Exception:
         logger.exception("Error inesperado al generar reporte de competencia")
-        return MENSAJE_ERROR_INESPERADO
+        return {"reporte": MENSAJE_ERROR_INESPERADO, "artefacto_id": None}
 
     reporte = (respuesta.texto or "").strip()
     if not reporte:
-        return MENSAJE_RESPUESTA_VACIA
-    return reporte
+        return {"reporte": MENSAJE_RESPUESTA_VACIA, "artefacto_id": None}
+    tarea = _obtener_o_crear_tarea_minima()
+    artefacto = Artefacto.objects.create(
+        tarea=tarea,
+        contenido=reporte,
+        metadata={"investigacion_id": investigacion.pk},
+    )
+    return {"reporte": reporte, "artefacto_id": artefacto.id}

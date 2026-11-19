@@ -8,9 +8,9 @@
         <span class="badge badge-neutral">{{ investigacion.get_frecuencia_display }}</span>
     </div>
     <div class="acciones-encabezado">
-        <form method="post">
+        <form id="form-reporte-ia" method="post" onsubmit="return confirmarRegeneracion()">
             {% csrf_token %}
-            <button type="submit" class="btn btn-primary">
+            <button type="submit" id="btn-generar-reporte" class="btn btn-primary btn-fisico" data-tiene-reporte="{{ tiene_reporte_previo|yesno:'true,false' }}">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
                 Generar Reporte de IA
             </button>
@@ -23,41 +23,55 @@
 <div class="alerta-error">No se pudo generar el reporte. Intenta de nuevo más tarde.</div>
 {% endif %}
 
-{% if not hallazgos %}
-<div class="vacio">
-    <p class="help-text">Aún no se han detectado artículos. Ejecuta la investigación manualmente.</p>
-</div>
-{% else %}
-<div class="grid-investigaciones">
-    {% for h in hallazgos %}
-    <div class="card">
-        <div class="fila-investigacion">
-            <div class="info-investigacion">
-                <h3>{{ h.titulo|default:"Sin título"|truncatechars:80 }}</h3>
-                <span class="badge badge-neutral">{{ h.get_tipo_fuente_display }}</span>
-                {% if h.fecha_publicacion %}
-                <div class="help-text">{{ h.fecha_publicacion }}</div>
-                {% else %}
-                <div class="help-text">Sin fecha</div>
-                {% endif %}
-            </div>
-            <div class="acciones-investigacion">
-                {% if h.url_articulo %}
-                <a href="{{ h.url_articulo }}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                </a>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-    {% endfor %}
-</div>
+{% if error_reporte %}
+<div class="alerta-error">No se pudo generar el reporte. Intenta de nuevo más tarde.</div>
 {% endif %}
 
-{% if reporte_ia %}
-<div class="card">
-    <h3>Reporte de Análisis de Competencia</h3>
-    <div class="markdown-content">{{ reporte_ia|markdownify }}</div>
+{% if hallazgos or reporte_ia %}
+<div class="grid-detalle-investigacion">
+    <div class="col-primaria">
+        {% if reporte_ia %}
+        <div class="hoja-reporte">
+            <h3>Reporte de Análisis de Competencia</h3>
+            <div class="markdown-content">{{ reporte_ia|markdownify }}</div>
+        </div>
+        {% else %}
+        <div class="card">
+            <h3>Reporte de Análisis de Competencia</h3>
+            <p class="help-text">Aún no se ha generado un reporte. Haz clic en "Generar Reporte de IA".</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-secundaria">
+        {% if hallazgos %}
+        <h3 class="subtitulo">Hallazgos detectados</h3>
+        <ul class="lista-hallazgos">
+        {% for h in hallazgos %}
+        <li class="fila-hallazgo">
+            <span class="titulo-hallazgo">{{ h.titulo|default:"Sin título"|truncatechars:80 }}</span>
+            <span class="badge badge-neutral">{{ h.get_tipo_fuente_display }}</span>
+            {% if h.fecha_publicacion %}
+            <span class="fecha-hallazgo help-text">{{ h.fecha_publicacion }}</span>
+            {% else %}
+            <span class="fecha-hallazgo help-text">Sin fecha</span>
+            {% endif %}
+            {% if h.url_articulo %}
+            <a href="{{ h.url_articulo }}" target="_blank" rel="noopener noreferrer" class="enlace-externo" aria-label="Abrir {{ h.titulo|default:'artículo' }}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            </a>
+            {% endif %}
+        </li>
+        {% endfor %}
+        </ul>
+        {% else %}
+        <p class="help-text">Aún no se han detectado artículos. Ejecuta la investigación manualmente.</p>
+        {% endif %}
+    </div>
+</div>
+{% else %}
+<div class="vacio">
+    <p class="help-text">Aún no se han detectado artículos. Ejecuta la investigación manualmente.</p>
 </div>
 {% endif %}
 {% endblock %}

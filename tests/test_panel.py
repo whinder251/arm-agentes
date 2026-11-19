@@ -1400,9 +1400,10 @@ class TestPanel(TestCase):
         with patch(
             'apps.panel.views.generar_reporte_competencia'
         ) as mock_generar:
-            mock_generar.return_value = (
-                '# Reporte\n\n## Resumen\nTexto **clave**.'
-            )
+            mock_generar.return_value = {
+                "reporte": '# Reporte\n\n## Resumen\nTexto **clave**.',
+                "artefacto_id": 1,
+            }
             response = self.client.post(
                 reverse('detalle_investigacion', args=[inv.pk])
             )
@@ -1426,7 +1427,7 @@ class TestPanel(TestCase):
         self.client.login(username='testuser', password='testpass123')
         with patch(
             'apps.panel.views.generar_reporte_competencia',
-            return_value='',
+            return_value={"reporte": "", "artefacto_id": None},
         ):
             response = self.client.post(
                 reverse('detalle_investigacion', args=[inv.pk])

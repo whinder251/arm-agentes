@@ -1056,3 +1056,101 @@ td input[type="checkbox"] {
 .tabla-acciones .enlace-editar {
   margin-right: 0; /* Anula el margen por defecto para respetar el gap de 8px */
 }
+
+/* Paso UI-SKEUO-01: diseño skeuomórfico de 2 columnas para investigaciones */
+.grid-detalle-investigacion {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 2rem;
+  margin-top: var(--space-xl);
+  align-items: start;
+}
+
+.col-primaria {
+  min-width: 0;
+}
+
+.col-secundaria {
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .grid-detalle-investigacion {
+    grid-template-columns: 1fr;
+  }
+}
+
+.hoja-reporte {
+  background-color: #fdfbf7;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+  padding: 2rem;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.15), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-fisico {
+  box-shadow: 0 4px 0 #1a4d6e;
+  transition: box-shadow var(--transition-fast), transform var(--transition-fast);
+}
+
+.btn-fisico:active {
+  box-shadow: none;
+  transform: translateY(4px);
+}
+
+/* Paso UI-SKEUO-02: lista compacta de hallazgos */
+.lista-hallazgos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.fila-hallazgo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--border-subtle);
+  cursor: default;
+}
+
+.fila-hallazgo:last-child {
+  border-bottom: none;
+}
+
+.fila-hallazgo:hover {
+  background-color: var(--bg-surface-hover);
+}
+
+.titulo-hallazgo {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fecha-hallazgo {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.enlace-externo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.enlace-externo:hover {
+  color: var(--accent-primary);
+}

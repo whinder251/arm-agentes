@@ -21,7 +21,7 @@ from apps.checks.analisis import generar_reporte_competencia
 from apps.core.models import (
     Tarea, Proveedor, ModeloLLM, Habilidad, FormatoSalida, Herramienta, Agente, Equipo,
     Workflow, PasoWorkflow, Ejecucion, IntegracionConfig, DestinoPublicacion, Credencial,
-    InvestigacionProgramada,
+    InvestigacionProgramada, Artefacto,
 )
 import json
 import requests
@@ -1663,19 +1663,37 @@ def detalle_investigacion(request, pk):
         "hallazgos": hallazgos,
     }
 
+    tiene_reporte_previo = False
+    artefacto_previo = (
+        Artefacto.objects.filter(metadata__investigacion_id=pk)
+        .order_by("-id")
+        .first()
+    )
+    if artefacto_previo:
+        contexto["reporte_ia"] = artefacto_previo.contenido
+        tiene_reporte_previo = True
+
     if request.method == "POST":
         try:
-            reporte = generar_reporte_competencia(pk)
+            resultado = generar_reporte_competencia(pk)
         except Exception:
             logger.exception(
                 "Error inesperado generando reporte de investigación %s", pk
             )
             contexto["error_reporte"] = True
         else:
-            if reporte:
-                contexto["reporte_ia"] = reporte
+            reporte_texto = (
+                resultado.get("reporte", "")
+                if isinstance(resultado, dict)
+                else (resultado or "")
+            )
+            if reporte_texto:
+                contexto["reporte_ia"] = reporte_texto
+                tiene_reporte_previo = True
             else:
                 contexto["error_reporte"] = True
+
+    contexto["tiene_reporte_previo"] = tiene_reporte_previo
 
     return render(
         request,

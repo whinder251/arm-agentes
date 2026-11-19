@@ -2236,6 +2236,36 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 
 ## Paso CACHE-BUST - Forzar generación nueva de reportes de IA ignorando caché — COMPLETADO
 
+## Paso UI-SKEUO-02 + IA-03 - Invertir columnas, compactar hallazgos y persistir reporte como Artefacto — COMPLETADO (criterios 5-6 pendientes de verificación visual en navegador)
+
+**Objetivo:** (1) Invertir el layout del detalle de investigación: reporte de IA a la izquierda (columna más ancha, protagonista) y hallazgos a la derecha. (2) Compactar los hallazgos como lista navegable (una línea por hallazgo: título + badge + fecha + icono enlace externo). (3) Persistir el reporte como `Artefacto` en BD para que sobreviva a F5 y la alerta de regeneración funcione cuando haya uno guardado.
+
+**Archivos tocados (6):**
+- `apps/checks/analisis.py`: `generar_reporte_competencia` devuelve `{"reporte": str, "artefacto_id": int|None}`. Tras respuesta exitosa del LLM, obtiene/crea una `Tarea` mínima (`_obtener_o_crear_tarea_minima`) y crea `Artefacto(tarea=..., contenido=reporte, metadata={"investigacion_id": investigacion.pk})`. Los caminos de error temprano retornan dict con `artefacto_id=None`.
+- `apps/panel/views.py`: importa `Artefacto`. `detalle_investigacion` en GET consulta `Artefacto.objects.filter(metadata__investigacion_id=pk).order_by('-id').first()` y, si existe, pasa `contenido` como `reporte_ia` y `tiene_reporte_previo=True`. En POST maneja el dict del servicio (extrae `resultado.get("reporte")`).
+- `apps/panel/templates/panel/investigacion_detalle.html`: grid `.grid-detalle-investigacion` con `.col-primaria` (izquierda, `.hoja-reporte`) y `.col-secundaria` (derecha, `<ul class="lista-hallazgos">` con `<li class="fila-hallazgo">` compactos: título truncate, badge, fecha, icono enlace externo). Eliminada la tarjeta de metadatos redundante (ya está en el page-header). CERO estilos inline, CERO emojis.
+- `static/css/app.css`: `.grid-detalle-investigacion` → `grid-template-columns: 3fr 2fr` (media 768px a 1fr); `.col-primaria`/`.col-secundaria` con `min-width: 0`; `.lista-hallazgos`, `.fila-hallazgo`, `.titulo-hallazgo`, `.fecha-hallazgo`, `.enlace-externo` (compactos, border-bottom sutil, hover tenue, ellipsis en título). `.hoja-reporte` mantiene fondo #fdfbf7 y sombra de papel.
+- `tests/test_analisis.py`: 8 pruebas actualizadas al contrato dict + 1 nueva (`test_generar_reporte_crea_artefacto_con_metadata` que verifica existencia del Artefacto y su metadata). Total 9.
+- `tests/test_panel.py`: 2 mocks de POST en `detalle_investigacion` actualizados a devolver dict `{"reporte": ..., "artefacto_id": ...}`.
+
+**Reglas respetadas:**
+- No se tocó `models.py` ni se creó migración (`makemigrations --check --dry-run` → No changes detected).
+- CERO estilos inline, CERO emojis. Solo clases de `app.css` y tokens existentes (`--border-subtle`, `--bg-surface-hover`, `--text-tertiary`, `--text-sm`, `--text-xs`).
+- No se ejecutó `git push`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `manage.py check` → `System check identified no issues (0 silenced)`.
+- `manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `pytest tests/test_analisis.py -q` → `9 passed in 4.58s`.
+- `pytest tests/test_panel.py -k "detalle_investigacion" -q` → `5 passed` (las 4 pruebas de detalle + `requiere_login`).
+- `pytest tests/test_investigaciones.py tests/test_engine.py -q` → `20 passed` (sin regresiones).
+
+**Pendiente / no verificable en este entorno:**
+- Criterio 5 (navegador: F5 conserva reporte desde Artefacto; re-clic muestra alerta de regeneración): no ejecutado (no hay navegador disponible).
+- Criterio 6 (navegador: reporte izquierda 3fr, hallazgos derecha lista compacta): no ejecutado visualmente. Se inspeccionó el template y las clases CSS; se declara pendiente de validación visual en navegador.
+
+**Impacto en contratos/datos:** SÍ datos persistidos (filas nuevas en `core_artefacto` por reporte generado; vínculo lógico vía `metadata.investigacion_id` porque `Artefacto.tarea` es obligatoria y no hay FK directa a `InvestigacionProgramada` — no se tocó `models.py`). SÍ contrato interno del servicio (`str` → `dict`). NO modelos, NO migraciones, NO credenciales, NO permisos, NO tareas en cola. Retrocompatible para consumidores que se actualicen al contrato dict.
+
 **Objetivo:** El Router devolvía respuestas cacheadas cuando el usuario solicitaba regenerar un reporte. Se fuerza una llamada real al LLM en cada clic de "Generar Reporte de IA" añadiendo un `request_id` único al `prompt_usuario`, cambiando el hash de caché del Router sin alterar la tarea del LLM.
 
 **Archivos tocados (1):**
