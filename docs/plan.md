@@ -2368,3 +2368,18 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 **Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Retrocompatible. La dependencia `crawl4ai` requiere ejecutar `crawl4ai-setup` en la terminal para descargar el navegador antes de usar el nivel 3 en producción (documentado como comentario en el código).
  
  
+
+## Paso AUDIT-01 - Formato estructurado de auditoría web/seo basado en palabras clave — COMPLETADO
+
+**Objetivo:** Cuando `investigacion.palabras_clave` contiene términos como "seo", "auditoría", "diseño", "ux" o "contenido", el `prompt_sistema` de `generar_reporte_competencia` incluye una instrucción de formato estricto de auditoría (Resumen Ejecutivo, Hallazgos Críticos, Análisis de Contenido y SEO, Recomendaciones de Diseño/UX, Plan de Acción Inmediato) en lugar del informe narrativo actual.
+
+**Archivos tocados:** `apps/checks/analisis.py` (detección de palabras clave + instrucción de formato al `prompt_sistema`) y `tests/test_analisis.py` (prueba nueva `test_formato_auditoria_si_palabras_clave_coinciden`).
+
+**Reglas respetadas:** Máximo 1 archivo funcional modificado; detección simple de palabras clave; NO modelos ni migraciones; emojis (🔴 🟡 🟢) exclusivamente dentro del string del prompt enviado al LLM, no fuera de comillas; CERO estilos inline.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_analisis.py -q` → `12 passed in 4.25s` (incluye la prueba nueva).
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Retrocompatible. Commit: `f3267a1`.
