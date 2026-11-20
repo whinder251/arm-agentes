@@ -15,7 +15,9 @@ import xml.etree.ElementTree as ET
 
 import requests
 import trafilatura
+from bs4 import BeautifulSoup
 from django.utils import timezone
+from urllib.parse import urljoin
 
 from apps.core.models import Hallazgo, InvestigacionProgramada
 from apps.engine.tool_executor import (
@@ -139,6 +141,34 @@ def _extraer_contenido(url: str) -> str:
     return ""
 
 
+def _extraer_enlaces_de_html(texto_html: str, url_base: str) -> list[dict]:
+    """Extrae enlaces válidos de una página HTML de categoría.
+
+    Parsea el HTML con BeautifulSoup, obtiene todos los <a href>, convierte
+    las URLs relativas a absolutas respecto de url_base y descarta anclas,
+    enlaces mailto y recursos estáticos (imágenes, CSS, JS, PDF).
+
+    Retorna una lista de dicts: [{"url": url_absoluta, "title": texto_o_vacío}].
+    """
+    if not texto_html or not texto_html.strip():
+        return []
+    soup = BeautifulSoup(texto_html, "html.parser")
+    extensiones_ignoradas = (".jpg", ".jpeg", ".png", ".gif", ".css", ".js", ".pdf")
+    enlaces: list[dict] = []
+    for anchor in soup.find_all("a", href=True):
+        href = anchor.get("href", "").strip()
+        if not href:
+            continue
+        if href.startswith("#") or href.startswith("mailto:"):
+            continue
+        if href.lower().endswith(extensiones_ignoradas):
+            continue
+        url_absoluta = urljoin(url_base, href)
+        titulo = anchor.get_text(strip=True) or ""
+        enlaces.append({"url": url_absoluta, "title": titulo})
+    return enlaces
+
+
 def ejecutar_investigacion(investigacion: InvestigacionProgramada) -> dict:
     """Ejecuta una investigación programada de forma síncrona.
 
@@ -197,86 +227,85 @@ def ejecutar_investigacion(investigacion: InvestigacionProgramada) -> dict:
             )
             continue
 
-        texto_xml = response.text
-        tipo = _detectar_tipo(texto_xml)
+        texto_html = response.text
+        tipo = _detectar_tipo(texto_html)
 
-        if tipo == "desconocido":
-            fallos.append({"url": url, "error": "No se pudo detectar el tipo de fuente (RSS o Sitemap)."})
-            continue
-
-        # Parsear reutilizando los parsers existentes de tool_executor.
+        # Obtener la lista de artículos candidatos y el tipo de fuente.
         if tipo == "sitemap":
-            entradas = _parsear_sitemap(texto_xml)
+            entradas = _parsear_sitemap(texto_html)
             if entradas and "error" in entradas[0]:
                 fallos.append({"url": url, "error": entradas[0]["error"]})
                 continue
-            # Límite de artículos por URL antes de filtrar y guardar.
-            entradas_limitadas = entradas[: investigacion.limite_por_fuente]
-            for entrada in entradas_limitadas:
-                url_articulo = entrada.get("url") or ""
-                if not url_articulo:
-                    continue
-                texto_a_evaluar = f"{entrada.get('title', '')} {url_articulo}"
-                if not _coincide_con_palabras_clave(
-                    texto_a_evaluar, investigacion.palabras_clave
-                ):
-                    filtrados += 1
-                    continue  # Descartar el artículo, no guardar como Hallazgo
-                hallazgo, creado = Hallazgo.objects.update_or_create(
-                    investigacion=investigacion,
-                    url_articulo=url_articulo,
-                    defaults={
-                        "url_fuente": url,
-                        "tipo_fuente": Hallazgo.TipoFuente.SITEMAP,
-                        "titulo": "",
-                        "fecha_publicacion": entrada.get("lastmod") or "",
-                        "resumen": "",
-                    },
-                )
-                if creado:
-                    if url_articulo:
-                        time.sleep(random.uniform(1.0, 2.5))
-                        contenido = _extraer_contenido(url_articulo)
-                        if contenido:
-                            hallazgo.contenido_extraido = contenido
-                            hallazgo.save(update_fields=["contenido_extraido"])
-                    hallazgos_nuevos += 1
-        else:  # rss
-            items = _parsear_rss(texto_xml)
-            if items and "error" in items[0]:
-                fallos.append({"url": url, "error": items[0]["error"]})
+            items = [
+                {
+                    "url": e.get("url") or "",
+                    "title": e.get("title", ""),
+                    "fecha_publicacion": e.get("lastmod") or "",
+                    "resumen": "",
+                }
+                for e in entradas[: investigacion.limite_por_fuente]
+            ]
+            tipo_fuente = Hallazgo.TipoFuente.SITEMAP
+        elif tipo == "rss":
+            items_rss = _parsear_rss(texto_html)
+            if items_rss and "error" in items_rss[0]:
+                fallos.append({"url": url, "error": items_rss[0]["error"]})
                 continue
-            # Límite de artículos por URL antes de filtrar y guardar.
-            items_limitados = items[: investigacion.limite_por_fuente]
-            for item in items_limitados:
-                url_articulo = item.get("link") or ""
-                if not url_articulo:
-                    continue
-                texto_a_evaluar = f"{item.get('title', '')} {item.get('description', '')}"
-                if not _coincide_con_palabras_clave(
-                    texto_a_evaluar, investigacion.palabras_clave
-                ):
-                    filtrados += 1
-                    continue  # Descartar el artículo, no guardar como Hallazgo
-                hallazgo, creado = Hallazgo.objects.update_or_create(
-                    investigacion=investigacion,
-                    url_articulo=url_articulo,
-                    defaults={
-                        "url_fuente": url,
-                        "tipo_fuente": Hallazgo.TipoFuente.RSS,
-                        "titulo": item.get("title") or "",
-                        "fecha_publicacion": item.get("pubDate") or "",
-                        "resumen": item.get("description") or "",
-                    },
-                )
-                if creado:
-                    if url_articulo:
-                        time.sleep(random.uniform(1.0, 2.5))
-                        contenido = _extraer_contenido(url_articulo)
-                        if contenido:
-                            hallazgo.contenido_extraido = contenido
-                            hallazgo.save(update_fields=["contenido_extraido"])
-                    hallazgos_nuevos += 1
+            items = [
+                {
+                    "url": i.get("link") or "",
+                    "title": i.get("title", ""),
+                    "fecha_publicacion": i.get("pubDate") or "",
+                    "resumen": i.get("description") or "",
+                }
+                for i in items_rss[: investigacion.limite_por_fuente]
+            ]
+            tipo_fuente = Hallazgo.TipoFuente.RSS
+        else:
+            # Página HTML de categoría: extraer enlaces y procesarlos como artículos.
+            # NOTA: Los href extraídos no se re-validan con SSRF, consistente con el
+            # comportamiento de RSS/Sitemap. Documentado en HTML-SCRAPER-01.
+            items = [
+                {
+                    "url": it.get("url") or "",
+                    "title": it.get("title", ""),
+                    "fecha_publicacion": "",
+                    "resumen": "",
+                }
+                for it in _extraer_enlaces_de_html(texto_html, url)
+            ][: investigacion.limite_por_fuente]
+            tipo_fuente = "html"
+
+        # Bucle común de filtrado por palabras clave y guardado como Hallazgo.
+        for item in items:
+            url_articulo = item.get("url") or ""
+            if not url_articulo:
+                continue
+            texto_a_evaluar = f"{item.get('title', '')} {url_articulo}"
+            if not _coincide_con_palabras_clave(
+                texto_a_evaluar, investigacion.palabras_clave
+            ):
+                filtrados += 1
+                continue  # Descartar el artículo, no guardar como Hallazgo
+            hallazgo, creado = Hallazgo.objects.update_or_create(
+                investigacion=investigacion,
+                url_articulo=url_articulo,
+                defaults={
+                    "url_fuente": url,
+                    "tipo_fuente": tipo_fuente,
+                    "titulo": item.get("title") or "",
+                    "fecha_publicacion": item.get("fecha_publicacion", ""),
+                    "resumen": item.get("resumen", ""),
+                },
+            )
+            if creado:
+                if url_articulo:
+                    time.sleep(random.uniform(1.0, 2.5))
+                    contenido = _extraer_contenido(url_articulo)
+                    if contenido:
+                        hallazgo.contenido_extraido = contenido
+                        hallazgo.save(update_fields=["contenido_extraido"])
+                hallazgos_nuevos += 1
 
     # Actualizar última ejecución fuera de cualquier transacción abierta
     # durante llamadas de red (seguridad.md §9: no mantener transacciones abiertas).

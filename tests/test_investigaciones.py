@@ -364,3 +364,52 @@ class TestEjecutarInvestigacion:
         assert resultado["filtrados"] == 2
         assert resultado["fallos"] == []
         assert Hallazgo.objects.filter(investigacion=investigacion).count() == 0
+
+    def test_extraccion_enlaces_de_html(self):
+        """Una URL que no es RSS ni Sitemap se trata como página HTML de
+        categoría: se extraen solo los enlaces válidos (no imágenes ni
+        anclas) y se procesan como hallazgos."""
+        investigacion = self._crear_investigacion(
+            urls="https://ejemplo.com/categoria",
+        )
+
+        html_categoria = """<!DOCTYPE html>
+        <html>
+        <body>
+          <a href="https://ejemplo.com/articulo-1">Artículo 1</a>
+          <a href="https://ejemplo.com/articulo-2">Artículo 2</a>
+          <a href="https://ejemplo.com/articulo-3">Artículo 3</a>
+          <a href="/imagenes/logo.jpg">Logo</a>
+          <a href="#seccion">Ir a sección</a>
+        </body>
+        </html>"""
+
+        def efecto_get(url, **kwargs):
+            respuesta = Mock()
+            respuesta.status_code = 200
+            respuesta.text = html_categoria
+            return respuesta
+
+        with patch(
+            "apps.engine.investigaciones.requests.get", side_effect=efecto_get
+        ), patch(
+            "apps.engine.investigaciones.trafilatura.extract", return_value="contenido"
+        ), patch(
+            "apps.engine.investigaciones.time.sleep"
+        ):
+            resultado = ejecutar_investigacion(investigacion)
+
+        assert resultado["ejecutadas"] == 1
+        assert resultado["hallazgos_nuevos"] == 3
+        assert resultado["filtrados"] == 0
+        assert resultado["fallos"] == []
+
+        hallazgos = Hallazgo.objects.filter(investigacion=investigacion).order_by(
+            "url_articulo"
+        )
+        assert hallazgos.count() == 3
+        urls = {h.url_articulo for h in hallazgos}
+        assert "https://ejemplo.com/articulo-1" in urls
+        assert "https://ejemplo.com/articulo-2" in urls
+        assert "https://ejemplo.com/articulo-3" in urls
+        assert "https://ejemplo.com/imagenes/logo.jpg" not in urls
