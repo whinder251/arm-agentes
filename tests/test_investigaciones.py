@@ -66,12 +66,20 @@ class TestDetectarTipo:
 
 @pytest.mark.django_db
 class TestEjecutarInvestigacion:
-    def _crear_investigacion(self, urls="https://ejemplo.com/feed.rss", palabras_clave=""):
+    def _crear_investigacion(
+        self,
+        urls="https://ejemplo.com/feed.rss",
+        palabras_clave="",
+        modo_busqueda="sitio",
+        consulta_busqueda="",
+    ):
         return InvestigacionProgramada.objects.create(
             nombre="Investigación de prueba",
             urls_objetivo=urls,
             frecuencia="semanal",
             palabras_clave=palabras_clave,
+            modo_busqueda=modo_busqueda,
+            consulta_busqueda=consulta_busqueda,
             activa=True,
         )
 
@@ -366,9 +374,9 @@ class TestEjecutarInvestigacion:
         assert Hallazgo.objects.filter(investigacion=investigacion).count() == 0
 
     def test_extraccion_enlaces_de_html(self):
-        """Una URL que no es RSS ni Sitemap se trata como página HTML de
-        categoría: se extraen solo los enlaces válidos (no imágenes ni
-        anclas) y se procesan como hallazgos."""
+        """Sitio genérico (no WordPress): se ignora el <nav> con menú y solo
+        se extrae el post principal dentro de <main>/<section class="card">
+        con texto largo y fecha de <time>."""
         investigacion = self._crear_investigacion(
             urls="https://ejemplo.com/categoria",
         )
@@ -376,11 +384,18 @@ class TestEjecutarInvestigacion:
         html_categoria = """<!DOCTYPE html>
         <html>
         <body>
-          <a href="https://ejemplo.com/articulo-1">Artículo 1</a>
-          <a href="https://ejemplo.com/articulo-2">Artículo 2</a>
-          <a href="https://ejemplo.com/articulo-3">Artículo 3</a>
-          <a href="/imagenes/logo.jpg">Logo</a>
-          <a href="#seccion">Ir a sección</a>
+          <nav>
+            <a href="https://ejemplo.com/inicio">Inicio</a>
+            <a href="https://ejemplo.com/contacto">Contacto</a>
+          </nav>
+          <main>
+            <section class="card">
+              <a href="https://ejemplo.com/post-amazonas">
+                Nuevo descubrimiento científico en el Amazonas
+              </a>
+              <time datetime="2026-11-18">18 de noviembre de 2026</time>
+            </section>
+          </main>
         </body>
         </html>"""
 
@@ -400,16 +415,111 @@ class TestEjecutarInvestigacion:
             resultado = ejecutar_investigacion(investigacion)
 
         assert resultado["ejecutadas"] == 1
-        assert resultado["hallazgos_nuevos"] == 3
+        # Solo el post del main, no los 2 enlaces del nav (texto corto).
+        assert resultado["hallazgos_nuevos"] == 1
         assert resultado["filtrados"] == 0
         assert resultado["fallos"] == []
 
-        hallazgos = Hallazgo.objects.filter(investigacion=investigacion).order_by(
-            "url_articulo"
+        hallazgos = Hallazgo.objects.filter(investigacion=investigacion)
+        assert hallazgos.count() == 1
+        h = hallazgos.first()
+        assert h.titulo == "Nuevo descubrimiento científico en el Amazonas"
+        assert h.url_articulo == "https://ejemplo.com/post-amazonas"
+        assert h.fecha_publicacion == "2026-11-18"
+        assert h.tipo_fuente == "html"
+
+    def test_modo_busqueda_usa_duckduckgo(self):
+        """Modo 'busqueda': usa DDGS para obtener URLs y las procesa como sitemap."""
+        investigacion = self._crear_investigacion(
+            urls="",
+            modo_busqueda="busqueda",
+            consulta_busqueda="competencia SEO",
         )
-        assert hallazgos.count() == 3
-        urls = {h.url_articulo for h in hallazgos}
-        assert "https://ejemplo.com/articulo-1" in urls
-        assert "https://ejemplo.com/articulo-2" in urls
-        assert "https://ejemplo.com/articulo-3" in urls
-        assert "https://ejemplo.com/imagenes/logo.jpg" not in urls
+
+        resultados_ddgs = [
+            {
+                "href": "https://ejemplo.com/resultado-1",
+                "title": "Resultado 1",
+                "body": "Resumen 1",
+                "date": "",
+            },
+            {
+                "href": "https://ejemplo.com/resultado-2",
+                "title": "Resultado 2",
+                "body": "Resumen 2",
+                "date": "",
+            },
+        ]
+
+        class _DDGSMock:
+            def text(self, consulta, max_results):
+                return resultados_ddgs
+
+        html_por_url = {
+            "https://ejemplo.com/resultado-1": (
+                '<html><body><a href="https://ejemplo.com/articulo-a">'
+                "Nuevo descubrimiento científico en el Amazonas</a></body></html>"
+            ),
+            "https://ejemplo.com/resultado-2": (
+                '<html><body><a href="https://ejemplo.com/articulo-b">'
+                "Análisis profundo del cambio climático global</a></body></html>"
+            ),
+        }
+
+        def efecto_get(url, **kwargs):
+            return _mock_get(
+                status_code=200,
+                text=html_por_url.get(url, "<html></html>"),
+            )
+
+        with patch("apps.engine.investigaciones.DDGS", return_value=_DDGSMock()), patch(
+            "apps.engine.investigaciones.requests.get", side_effect=efecto_get
+        ), patch(
+            "apps.engine.investigaciones.trafilatura.extract", return_value="contenido"
+        ), patch(
+            "apps.engine.investigaciones.time.sleep"
+        ):
+            resultado = ejecutar_investigacion(investigacion)
+
+        # Se buscó en DuckDuckGo y se procesaron las 2 URLs encontradas
+        assert resultado["ejecutadas"] == 2
+        assert resultado["hallazgos_nuevos"] == 2
+        assert resultado["fallos"] == []
+
+    def test_modo_noticias_usa_google_news(self):
+        """Modo 'noticias': construye URL de Google News y la procesa como RSS."""
+        investigacion = self._crear_investigacion(
+            urls="",
+            modo_busqueda="noticias",
+            consulta_busqueda="tecnología",
+        )
+
+        with patch("apps.engine.investigaciones.requests.get") as mock_get, patch(
+            "apps.engine.investigaciones.trafilatura.extract", return_value="contenido"
+        ), patch("apps.engine.investigaciones.time.sleep"):
+            mock_get.return_value = _mock_get(status_code=200, text=XML_RSS)
+            resultado = ejecutar_investigacion(investigacion)
+
+        # 1 llamada a Google News + 2 llamadas para extraer contenido de los 2 artículos del RSS.
+        assert mock_get.call_count == 3
+        url_primera = mock_get.call_args_list[0][0][0]
+        assert "news.google.com/rss/search" in url_primera
+        assert "tecnología" in url_primera or "tecnolog%C3%ADa" in url_primera
+
+        assert resultado["ejecutadas"] == 1
+        assert resultado["hallazgos_nuevos"] == 2
+        assert resultado["fallos"] == []
+
+    def test_modo_busqueda_sin_consulta_no_procesa_nada(self):
+        """Modo 'busqueda' sin consulta: no procesa URLs, sin fallos."""
+        investigacion = self._crear_investigacion(
+            urls="",
+            modo_busqueda="busqueda",
+            consulta_busqueda="",
+        )
+
+        resultado = ejecutar_investigacion(investigacion)
+
+        assert resultado["ejecutadas"] == 0
+        assert resultado["hallazgos_nuevos"] == 0
+        assert resultado["fallos"] == []

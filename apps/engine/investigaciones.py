@@ -12,12 +12,14 @@ import logging
 import random
 import time
 import xml.etree.ElementTree as ET
+from urllib.parse import quote
 
 import requests
 import trafilatura
 from bs4 import BeautifulSoup
 from django.utils import timezone
 from urllib.parse import urljoin
+from duckduckgo_search import DDGS
 
 from apps.core.models import Hallazgo, InvestigacionProgramada
 from apps.engine.tool_executor import (
@@ -144,41 +146,174 @@ def _extraer_contenido(url: str) -> str:
 def _extraer_enlaces_de_html(texto_html: str, url_base: str) -> list[dict]:
     """Extrae enlaces válidos de una página HTML de categoría.
 
-    Parsea el HTML con BeautifulSoup, obtiene todos los <a href>, convierte
-    las URLs relativas a absolutas respecto de url_base y descarta anclas,
-    enlaces mailto y recursos estáticos (imágenes, CSS, JS, PDF).
+    Limpia el DOM eliminando nav/header/footer/aside/script/style,
+    prioriza enlaces dentro de contenedores de contenido (main/article/section
+    o divs con clases content/post/entry/card/item/list/archive), exige un
+    texto visible de al menos 15 caracteres y extrae la fecha de una etiqueta
+    <time> en el padre inmediato o ancestro cercano (hasta 3 niveles).
 
-    Retorna una lista de dicts: [{"url": url_absoluta, "title": texto_o_vacío}].
+    Retorna una lista de dicts:
+        [{"url": url_absoluta, "title": texto_visible, "fecha": iso_o_vacío}]
     """
     if not texto_html or not texto_html.strip():
         return []
     soup = BeautifulSoup(texto_html, "html.parser")
+
+    # a) Limpieza del DOM: eliminar contenedores de navegación y elementos
+    #    no relevantes antes de extraer enlaces.
+    for elemento in soup.find_all(["nav", "header", "footer", "aside", "script", "style"]):
+        elemento.decompose()
+
     extensiones_ignoradas = (".jpg", ".jpeg", ".png", ".gif", ".css", ".js", ".pdf")
     enlaces: list[dict] = []
-    for anchor in soup.find_all("a", href=True):
+    enlaces_encontrados: set[str] = set()
+
+    def _es_recurso_estatico(href: str) -> bool:
+        return href.lower().endswith(extensiones_ignoradas)
+
+    def _fecha_de_ancestro(anchor) -> str:
+        """Busca <time> en el padre inmediato o ancestro cercano (hasta 3 niveles)."""
+        nodo = anchor.parent
+        for _ in range(3):
+            if nodo is None:
+                break
+            time_tag = nodo.find("time")
+            if time_tag:
+                return time_tag.get("datetime") or time_tag.get("content") or ""
+            nodo = nodo.parent
+        return ""
+
+    def _procesar_anchor(anchor) -> None:
         href = anchor.get("href", "").strip()
         if not href:
-            continue
+            return
         if href.startswith("#") or href.startswith("mailto:"):
-            continue
-        if href.lower().endswith(extensiones_ignoradas):
-            continue
+            return
+        if _es_recurso_estatico(href):
+            return
+        # c) Filtro de texto: exigir al menos 15 caracteres visibles.
+        texto = anchor.get_text(strip=True)
+        if len(texto) < 15:
+            return
         url_absoluta = urljoin(url_base, href)
-        titulo = anchor.get_text(strip=True) or ""
-        enlaces.append({"url": url_absoluta, "title": titulo})
+        if url_absoluta in enlaces_encontrados:
+            return
+        enlaces_encontrados.add(url_absoluta)
+        enlaces.append(
+            {
+                "url": url_absoluta,
+                "title": texto,
+                "fecha": _fecha_de_ancestro(anchor),
+            }
+        )
+
+    # b) Priorización de contenedores: buscar enlaces dentro de main/article/
+    #    section o divs con clases relacionadas con contenido.
+    contenedores = []
+    for etiqueta in ["main", "article", "section"]:
+        contenedores.extend(soup.find_all(etiqueta))
+    for div in soup.find_all("div"):
+        clases = div.get("class", [])
+        clases_texto = " ".join(clases).lower() if isinstance(clases, list) else ""
+        if any(
+            palabra in clases_texto
+            for palabra in ("content", "post", "entry", "card", "item", "list", "archive")
+        ):
+            contenedores.append(div)
+
+    for contenedor in contenedores:
+        for anchor in contenedor.find_all("a", href=True):
+            _procesar_anchor(anchor)
+
+    # d) Fallback: si no se encontraron contenedores claros, extraer todos los
+    #    <a> restantes filtrando agresivamente hrefs de navegación.
+    if not enlaces:
+        for anchor in soup.find_all("a", href=True):
+            href_lower = anchor.get("href", "").lower()
+            if any(
+                palabra in href_lower
+                for palabra in ("menu", "nav", "login", "register")
+            ):
+                continue
+            _procesar_anchor(anchor)
+
     return enlaces
+
+
+def _buscar_con_duckduckgo(consulta: str, max_resultados: int = 10) -> list[dict]:
+    """Busca por palabra clave en DuckDuckGo sin API key.
+
+    Retorna lista de dicts: [{"url", "title", "resumen", "fecha"], ...].
+    Best-effort: si la búsqueda falla, retorna lista vacía para no abortar
+    la investigación.
+    """
+    try:
+        resultados = DDGS().text(consulta, max_results=max_resultados)
+        return [
+            {
+                "url": r.get("href", ""),
+                "title": r.get("title", ""),
+                "resumen": r.get("body", ""),
+                "fecha": r.get("date", ""),
+            }
+            for r in resultados or []
+        ]
+    except Exception as exc:  # noqa: BLE001 - best-effort, nunca aborta
+        logger.warning("Fallo de búsqueda DuckDuckGo para %s: %s", consulta, exc)
+        return []
+
+
+def _construir_url_google_news(consulta: str) -> str:
+    """Construye la URL del feed RSS de Google News para una consulta."""
+    consulta_codificada = quote(consulta, safe="")
+    return (
+        f"https://news.google.com/rss/search?q={consulta_codificada}"
+        f"&hl=es-419&gl=VE&ceid=VE:es-419&tbs=qdr:w"
+    )
+
+
+def _construir_urls_a_procesar(investigacion: InvestigacionProgramada) -> list[str]:
+    """Construye la lista de URLs a procesar según el modo de búsqueda.
+
+    - sitio: usa urls_objetivo línea por línea (comportamiento existente).
+    - busqueda: busca en DuckDuckGo y usa las URLs encontradas.
+    - noticias: construye la URL de Google News RSS para la consulta.
+    """
+    modo = investigacion.modo_busqueda or InvestigacionProgramada.MODO_SITIO
+
+    if modo == InvestigacionProgramada.MODO_BUSQUEDA:
+        consulta = investigacion.consulta_busqueda or ""
+        if not consulta.strip():
+            return []
+        resultados = _buscar_con_duckduckgo(
+            consulta, investigacion.limite_por_fuente
+        )
+        return [r["url"] for r in resultados if r.get("url")]
+
+    if modo == InvestigacionProgramada.MODO_NOTICIAS:
+        consulta = investigacion.consulta_busqueda or ""
+        if not consulta.strip():
+            return []
+        return [_construir_url_google_news(consulta)]
+
+    # Modo sitio (default): URLs objetivo línea por línea.
+    return [
+        u.strip() for u in (investigacion.urls_objetivo or "").splitlines() if u.strip()
+    ]
 
 
 def ejecutar_investigacion(investigacion: InvestigacionProgramada) -> dict:
     """Ejecuta una investigación programada de forma síncrona.
 
-    Descarga cada URL no vacía de urls_objetivo, valida SSRF antes de cada
-    petición, detecta el tipo, parsea y guarda hallazgos sin duplicar.
+    Descarga cada URL no vacía de urls_objetivo (o URLs de búsqueda según el
+    modo), valida SSRF antes de cada petición, detecta el tipo, parsea y
+    guarda hallazgos sin duplicar.
 
     Retorna un dict con conteos:
         {
             "ejecutadas": n,
             "hallazgos_nuevos": m,
+            "filtrados": k,
             "fallos": [{"url": ..., "error": ...}, ...]
         }
 
@@ -190,9 +325,9 @@ def ejecutar_investigacion(investigacion: InvestigacionProgramada) -> dict:
     filtrados = 0
     fallos = []
 
-    urls = [u.strip() for u in (investigacion.urls_objetivo or "").splitlines() if u.strip()]
+    urls_a_procesar = _construir_urls_a_procesar(investigacion)
 
-    for url in urls:
+    for url in urls_a_procesar:
         # Validar SSRF antes de cada petición (seguridad.md §5).
         try:
             _validar_endpoint_seguro(url)
@@ -269,7 +404,7 @@ def ejecutar_investigacion(investigacion: InvestigacionProgramada) -> dict:
                 {
                     "url": it.get("url") or "",
                     "title": it.get("title", ""),
-                    "fecha_publicacion": "",
+                    "fecha_publicacion": it.get("fecha", ""),
                     "resumen": "",
                 }
                 for it in _extraer_enlaces_de_html(texto_html, url)

@@ -195,6 +195,8 @@ class InvestigacionForm(forms.ModelForm):
             "agente",
             "palabras_clave",
             "limite_por_fuente",
+            "modo_busqueda",
+            "consulta_busqueda",
         ]
         widgets = {
             "urls_objetivo": forms.Textarea(
@@ -205,6 +207,10 @@ class InvestigacionForm(forms.ModelForm):
             ),
             "palabras_clave": forms.Textarea(attrs={"rows": 3}),
             "agente": forms.Select(attrs={"class": "input"}),
+            "modo_busqueda": forms.Select(attrs={"class": "input"}),
+            "consulta_busqueda": forms.Textarea(
+                attrs={"rows": 2, "class": "textarea"}
+            ),
         }
 
     def __init__(self, *args, **kwargs):
@@ -217,3 +223,4 @@ class InvestigacionForm(forms.ModelForm):
         self.fields["frecuencia"].widget = forms.RadioSelect()
         self.fields["frecuencia"].widget.attrs.update({"class": "segmented-radio"})
         self.fields["palabras_clave"].widget.attrs.update({"class": "textarea"})
+        self.fields["consulta_busqueda"].widget.attrs.update({"class": "textarea"})

@@ -735,6 +735,25 @@ class InvestigacionProgramada(models.Model):
         default=15,
         help_text="Máximo de artículos a procesar por cada URL.",
     )
+    MODO_SITIO = "sitio"
+    MODO_BUSQUEDA = "busqueda"
+    MODO_NOTICIAS = "noticias"
+    MODO_BUSQUEDA_CHOICES = [
+        (MODO_SITIO, "Rastreo de Sitio Web"),
+        (MODO_BUSQUEDA, "Búsqueda Web Activa"),
+        (MODO_NOTICIAS, "Alerta de Noticias"),
+    ]
+    modo_busqueda = models.CharField(
+        max_length=20,
+        choices=MODO_BUSQUEDA_CHOICES,
+        default=MODO_SITIO,
+        help_text="Modo de búsqueda: rastrear un sitio específico, buscar por palabra clave, o monitorear noticias de Google.",
+    )
+    consulta_busqueda = models.TextField(
+        blank=True,
+        default="",
+        help_text="Palabra clave o consulta de búsqueda (para modos 'Búsqueda Web Activa' o 'Alerta de Noticias').",
+    )
     activa = models.BooleanField(default=True)
     ultima_ejecucion = models.DateTimeField(null=True, blank=True)
     creado_en = models.DateTimeField(auto_now_add=True)

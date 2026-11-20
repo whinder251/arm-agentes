@@ -2590,3 +2590,65 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 **Impacto en contratos/datos:** SÃ datos persistidos (nuevo valor `"html"` en `choices` de `tipo_fuente` vÃ­a migraciÃ³n 0029; no afecta datos existentes). NO credenciales, NO permisos, NO tareas en cola, NO contratos de API. Retrocompatible.
 
 **Pendiente:** Ninguno para este paso.
+
+
+## Paso SEARCH-TOOL-01 - Integrar bÃºsqueda web gratuita con DuckDuckGo y selector de modo de bÃºsqueda â€” COMPLETADO
+
+**Objetivo:** AÃ±adir a la herramienta de Monitoreo la capacidad de buscar contenido por palabra clave usando DuckDuckGo (gratuito, sin API key), y permitir que el usuario elija entre 3 modos de bÃºsqueda: Rastreo de Sitio Web, BÃºsqueda Web Activa, y Alerta de Noticias (Google News RSS).
+
+**Archivos tocados (5):**
+- `requirements.txt`: aÃ±adida dependencia `duckduckgo-search>=6.0.0`.
+- `apps/core/models.py`: aÃ±adidos campos `modo_busqueda` (choices: sitio/busqueda/noticias, default sitio) y `consulta_busqueda` (TextField blank) a `InvestigacionProgramada`.
+- `apps/panel/forms.py`: aÃ±adidos `modo_busqueda` (Select) y `consulta_busqueda` (Textarea rows=2) al `InvestigacionForm`.
+- `apps/engine/investigaciones.py`: aÃ±adidas funciones `_buscar_con_duckduckgo`, `_construir_url_google_news`, `_construir_urls_a_procesar`; `ejecutar_investigacion` construye la lista de URLs segÃºn el modo antes del bucle de procesamiento existente (RSS/Sitemap/HTML).
+- `apps/panel/templates/panel/investigacion_form.html`: campos `modo_busqueda` y `consulta_busqueda` con clases ARM Flow; JS inline mÃ­nimo para mostrar/ocultar la consulta segÃºn el modo. CERO estilos inline, CERO emojis.
+
+**MigraciÃ³n generada y aplicada:** `apps/core/migrations/0030_investigacionprogramada_consulta_busqueda_and_more.py`.
+
+**Reglas respetadas:**
+- MÃ¡ximo 5 archivos modificados.
+- Este paso SÃ requiere migraciÃ³n; se ejecutaron makemigrations y migrate.
+- CERO estilos inline en CSS (solo JavaScript mÃ­nimo para toggle de campos).
+- CERO emojis en la UI.
+- Comandos PowerShell lÃ­nea por lÃ­nea, sin `&&`.
+- No se ejecutÃ³ `git push`.
+- Commit: "SEARCH-TOOL-01: Integrar bÃºsqueda web gratuita con DuckDuckGo y selector de modo de bÃºsqueda".
+
+**Evidencia de aceptaciÃ³n (ejecutado en esta sesiÃ³n):**
+- `.venv\Scripts\python.exe manage.py check` â†’ `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations core` â†’ migraciÃ³n `0030_...` creada.
+- `.venv\Scripts\python.exe manage.py migrate` â†’ `Applying core.0030... OK`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` â†’ `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_investigaciones.py -q` â†’ `17 passed` (incluye 3 pruebas nuevas de modo bÃºsqueda/noticias).
+- `pip install duckduckgo-search>=6.0.0` â†’ instalado correctamente.
+
+**Impacto en contratos/datos:** SÃ datos persistidos (2 nuevas columnas en `core_investigacionprogramada` vÃ­a migraciÃ³n 0030, defaults retrocompatibles). SÃ contrato interno de `ejecutar_investigacion` (aditivo, retrocompatible: modo "sitio" conserva el comportamiento existente). NO credenciales, NO permisos, NO tareas en cola, NO rotura de URLs ni contratos de API.
+
+**Pendiente:** ValidaciÃ³n visual en navegador del toggle de `consulta_busqueda` (no ejecutable en este entorno sin navegador).
+
+
+## Paso HTML-SCRAPER-UNIVERSAL-01 - Extraer posts reales de cualquier sitio web, ignorando menus de navegacion — COMPLETADO
+
+**Objetivo:** Hacer que _extraer_enlaces_de_html funcione en cualquier CMS o sitio web (Joomla, Drupal, Next.js, custom, WordPress), no solo en sitios con clases especificas. Antes fallaba porque capturaba el <nav>, <header> y <footer> antes que el contenido, agotando el limite_por_fuente con enlaces de menu.
+
+**Archivos tocados (2):**
+- apps/engine/investigaciones.py: reescrito _extraer_enlaces_de_html con limpieza del DOM (decompose de nav/header/footer/aside/script/style), priorizacion de contenedores (main/article/section o divs con clases content/post/entry/card/item/list/archive), filtro de texto visible >= 15 caracteres, fecha de <time> en ancestro cercano (hasta 3 niveles), fallback agresivo filtrando hrefs menu/nav/login/register. Bucle comun de ejecutar_investigacion asigna fecha_publicacion desde it.get("fecha", "").
+- tests/test_investigaciones.py: test_extraccion_enlaces_de_html actualizado a sitio generico (<nav> con Inicio/Contacto, <main>/<section class="card"> con <a> texto largo y <time datetime="2026-11-18">); verifica hallazgos_nuevos == 1, titulo correcto, fecha "2026-11-18". Test test_modo_busqueda_usa_duckduckgo actualizado (titulos >= 15 chars para pasar el nuevo filtro).
+
+**Reglas respetadas:**
+- Maximo 2 archivos modificados.
+- NO modelos, NO migraciones, NO vistas, NO templates.
+- CERO estilos inline, CERO emojis.
+- Comandos PowerShell linea por linea, sin &&.
+- No se ejecuto git push.
+- Commit: "HTML-SCRAPER-UNIVERSAL-01: Extraer contenido de cualquier sitio web ignorando menus de navegacion".
+
+**Evidencia de aceptacion (ejecutado en esta sesion):**
+- .venv\Scripts\python.exe manage.py check -> System check identified no issues (0 silenced).
+- .venv\Scripts\python.exe manage.py makemigrations --check --dry-run -> No changes detected.
+- .venv\Scripts\python.exe -m pytest tests/test_investigaciones.py -q -> 17 passed (incluye la prueba actualizada).
+
+**Impacto en contratos/datos:** NO modelos, NO migraciones, NO credenciales, NO permisos, NO tareas en cola. Contrato interno de _extraer_enlaces_de_html aditivo (se añade clave opcional "fecha" al dict de retorno). Retrocompatible.
+
+**Pendiente:** Ninguno para este paso.
+

@@ -54,6 +54,24 @@
             </div>
 
             <div class="form-group">
+                <label class="label" for="{{ form.modo_busqueda.id_for_label }}">Modo de búsqueda</label>
+                {{ form.modo_busqueda }}
+                <p class="help-text">Elige cómo el sistema debe buscar contenido para esta fuente.</p>
+                {% if form.modo_busqueda.errors %}
+                <p class="error-text">{{ form.modo_busqueda.errors|first }}</p>
+                {% endif %}
+            </div>
+
+            <div class="form-group" id="grupo-consulta-busqueda">
+                <label class="label" for="{{ form.consulta_busqueda.id_for_label }}">Consulta de búsqueda</label>
+                {{ form.consulta_busqueda }}
+                <p class="help-text">Palabra clave o consulta (usada en modos 'Búsqueda Web Activa' y 'Alerta de Noticias').</p>
+                {% if form.consulta_busqueda.errors %}
+                <p class="error-text">{{ form.consulta_busqueda.errors|first }}</p>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
                 <label class="label" for="frecuencia">Frecuencia de revisión</label>
                 <div class="segmented" id="segmented-frecuencia">
                     {% for valor, etiqueta in form.fields.frecuencia.choices %}
@@ -96,6 +114,27 @@
 
     // Inicializar con el valor actual
     activarBoton(inputOculto.value);
+})();
+
+(function() {
+    var selectModo = document.getElementById('id_modo_busqueda');
+    var grupoConsulta = document.getElementById('grupo-consulta-busqueda');
+
+    if (!selectModo || !grupoConsulta) {
+        return;
+    }
+
+    function actualizarVisibilidad() {
+        var modo = selectModo.value;
+        if (modo === 'busqueda' || modo === 'noticias') {
+            grupoConsulta.style.display = 'block';
+        } else {
+            grupoConsulta.style.display = 'none';
+        }
+    }
+
+    selectModo.addEventListener('change', actualizarVisibilidad);
+    actualizarVisibilidad();
 })();
 </script>
 {% endblock %}
