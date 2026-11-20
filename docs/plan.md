@@ -2805,3 +2805,53 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 
 **Impacto en contratos/datos:** SÍ dato persistido (semántica de `ultima_ejecucion` cambia de hora de fin a hora de inicio; valores existentes no se migran, se sobrescriben en la próxima ejecución exitosa). NO modelos, NO migraciones, NO contratos de API, NO credenciales, NO permisos, NO tareas en cola. Retrocompatible: el siguiente vencimiento se calcula desde el inicio programado.
 
+
+## Paso SEARCH-FIX-01 - Corregir el flujo de Búsqueda Web para registrar resultados directamente como hallazgos — COMPLETADO
+
+**Objetivo:** En modo `busqueda`, los resultados de DuckDuckGo (título, resumen, URL y fecha) se registran directamente como `Hallazgo` en lugar de pasarse por el flujo de «página HTML de categoría» que extraía enlaces internos.
+
+**Archivos tocados (2):**
+- `apps/engine/investigaciones.py`: `_construir_urls_a_procesar` devuelve `list[dict]` con metadatos de DDG en modo búsqueda (`url`, `title`, `resumen`, `fecha`, `origen`); `ejecutar_investigacion` detecta entradas con `origen == 'busqueda'` y crea/actualiza el `Hallazgo` directamente usando esos metadatos, sin llamar a `_extraer_enlaces_de_html`. Después intenta `_extraer_contenido(url_articulo)` para rellenar `contenido_extraido`. Usa `tipo_fuente = 'html'` (choice válido existente, sin migración).
+- `tests/test_investigaciones.py`: `test_modo_busqueda_registra_resultados_directo_como_hallazgos` verifica que se crean hallazgos con título y resumen de DDG, `tipo_fuente == 'html'` y que no se crean hallazgos de enlaces internos. `test_modo_busqueda_con_fecha_guarda_fecha_publicacion` verifica la fecha.
+
+**Reglas respetadas:**
+- Máximo 2 archivos modificados.
+- NO modelos, NO migraciones (`makemigrations --check --dry-run` → No changes detected).
+- CERO estilos inline, CERO emojis.
+- Comandos PowerShell línea por línea, sin `&&`.
+- No se ejecutó `git push`.
+- Commit: `SEARCH-FIX-01: Registrar resultados de búsqueda web directamente como hallazgos con sus metadatos`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_investigaciones.py -q` → `21 passed` (incluye las 2 pruebas nuevas).
+
+**Impacto en contratos/datos:** NO modelos, NO migraciones, NO credenciales, NO permisos, NO tareas en cola. Sí contrato interno de `_construir_urls_a_procesar` (ahora `list[dict]`) y datos de hallazgos en modo búsqueda. Retrocompatible: modos sitio y noticias conservan su comportamiento.
+
+**Pendiente:** Ninguno para este paso.
+
+## Paso RETRY-CONTENT-01 - Reintentar extracción de contenido si el hallazgo existe pero está vacío — COMPLETADO
+
+**Objetivo:** Evitar que los hallazgos se queden permanentemente sin contenido si la extracción falla la primera vez (timeout, bloqueo, 429, etc.). Actualmente el sistema solo intenta extraer si `creado == True`. Este paso cambia la condición para que también re-intente cuando el hallazgo ya existe pero `contenido_extraido` está vacío o nulo.
+
+**Archivos tocados (2):**
+- `apps/engine/investigaciones.py`: se cambió `if creado:` por `if creado or not hallazgo.contenido_extraido:` en ambos bloques de extracción (línea 422 modo búsqueda y línea 530 bucle común RSS/Sitemap/HTML). Así, si el hallazgo ya existe pero su campo está vacío, el sistema vuelve a llamar a `_extraer_contenido(url_articulo)` y actualiza el campo si tiene éxito.
+- `tests/test_investigaciones.py`: nueva prueba `test_reintenta_extraccion_si_hallazgo_existe_vacio` que crea un hallazgo existente con `contenido_extraido=""`, ejecuta la investigación y verifica que se re-intenta la extracción y se actualiza el campo.
+
+**Reglas respetadas:**
+- Máximo 2 archivos modificados.
+- NO modelos, NO migraciones, NO vistas, NO templates.
+- CERO estilos inline, CERO emojis.
+- Comandos PowerShell línea por línea, sin `&&`.
+- No se ejecutó `git push`.
+- Commit: "RETRY-CONTENT-01: Reintentar extracción de contenido si el hallazgo existe pero está vacío".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_investigaciones.py -q` → `22 passed` (incluye la prueba nueva).
+
+**Impacto en contratos/datos:** NO contratos, NO modelos, NO migraciones, NO credenciales, NO permisos, NO tareas en cola. Solo cambia la condición de re-extracción en `ejecutar_investigacion`. Retrocompatible: si `_extraer_contenido` falla de nuevo, el campo sigue vacío (comportamiento actual) y no hay escritura spuria.
+
+**Pendiente:** Ninguno para este paso.

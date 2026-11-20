@@ -665,3 +665,31 @@ class TestEjecutarInvestigacion:
         # Y no debe estar desplazada 10 minutos hacia el futuro.
         desplazado = ahora + timedelta(minutes=10)
         assert investigacion.ultima_ejecucion < desplazado
+
+    def test_reintenta_extraccion_si_hallazgo_existe_vacio(self):
+        """Si un hallazgo ya existe con contenido_extraido vacío, se reintenta la extracción."""
+        investigacion = self._crear_investigacion()
+
+        Hallazgo.objects.create(
+            investigacion=investigacion,
+            url_articulo="https://ejemplo.com/articulo-1",
+            url_fuente="https://ejemplo.com/feed.rss",
+            tipo_fuente=Hallazgo.TipoFuente.RSS,
+            titulo="Artículo existente",
+            contenido_extraido="",
+        )
+
+        with patch(
+            "apps.engine.investigaciones.requests.get",
+            return_value=_mock_get(status_code=200, text=XML_RSS),
+        ), patch(
+            "apps.engine.investigaciones._extraer_contenido",
+            return_value="Contenido re-extraído con éxito.",
+        ), patch("apps.engine.investigaciones.time.sleep"):
+            resultado = ejecutar_investigacion(investigacion)
+
+        hallazgo = Hallazgo.objects.get(
+            investigacion=investigacion,
+            url_articulo="https://ejemplo.com/articulo-1",
+        )
+        assert hallazgo.contenido_extraido == "Contenido re-extraído con éxito."

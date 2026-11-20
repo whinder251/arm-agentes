@@ -419,7 +419,7 @@ def ejecutar_investigacion(investigacion: InvestigacionProgramada) -> dict:
                     "resumen": resumen,
                 },
             )
-            if creado:
+            if creado or not hallazgo.contenido_extraido:
                 ejecutadas += 1
                 if url_articulo:
                     time.sleep(random.uniform(1.0, 2.5))
@@ -527,7 +527,7 @@ def ejecutar_investigacion(investigacion: InvestigacionProgramada) -> dict:
                     "resumen": item.get("resumen", ""),
                 },
             )
-            if creado:
+            if creado or not hallazgo.contenido_extraido:
                 if url_articulo:
                     time.sleep(random.uniform(1.0, 2.5))
                     contenido = _extraer_contenido(url_articulo)
