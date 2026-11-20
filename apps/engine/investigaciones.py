@@ -299,22 +299,39 @@ def _construir_urls_a_procesar(investigacion: InvestigacionProgramada) -> tuple[
         consulta = investigacion.consulta_busqueda or ""
         if not consulta.strip():
             return [], None
-        resultados, error_busqueda = _buscar_con_duckduckgo(
-            consulta, investigacion.limite_por_fuente
-        )
-        if error_busqueda:
-            return [], error_busqueda
-        return [
-            {
-                "url": r.get("url", ""),
-                "title": r.get("title", ""),
-                "resumen": r.get("resumen", ""),
-                "fecha": r.get("fecha", ""),
-                "origen": "busqueda",
-            }
-            for r in resultados
-            if r.get("url")
-        ], None
+        herramientas = investigacion.herramientas_busqueda or []
+        if not herramientas:
+            # Default retrocompatible: monitoreos antiguos sin herramientas
+            # seleccionadas usan DuckDuckGo resultados web.
+            herramientas = ["ddg_text"]
+        entradas: list[dict] = []
+        urls_vistas: set[str] = set()
+        for herramienta in herramientas:
+            if herramienta == "ddg_text":
+                resultados, error_busqueda = _buscar_con_duckduckgo(
+                    consulta, investigacion.limite_por_fuente
+                )
+                if error_busqueda:
+                    return [], error_busqueda
+                for r in resultados or []:
+                    url = r.get("url", "")
+                    if url and url not in urls_vistas:
+                        urls_vistas.add(url)
+                        entradas.append(
+                            {
+                                "url": url,
+                                "title": r.get("title", ""),
+                                "resumen": r.get("resumen", ""),
+                                "fecha": r.get("fecha", ""),
+                                "origen": "busqueda",
+                            }
+                        )
+            elif herramienta == "google_news":
+                url = _construir_url_google_news(consulta)
+                if url not in urls_vistas:
+                    urls_vistas.add(url)
+                    entradas.append({"url": url})
+        return entradas, None
 
     if modo == InvestigacionProgramada.MODO_NOTICIAS:
         consulta = investigacion.consulta_busqueda or ""

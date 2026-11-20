@@ -36,11 +36,20 @@
             </div>
 
             <div class="form-group" id="bloque-consulta">
-                <label class="label" id="label-consulta-busqueda" for="{{ form.consulta_busqueda.id_for_label }}">Consulta de búsqueda</label>
+                <label class="label" id="label-consulta-busqueda" for="{{ form.consulta_busqueda.id_for_label }}">Tema de búsqueda</label>
                 {{ form.consulta_busqueda }}
                 <p class="help-text">{{ form.consulta_busqueda.help_text }}</p>
                 {% if form.consulta_busqueda.errors %}
                 <p class="error-text">{{ form.consulta_busqueda.errors|first }}</p>
+                {% endif %}
+            </div>
+
+            <div class="form-group" id="bloque-herramientas">
+                <label class="label" for="{{ form.herramientas_busqueda.id_for_label }}">Herramientas de búsqueda</label>
+                {{ form.herramientas_busqueda }}
+                <p class="help-text">{{ form.herramientas_busqueda.help_text }}</p>
+                {% if form.herramientas_busqueda.errors %}
+                <p class="error-text">{{ form.herramientas_busqueda.errors|first }}</p>
                 {% endif %}
             </div>
 
@@ -57,7 +66,7 @@
             </div>
 
             <div class="form-group">
-                <label class="label" for="{{ form.palabras_clave.id_for_label }}">Palabras clave de enfoque</label>
+                <label class="label" for="{{ form.palabras_clave.id_for_label }}">Palabras clave a incluir (opcional)</label>
                 {{ form.palabras_clave }}
                 <p class="help-text">Términos separados por comas para priorizar en el análisis.</p>
                 {% if form.palabras_clave.errors %}
@@ -132,6 +141,7 @@
     var selectModo = document.getElementById('id_modo_busqueda');
     var bloqueUrls = document.getElementById('bloque-urls');
     var bloqueConsulta = document.getElementById('bloque-consulta');
+    var bloqueHerramientas = document.getElementById('bloque-herramientas');
     var labelConsulta = document.getElementById('label-consulta-busqueda');
     var campoConsulta = document.getElementById('id_consulta_busqueda');
     var ayudaSitio = document.getElementById('ayuda-sitio');
@@ -148,6 +158,7 @@
         // Ocultar todo por defecto
         bloqueUrls.style.display = 'none';
         bloqueConsulta.style.display = 'none';
+        bloqueHerramientas.style.display = 'none';
         ayudaSitio.style.display = 'none';
         ayudaBusqueda.style.display = 'none';
         ayudaNoticias.style.display = 'none';
@@ -174,6 +185,7 @@
             }
         } else if (modo === 'noticias') {
             bloqueConsulta.style.display = 'block';
+            bloqueHerramientas.style.display = 'block';
             ayudaNoticias.style.display = 'block';
             if (labelConsulta) {
                 labelConsulta.textContent = 'Tema de las noticias a vigilar';
@@ -181,6 +193,8 @@
             if (campoConsulta) {
                 campoConsulta.placeholder = 'ej: pdvsa, cripto venezuela, maduro';
             }
+        } else if (modo === 'busqueda') {
+            bloqueHerramientas.style.display = 'block';
         }
     }
 

@@ -2856,3 +2856,33 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 **Impacto en contratos/datos:** NO contratos, NO modelos, NO migraciones, NO credenciales, NO permisos, NO tareas en cola. Solo cambia la condición de re-extracción en `ejecutar_investigacion`. Retrocompatible: si `_extraer_contenido` falla de nuevo, el campo sigue vacío (comportamiento actual) y no hay escritura spuria.
 
 **Pendiente:** Ninguno para este paso.
+
+## Paso SEARCH-TOOLS-01 - Checkboxes de herramientas de bÃºsqueda y desambiguaciÃ³n de campos â€” COMPLETADO
+
+**Objetivo:** Permitir seleccionar varias herramientas de bÃºsqueda con checkboxes en modo bÃºsqueda/noticias, y renombrar/reubicar los campos de palabras (consulta vs filtro de enfoque) para que no se solapen visualmente.
+
+**Archivos tocados (4):**
+- `apps/core/models.py`: aÃ±adido `herramientas_busqueda = models.JSONField(default=list, blank=True, help_text="Motores de bÃºsqueda seleccionados (ej: ['ddg_text','google_news']).")` a `InvestigacionProgramada`.
+- `apps/panel/forms.py`: aÃ±adido `herramientas_busqueda` como `MultipleChoiceField` con `CheckboxSelectMultiple` y choices `ddg_text` (DuckDuckGo - resultados web), `ddg_news` (DuckDuckGo - noticias), `google_news` (Google News RSS); `clean()` aÃ±ade error "Selecciona al menos una herramienta de bÃºsqueda" si modo es bÃºsqueda/noticias y no hay ninguna seleccionada; label de `consulta_busqueda` â†’ "Tema de bÃºsqueda" y de `palabras_clave` â†’ "Palabras clave a incluir (opcional)".
+- `apps/panel/templates/panel/investigacion_form.html`: bloque `id="bloque-herramientas"` con las checkboxes, visible solo en modos bÃºsqueda y noticias (extensiÃ³n del JS de toggle existente); labels ajustados ("Tema de bÃºsqueda" / "Palabras clave a incluir (opcional)"). Cero estilos inline, cero emojis.
+- `apps/engine/investigaciones.py`: `_construir_urls_a_procesar` en modo bÃºsqueda itera `investigacion.herramientas_busqueda`: `ddg_text` llama a `_buscar_con_duckduckgo`, `google_news` construye la URL de Google News; unifica y deduplica URLs por campo `url`; lista vacÃ­a â†’ default `ddg_text` para no romper monitoreos antiguos.
+
+**MigraciÃ³n generada y aplicada:** `apps/core/migrations/0032_investigacionprogramada_herramientas_busqueda.py`.
+
+**Reglas respetadas:**
+- MÃ¡ximo 4 archivos (mÃ¡s la migraciÃ³n generada por `makemigrations`).
+- CERO estilos inline, CERO emojis.
+- Comandos PowerShell lÃ­nea por lÃ­nea, sin `&&`.
+- No se ejecutÃ³ `git push`.
+- Commit pendiente: "SEARCH-TOOLS-01: Checkboxes de herramientas de bÃºsqueda y desambiguaciÃ³n de campos".
+
+**Evidencia de aceptaciÃ³n (ejecutado en esta sesiÃ³n):**
+- `.venv\Scripts\python.exe manage.py check` â†’ `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations core` â†’ migraciÃ³n `0032_investigacionprogramada_herramientas_busqueda` creada.
+- `.venv\Scripts\python.exe manage.py migrate` â†’ `Applying core.0032... OK`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` â†’ `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_investigaciones.py -q` â†’ `22 passed`.
+
+**Impacto en contratos/datos:** SÃ datos persistidos (nueva columna JSONField `herramientas_busqueda` con default `[]`; filas existentes se leen como `[]`). SÃ contratos internos (`_construir_urls_a_procesar` en modo bÃºsqueda ahora itera herramientas seleccionadas; default `ddg_text` conserva el comportamiento anterior). NO credenciales, NO permisos, NO tareas en cola, NO rotura de URLs ni contratos de API. Retrocompatible.
+
+**Pendiente:** commit (usuario ejecuta `git push` manualmente). ValidaciÃ³n visual en navegador del toggle de `bloque-herramientas` (no ejecutable en este entorno sin navegador).

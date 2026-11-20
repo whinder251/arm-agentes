@@ -186,6 +186,17 @@ class InvestigacionForm(forms.ModelForm):
     no usando el widget Select por defecto.
     """
 
+    herramientas_busqueda = forms.MultipleChoiceField(
+        choices=[
+            ("ddg_text", "DuckDuckGo - resultados web"),
+            ("ddg_news", "DuckDuckGo - noticias"),
+            ("google_news", "Google News RSS"),
+        ],
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+        help_text="Motores de búsqueda que se usarán en modo Búsqueda Web Activa o Alerta de Noticias.",
+    )
+
     class Meta:
         model = InvestigacionProgramada
         fields = [
@@ -197,6 +208,7 @@ class InvestigacionForm(forms.ModelForm):
             "limite_por_fuente",
             "modo_busqueda",
             "consulta_busqueda",
+            "herramientas_busqueda",
         ]
         widgets = {
             "urls_objetivo": forms.Textarea(
@@ -239,6 +251,9 @@ class InvestigacionForm(forms.ModelForm):
         self.fields["palabras_clave"].widget.attrs.update({"class": "textarea"})
         self.fields["consulta_busqueda"].widget.attrs.update({"class": "textarea"})
         self.fields["modo_busqueda"].widget.attrs.update({"class": "input"})
+        self.fields["consulta_busqueda"].label = "Tema de búsqueda"
+        self.fields["palabras_clave"].label = "Palabras clave a incluir (opcional)"
+        self.fields["herramientas_busqueda"].required = False
 
     def clean(self):
         cleaned_data = super().clean()
@@ -262,6 +277,13 @@ class InvestigacionForm(forms.ModelForm):
             self.add_error(
                 "consulta_busqueda",
                 "Escribe el tema de las noticias.",
+            )
+
+        herramientas = cleaned_data.get("herramientas_busqueda") or []
+        if modo in ("busqueda", "noticias") and not herramientas:
+            self.add_error(
+                "herramientas_busqueda",
+                "Selecciona al menos una herramienta de búsqueda.",
             )
 
         return cleaned_data

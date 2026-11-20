@@ -754,6 +754,11 @@ class InvestigacionProgramada(models.Model):
         default="",
         help_text="Palabra clave o consulta de búsqueda (para modos 'Búsqueda Web Activa' o 'Alerta de Noticias').",
     )
+    herramientas_busqueda = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Motores de búsqueda seleccionados (ej: ['ddg_text','google_news']).",
+    )
     activa = models.BooleanField(default=True)
     ultima_ejecucion = models.DateTimeField(null=True, blank=True)
     creado_en = models.DateTimeField(auto_now_add=True)
