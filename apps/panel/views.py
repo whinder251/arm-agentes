@@ -1445,7 +1445,7 @@ def lista_ejecuciones(request):
     ejecuciones_qs = (
         Ejecucion.objects
         .select_related('tarea__agente__modelo__proveedor')
-        .order_by('-id')
+        .order_by('-tarea__actualizado_en')
     )
     paginator = Paginator(ejecuciones_qs, 50)
     page_number = request.GET.get('page')

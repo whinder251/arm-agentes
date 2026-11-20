@@ -16,38 +16,36 @@
     <button type="submit" class="btn-danger" onclick="return confirm('¿Eliminar las ejecuciones seleccionadas? Esta acción no se puede deshacer.');">Eliminar</button>
     </div>
 
-<table class="tabla">
+<table class="tabla-log-denso">
     <thead>
         <tr>
             <th><input type="checkbox" id="select-all-executions"></th>
             <th>Fecha/Hora</th>
-            <th>Tarea (ID)</th>
-            <th>Proveedor</th>
-            <th>Tokens (In/Out)</th>
-            <th>Duración (ms)</th>
+            <th>Actividad</th>
+            <th>Objetivo</th>
             <th>Estado</th>
+            <th>Duración</th>
         </tr>
     </thead>
     <tbody>
         {% for ejecucion in page_obj %}
         <tr>
             <td><input type="checkbox" name="ejecucion_ids" value="{{ ejecucion.pk }}"></td>
-            <td class="fecha">{{ ejecucion.tarea.actualizado_en|date:"d/m/Y H:i" }}</td>
-            <td class="mono">#{{ ejecucion.tarea.pk }}</td>
+            <td>{{ ejecucion.tarea.actualizado_en|date:"d/m/Y H:i:s" }}</td>
+            <td>{{ ejecucion.tarea.habilidad.nombre|default:"-" }}</td>
             <td>{{ ejecucion.tarea.agente.modelo.proveedor.nombre|default:"-" }}</td>
-            <td>{{ ejecucion.tokens_in }} / {{ ejecucion.tokens_out }}</td>
-            <td>{{ ejecucion.ms }}</td>
             <td>
                 {% if ejecucion.error %}
-                <span class="badge badge-error">error</span>
+                <span class="badge estado-fallo">Fallo</span>
                 {% else %}
-                <span class="badge badge-success">éxito</span>
+                <span class="badge estado-exito">Éxito</span>
                 {% endif %}
             </td>
+            <td>{{ ejecucion.ms }} ms</td>
         </tr>
         {% empty %}
         <tr>
-            <td colspan="7" class="vacio">No hay ejecuciones registradas.</td>
+            <td colspan="6" class="vacio">No hay ejecuciones registradas.</td>
         </tr>
         {% endfor %}
     </tbody>

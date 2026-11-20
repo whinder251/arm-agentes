@@ -1173,3 +1173,38 @@ td input[type="checkbox"] {
   align-items: center;
   margin-top: 1rem;
 }
+
+/* Paso LOG-01: tabla de auditoría densa y horizontal para ejecuciones */
+.tabla-log-denso {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.tabla-log-denso th,
+.tabla-log-denso td {
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--border-subtle);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.tabla-log-denso th {
+  font-weight: 600;
+  color: var(--text-secondary);
+  background-color: var(--bg-surface);
+}
+
+.tabla-log-denso td {
+  color: var(--text-primary);
+}
+
+.estado-exito {
+  background-color: #e6f4ea;
+  color: #137333;
+}
+
+.estado-fallo {
+  background-color: #fce8e6;
+  color: #c5221f;
+}
