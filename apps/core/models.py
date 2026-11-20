@@ -740,19 +740,46 @@ class InvestigacionProgramada(models.Model):
     MODO_NOTICIAS = "noticias"
     MODO_BUSQUEDA_CHOICES = [
         (MODO_SITIO, "Rastreo de Sitio Web"),
-        (MODO_BUSQUEDA, "Búsqueda Web Activa"),
-        (MODO_NOTICIAS, "Alerta de Noticias"),
+        (MODO_BUSQUEDA, "Descubrir contenido"),
+        (MODO_NOTICIAS, "Seguir actualidad"),
     ]
     modo_busqueda = models.CharField(
         max_length=20,
         choices=MODO_BUSQUEDA_CHOICES,
         default=MODO_SITIO,
-        help_text="Modo de búsqueda: rastrear un sitio específico, buscar por palabra clave, o monitorear noticias de Google.",
+        help_text="Modo de búsqueda: rastrear un sitio específico, descubrir contenido por palabra clave, o seguir actualidad de Google News.",
     )
     consulta_busqueda = models.TextField(
         blank=True,
         default="",
-        help_text="Palabra clave o consulta de búsqueda (para modos 'Búsqueda Web Activa' o 'Alerta de Noticias').",
+        help_text="Palabra clave o consulta de búsqueda (para modos 'Descubrir contenido' o 'Seguir actualidad').",
+    )
+    region_idioma = models.CharField(
+        max_length=10,
+        choices=[
+            ("VE:es-419", "Venezuela, español"),
+            ("CO:es", "Colombia"),
+            ("MX:es", "México"),
+            ("AR:es", "Argentina"),
+            ("ES:es", "España"),
+            ("US:en", "EE.UU., inglés"),
+            ("US:es", "EE.UU., español"),
+            ("BR:pt-br", "Brasil, portugués"),
+        ],
+        default="VE:es-419",
+        help_text="Región e idioma para Google News.",
+    )
+    rango_fecha = models.CharField(
+        max_length=10,
+        choices=[
+            ("cualquier", "Cualquier momento"),
+            ("dia", "Últimas 24 horas"),
+            ("semana", "Última semana"),
+            ("mes", "Último mes"),
+            ("ano", "Último año"),
+        ],
+        default="semana",
+        help_text="Rango de fecha para la búsqueda.",
     )
     herramientas_busqueda = models.JSONField(
         default=list,

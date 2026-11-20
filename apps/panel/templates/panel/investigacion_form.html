@@ -53,12 +53,30 @@
                 {% endif %}
             </div>
 
+            <div class="form-group" id="bloque-region">
+                <label class="label" for="{{ form.region_idioma.id_for_label }}">Región e idioma</label>
+                {{ form.region_idioma }}
+                <p class="help-text">{{ form.region_idioma.help_text }}</p>
+                {% if form.region_idioma.errors %}
+                <p class="error-text">{{ form.region_idioma.errors|first }}</p>
+                {% endif %}
+            </div>
+
+            <div class="form-group" id="bloque-rango">
+                <label class="label" for="{{ form.rango_fecha.id_for_label }}">Cuando</label>
+                {{ form.rango_fecha }}
+                <p class="help-text">{{ form.rango_fecha.help_text }}</p>
+                {% if form.rango_fecha.errors %}
+                <p class="error-text">{{ form.rango_fecha.errors|first }}</p>
+                {% endif %}
+            </div>
+
             <div id="bloque-ayuda">
                 <p id="ayuda-sitio" class="help-text">
                     Entra a las URLs que indiques y saca los enlaces de artículos o posts. Úsalo cuando ya sabes qué sitio quieres vigilar: un blog de la competencia, una categoría, un feed RSS o un sitemap. El sistema ignora el menú y el pie de página y se queda con el contenido.
                 </p>
                 <p id="ayuda-busqueda" class="help-text">
-                    Busca en internet por el tema que escribas y procesa las páginas que aparezcan. Úsalo cuando no tienes una fuente fija y quieres descubrir contenido nuevo sobre un asunto. DuckDuckGo devuelve los resultados y el sistema entra a cada uno a extraer el texto.
+                    Busca en internet por el tema que escribas y procesa las páginas que aparezcan, sin restricción de fecha (cualquier fecha). Úsalo cuando no tienes una fuente fija y quieres descubrir contenido nuevo sobre un asunto. DuckDuckGo devuelve los resultados y el sistema entra a cada uno a extraer el texto.
                 </p>
                 <p id="ayuda-noticias" class="help-text">
                     Vigila las noticias indexadas por Google sobre tu tema. Úsalo para seguimiento de actualidad: menciones de marca, tendencias, noticias del sector. Trae titulares con fecha de los últimos días.
@@ -142,6 +160,8 @@
     var bloqueUrls = document.getElementById('bloque-urls');
     var bloqueConsulta = document.getElementById('bloque-consulta');
     var bloqueHerramientas = document.getElementById('bloque-herramientas');
+    var bloqueRegion = document.getElementById('bloque-region');
+    var bloqueRango = document.getElementById('bloque-rango');
     var labelConsulta = document.getElementById('label-consulta-busqueda');
     var campoConsulta = document.getElementById('id_consulta_busqueda');
     var ayudaSitio = document.getElementById('ayuda-sitio');
@@ -159,6 +179,8 @@
         bloqueUrls.style.display = 'none';
         bloqueConsulta.style.display = 'none';
         bloqueHerramientas.style.display = 'none';
+        bloqueRegion.style.display = 'none';
+        bloqueRango.style.display = 'none';
         ayudaSitio.style.display = 'none';
         ayudaBusqueda.style.display = 'none';
         ayudaNoticias.style.display = 'none';
@@ -176,6 +198,8 @@
             ayudaSitio.style.display = 'block';
         } else if (modo === 'busqueda') {
             bloqueConsulta.style.display = 'block';
+            bloqueRegion.style.display = 'block';
+            bloqueRango.style.display = 'block';
             ayudaBusqueda.style.display = 'block';
             if (labelConsulta) {
                 labelConsulta.textContent = 'Tema o palabra clave a buscar';
@@ -185,6 +209,8 @@
             }
         } else if (modo === 'noticias') {
             bloqueConsulta.style.display = 'block';
+            bloqueRegion.style.display = 'block';
+            bloqueRango.style.display = 'block';
             bloqueHerramientas.style.display = 'block';
             ayudaNoticias.style.display = 'block';
             if (labelConsulta) {

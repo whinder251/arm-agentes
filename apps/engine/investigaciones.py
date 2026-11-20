@@ -270,13 +270,33 @@ def _buscar_con_duckduckgo(consulta: str, max_resultados: int = 10) -> tuple[lis
         return [], f"Error de búsqueda DuckDuckGo: {exc}"
 
 
-def _construir_url_google_news(consulta: str) -> str:
-    """Construye la URL del feed RSS de Google News para una consulta."""
+# Mapeo de rango de fecha al parametro tbs de Google News.
+RANGO_TBS = {
+    "cualquier": None,
+    "dia": "qdr:d",
+    "semana": "qdr:w",
+    "mes": "qdr:m",
+    "ano": "qdr:y",
+}
+
+
+def _construir_url_google_news(consulta: str, region_idioma: str, rango_fecha: str) -> str:
+    """Construye la URL del feed RSS de Google News para una consulta.
+
+    Lee region_idioma ("VE:es-419") para gl, hl y ceid, y rango_fecha para tbs.
+    """
     consulta_codificada = quote(consulta, safe="")
-    return (
+    partes = region_idioma.split(":")
+    region = partes[0] if len(partes) > 0 else "VE"
+    idioma = partes[1] if len(partes) > 1 else "es-419"
+    tbs = RANGO_TBS.get(rango_fecha)
+    url = (
         f"https://news.google.com/rss/search?q={consulta_codificada}"
-        f"&hl=es-419&gl=VE&ceid=VE:es-419&tbs=qdr:w"
+        f"&hl={idioma}&gl={region}&ceid={region_idioma}"
     )
+    if tbs:
+        url += f"&tbs={tbs}"
+    return url
 
 
 def _construir_urls_a_procesar(investigacion: InvestigacionProgramada) -> tuple[list[dict], str | None]:
@@ -327,7 +347,9 @@ def _construir_urls_a_procesar(investigacion: InvestigacionProgramada) -> tuple[
                             }
                         )
             elif herramienta == "google_news":
-                url = _construir_url_google_news(consulta)
+                url = _construir_url_google_news(
+                    consulta, investigacion.region_idioma, investigacion.rango_fecha
+                )
                 if url not in urls_vistas:
                     urls_vistas.add(url)
                     entradas.append({"url": url})
@@ -337,7 +359,13 @@ def _construir_urls_a_procesar(investigacion: InvestigacionProgramada) -> tuple[
         consulta = investigacion.consulta_busqueda or ""
         if not consulta.strip():
             return [], None
-        return [{"url": _construir_url_google_news(consulta)}], None
+        return [
+            {
+                "url": _construir_url_google_news(
+                    consulta, investigacion.region_idioma, investigacion.rango_fecha
+                )
+            }
+        ], None
 
     # Modo sitio (default): URLs objetivo línea por línea.
     return [

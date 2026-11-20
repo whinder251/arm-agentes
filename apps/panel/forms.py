@@ -208,6 +208,8 @@ class InvestigacionForm(forms.ModelForm):
             "limite_por_fuente",
             "modo_busqueda",
             "consulta_busqueda",
+            "region_idioma",
+            "rango_fecha",
             "herramientas_busqueda",
         ]
         widgets = {
@@ -223,6 +225,8 @@ class InvestigacionForm(forms.ModelForm):
             "consulta_busqueda": forms.Textarea(
                 attrs={"rows": 2, "class": "textarea"}
             ),
+            "region_idioma": forms.Select(attrs={"class": "input"}),
+            "rango_fecha": forms.Select(attrs={"class": "input"}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -253,6 +257,12 @@ class InvestigacionForm(forms.ModelForm):
         self.fields["modo_busqueda"].widget.attrs.update({"class": "input"})
         self.fields["consulta_busqueda"].label = "Tema de búsqueda"
         self.fields["palabras_clave"].label = "Palabras clave a incluir (opcional)"
+        self.fields["region_idioma"].label = "Región e idioma"
+        self.fields["rango_fecha"].label = "Cuando"
+        self.fields["region_idioma"].required = False
+        self.fields["rango_fecha"].required = False
+        self.fields["region_idioma"].initial = InvestigacionProgramada._meta.get_field("region_idioma").default
+        self.fields["rango_fecha"].initial = InvestigacionProgramada._meta.get_field("rango_fecha").default
         self.fields["herramientas_busqueda"].required = False
 
     def clean(self):
@@ -277,13 +287,6 @@ class InvestigacionForm(forms.ModelForm):
             self.add_error(
                 "consulta_busqueda",
                 "Escribe el tema de las noticias.",
-            )
-
-        herramientas = cleaned_data.get("herramientas_busqueda") or []
-        if modo in ("busqueda", "noticias") and not herramientas:
-            self.add_error(
-                "herramientas_busqueda",
-                "Selecciona al menos una herramienta de búsqueda.",
             )
 
         return cleaned_data

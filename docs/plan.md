@@ -2886,3 +2886,31 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 **Impacto en contratos/datos:** SÃ datos persistidos (nueva columna JSONField `herramientas_busqueda` con default `[]`; filas existentes se leen como `[]`). SÃ contratos internos (`_construir_urls_a_procesar` en modo bÃºsqueda ahora itera herramientas seleccionadas; default `ddg_text` conserva el comportamiento anterior). NO credenciales, NO permisos, NO tareas en cola, NO rotura de URLs ni contratos de API. Retrocompatible.
 
 **Pendiente:** commit (usuario ejecuta `git push` manualmente). ValidaciÃ³n visual en navegador del toggle de `bloque-herramientas` (no ejecutable en este entorno sin navegador).
+## Paso SEARCH-REGION-01 - Parametrizar Google News (region, idioma, rango) y renombrar modos — COMPLETADO
+
+**Objetivo:** Parametrizar gl/hl/ceid/tbs de Google News mediante campos region_idioma y rango_fecha en InvestigacionProgramada, y renombrar labels visibles de modo_busqueda ('busqueda' -> "Descubrir contenido", 'noticias' -> "Seguir actualidad") sin cambiar valores internos (retrocompatible).
+
+**Archivos tocados (4):**
+- apps/core/models.py: renombrados labels de MODO_BUSQUEDA_CHOICES; añadidos region_idioma (default "VE:es-419") y rango_fecha (default "semana") con choices.
+- apps/panel/forms.py: añadidos region_idioma y rango_fecha a Meta.fields y widgets (Select, class input); labels "Región e idioma" y "Cuando"; required=False con initial al default del modelo.
+- apps/panel/templates/panel/investigacion_form.html: bloques region_idioma/rango_fecha visibles solo en modos busqueda/noticias; JS de toggle extendido; ayuda de modo ajustada.
+- apps/engine/investigaciones.py: _construir_url_google_news(consulta, region_idioma, rango_fecha) construye URL dinamica (gl/hl/ceid desde region_idioma, tbs segun rango_fecha); actualizadas las 2 llamadas en _construir_urls_a_procesar rama noticias.
+
+**Migracion generada y aplicada:** apps/core/migrations/0033_investigacionprogramada_rango_fecha_and_more.py.
+
+**Reglas respetadas:**
+- Maximo 4 archivos.
+- NO tocados tests/test_investigaciones.py ni tests/test_panel.py (defaults VE:es-419+semana reproducen la URL antigua).
+- CERO estilos inline, CERO emojis.
+- .venv\Scripts\python.exe linea por linea, sin &&.
+- NO git push.
+
+**Evidencia de aceptacion (ejecutado en esta sesion):**
+- .venv\Scripts\python.exe manage.py check -> System check identified no issues (0 silenced).
+- .venv\Scripts\python.exe manage.py makemigrations core -> 0033... creada.
+- .venv\Scripts\python.exe manage.py migrate -> Applying core.0033... OK.
+- .venv\Scripts\python.exe manage.py makemigrations --check --dry-run -> No changes detected.
+- .venv\Scripts\python.exe -m pytest tests/test_investigaciones.py -q -> 22 passed.
+- .venv\Scripts\python.exe -m pytest tests/test_panel.py -k "investigacion" -q -> 22 passed.
+
+**Impacto en contratos/datos:** SÍ datos persistidos (2 nuevas columnas en core_investigacionprogramada, defaults retrocompatibles para registros existentes). NO contratos de API, NO credenciales, NO permisos, NO tareas en cola, NO compatibilidad (valores internos de modo sin cambios; defaults reproducen URL actual).
