@@ -2652,3 +2652,31 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 
 **Pendiente:** Ninguno para este paso.
 
+
+
+
+## Paso MONITOR-UX-02 - Toggle dinámico por modo, validación condicional y ayuda contextual con labels que cambian — COMPLETADO
+
+**Objetivo:** Que el formulario de Nuevo/Editar Monitoreo deje de exigir URLs cuando el modo es Búsqueda Web o Alerta de Noticias, reordene los campos poniendo el modo arriba, muestre u oculte bloques según el modo, cambie los labels y placeholders de los campos visibles según el modo, y muestre un párrafo de ayuda que explique para qué usar cada modo.
+
+**Archivos tocados (4):**
+- `apps/panel/forms.py`: `urls_objetivo.required=False`; `consulta_busqueda.required=False`; `clean()` sobrescrito con validación condicional por modo: `sitio` exige `urls_objetivo` con error "Indica al menos una URL en modo Rastreo de Sitio Web"; `busqueda` exige `consulta_busqueda` con error "Escribe el tema que quieres buscar"; `noticias` exige `consulta_busqueda` con error "Escribe el tema de las noticias". `help_text` ajustado con sentido sin JS (fallback).
+- `apps/panel/templates/panel/investigacion_form.html`: reordenado Nombre → Modo → #bloque-urls → #bloque-consulta → #bloque-ayuda (3 párrafos con `id="ayuda-sitio|busqueda|noticias"` y textos exactos) → Palabras clave → Límite → Agente → Frecuencia. Cada bloque de campo envuelto en `div` con `id`. JS extendido dentro del `{% block %}` (sin `<style>`, sin tocar `app.css`): al cambiar `modo_busqueda` muestra/oculta bloques y párrafos de ayuda, cambia label y placeholder de consulta ("Tema o palabra clave a buscar" / "Tema de las noticias a vigilar" con placeholders correspondientes), inicializa todo al cargar con el valor actual.
+- `tests/test_panel.py`: 3 pruebas nuevas (`test_crear_investigacion_modo_busqueda_sin_urls`, `test_crear_investigacion_modo_sitio_sin_urls_error`, `test_editar_investigacion_modo_noticias_muestra_ayuda`).
+- `docs/plan.md`: esta sección.
+
+**Reglas respetadas:**
+- Máximo 4 archivos modificados.
+- NO modelos, NO migraciones.
+- CERO estilos inline en CSS; el JS dentro del block del template como el toggle actual.
+- CERO emojis en la UI.
+- Comandos PowerShell línea por línea, sin `&&`.
+- No se ejecutó `git push`.
+- Commit: "MONITOR-UX-02: Toggle por modo, validación condicional y ayuda contextual con labels dinámicos".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "investigacion" -q` → passed (incluye las 3 nuevas).
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo validación de formulario y presentación del template. Retrocompatible: modo "sitio" conserva el comportamiento existente.

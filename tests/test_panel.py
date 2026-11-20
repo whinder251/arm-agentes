@@ -1502,3 +1502,54 @@ class TestPanel(TestCase):
         content = response.content.decode('utf-8')
         assert 'No se pudo generar el reporte. Intenta de nuevo más tarde.' in content
         assert 'detalle interno sensible' not in content
+
+    def test_crear_investigacion_modo_busqueda_sin_urls(self):
+        """POST en modo busqueda con consulta y sin urls_objetivo crea el monitoreo (302)."""
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('crear_investigacion')
+        with patch('apps.panel.views.ejecutar_investigacion') as mock_ejecutar:
+            mock_ejecutar.return_value = {"hallazgos_nuevos": 0, "fallos": []}
+            response = self.client.post(url, {
+                'nombre': 'Busqueda Web',
+                'modo_busqueda': 'busqueda',
+                'consulta_busqueda': 'inteligencia artificial',
+                'frecuencia': 'semanal',
+            })
+        assert response.status_code == 302
+        assert response.url == reverse('lista_investigaciones')
+        assert InvestigacionProgramada.objects.filter(nombre='Busqueda Web').exists()
+        inv = InvestigacionProgramada.objects.get(nombre='Busqueda Web')
+        assert inv.modo_busqueda == 'busqueda'
+        assert inv.consulta_busqueda == 'inteligencia artificial'
+        assert inv.urls_objetivo == ''
+
+    def test_crear_investigacion_modo_sitio_sin_urls_error(self):
+        """POST en modo sitio sin urls_objetivo devuelve error de validación en el form."""
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('crear_investigacion')
+        response = self.client.post(url, {
+            'nombre': 'Sitio Sin URLs',
+            'modo_busqueda': 'sitio',
+            'frecuencia': 'semanal',
+        })
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        assert 'Indica al menos una URL en modo Rastreo de Sitio Web.' in content
+        assert not InvestigacionProgramada.objects.exists()
+
+    def test_editar_investigacion_modo_noticias_muestra_ayuda(self):
+        """GET del formulario en modo noticias contiene ayuda-noticias y label dinamico."""
+        inv = InvestigacionProgramada.objects.create(
+            nombre='Noticias Test',
+            urls_objetivo='https://ejemplo.com/rss',
+            modo_busqueda='noticias',
+            consulta_busqueda='pdvsa',
+            frecuencia='semanal',
+            activa=True,
+        )
+        self.client.login(username='testuser', password='testpass123')
+        response = self.client.get(reverse('editar_investigacion', args=[inv.pk]))
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        assert 'Vigila las noticias indexadas por Google sobre tu tema.' in content
+        assert 'Tema de las noticias a vigilar' in content

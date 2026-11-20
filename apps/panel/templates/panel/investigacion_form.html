@@ -18,21 +18,42 @@
             </div>
 
             <div class="form-group">
+                <label class="label" for="{{ form.modo_busqueda.id_for_label }}">Modo de búsqueda</label>
+                {{ form.modo_busqueda }}
+                <p class="help-text">Elige cómo el sistema debe buscar contenido para esta fuente.</p>
+                {% if form.modo_busqueda.errors %}
+                <p class="error-text">{{ form.modo_busqueda.errors|first }}</p>
+                {% endif %}
+            </div>
+
+            <div class="form-group" id="bloque-urls">
                 <label class="label" for="{{ form.urls_objetivo.id_for_label }}">URLs objetivo</label>
                 {{ form.urls_objetivo }}
-                <p class="help-text">Pega una URL por línea (RSS o Sitemap).</p>
+                <p class="help-text">{{ form.urls_objetivo.help_text }}</p>
                 {% if form.urls_objetivo.errors %}
                 <p class="error-text">{{ form.urls_objetivo.errors|first }}</p>
                 {% endif %}
             </div>
 
-            <div class="form-group">
-                <label class="label" for="{{ form.agente.id_for_label }}">Agente encargado del análisis</label>
-                {{ form.agente }}
-                <p class="help-text">Si se deja vacío, se usa el analista por defecto.</p>
-                {% if form.agente.errors %}
-                <p class="error-text">{{ form.agente.errors|first }}</p>
+            <div class="form-group" id="bloque-consulta">
+                <label class="label" id="label-consulta-busqueda" for="{{ form.consulta_busqueda.id_for_label }}">Consulta de búsqueda</label>
+                {{ form.consulta_busqueda }}
+                <p class="help-text">{{ form.consulta_busqueda.help_text }}</p>
+                {% if form.consulta_busqueda.errors %}
+                <p class="error-text">{{ form.consulta_busqueda.errors|first }}</p>
                 {% endif %}
+            </div>
+
+            <div id="bloque-ayuda">
+                <p id="ayuda-sitio" class="help-text">
+                    Entra a las URLs que indiques y saca los enlaces de artículos o posts. Úsalo cuando ya sabes qué sitio quieres vigilar: un blog de la competencia, una categoría, un feed RSS o un sitemap. El sistema ignora el menú y el pie de página y se queda con el contenido.
+                </p>
+                <p id="ayuda-busqueda" class="help-text">
+                    Busca en internet por el tema que escribas y procesa las páginas que aparezcan. Úsalo cuando no tienes una fuente fija y quieres descubrir contenido nuevo sobre un asunto. DuckDuckGo devuelve los resultados y el sistema entra a cada uno a extraer el texto.
+                </p>
+                <p id="ayuda-noticias" class="help-text">
+                    Vigila las noticias indexadas por Google sobre tu tema. Úsalo para seguimiento de actualidad: menciones de marca, tendencias, noticias del sector. Trae titulares con fecha de los últimos días.
+                </p>
             </div>
 
             <div class="form-group">
@@ -54,20 +75,11 @@
             </div>
 
             <div class="form-group">
-                <label class="label" for="{{ form.modo_busqueda.id_for_label }}">Modo de búsqueda</label>
-                {{ form.modo_busqueda }}
-                <p class="help-text">Elige cómo el sistema debe buscar contenido para esta fuente.</p>
-                {% if form.modo_busqueda.errors %}
-                <p class="error-text">{{ form.modo_busqueda.errors|first }}</p>
-                {% endif %}
-            </div>
-
-            <div class="form-group" id="grupo-consulta-busqueda">
-                <label class="label" for="{{ form.consulta_busqueda.id_for_label }}">Consulta de búsqueda</label>
-                {{ form.consulta_busqueda }}
-                <p class="help-text">Palabra clave o consulta (usada en modos 'Búsqueda Web Activa' y 'Alerta de Noticias').</p>
-                {% if form.consulta_busqueda.errors %}
-                <p class="error-text">{{ form.consulta_busqueda.errors|first }}</p>
+                <label class="label" for="{{ form.agente.id_for_label }}">Agente encargado del análisis</label>
+                {{ form.agente }}
+                <p class="help-text">Si se deja vacío, se usa el analista por defecto.</p>
+                {% if form.agente.errors %}
+                <p class="error-text">{{ form.agente.errors|first }}</p>
                 {% endif %}
             </div>
 
@@ -118,18 +130,57 @@
 
 (function() {
     var selectModo = document.getElementById('id_modo_busqueda');
-    var grupoConsulta = document.getElementById('grupo-consulta-busqueda');
+    var bloqueUrls = document.getElementById('bloque-urls');
+    var bloqueConsulta = document.getElementById('bloque-consulta');
+    var labelConsulta = document.getElementById('label-consulta-busqueda');
+    var campoConsulta = document.getElementById('id_consulta_busqueda');
+    var ayudaSitio = document.getElementById('ayuda-sitio');
+    var ayudaBusqueda = document.getElementById('ayuda-busqueda');
+    var ayudaNoticias = document.getElementById('ayuda-noticias');
 
-    if (!selectModo || !grupoConsulta) {
+    if (!selectModo) {
         return;
     }
 
     function actualizarVisibilidad() {
         var modo = selectModo.value;
-        if (modo === 'busqueda' || modo === 'noticias') {
-            grupoConsulta.style.display = 'block';
-        } else {
-            grupoConsulta.style.display = 'none';
+
+        // Ocultar todo por defecto
+        bloqueUrls.style.display = 'none';
+        bloqueConsulta.style.display = 'none';
+        ayudaSitio.style.display = 'none';
+        ayudaBusqueda.style.display = 'none';
+        ayudaNoticias.style.display = 'none';
+
+        // Resetear label y placeholder por defecto
+        if (labelConsulta) {
+            labelConsulta.textContent = 'Consulta de búsqueda';
+        }
+        if (campoConsulta) {
+            campoConsulta.placeholder = '';
+        }
+
+        if (modo === 'sitio') {
+            bloqueUrls.style.display = 'block';
+            ayudaSitio.style.display = 'block';
+        } else if (modo === 'busqueda') {
+            bloqueConsulta.style.display = 'block';
+            ayudaBusqueda.style.display = 'block';
+            if (labelConsulta) {
+                labelConsulta.textContent = 'Tema o palabra clave a buscar';
+            }
+            if (campoConsulta) {
+                campoConsulta.placeholder = 'ej: venezuela economia, inteligencia artificial, dolar paralelo';
+            }
+        } else if (modo === 'noticias') {
+            bloqueConsulta.style.display = 'block';
+            ayudaNoticias.style.display = 'block';
+            if (labelConsulta) {
+                labelConsulta.textContent = 'Tema de las noticias a vigilar';
+            }
+            if (campoConsulta) {
+                campoConsulta.placeholder = 'ej: pdvsa, cripto venezuela, maduro';
+            }
         }
     }
 

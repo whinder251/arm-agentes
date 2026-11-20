@@ -216,7 +216,21 @@ class InvestigacionForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["nombre"].widget.attrs.update({"class": "input"})
+        self.fields["urls_objetivo"].required = False
         self.fields["urls_objetivo"].widget.attrs.update({"class": "textarea"})
+        self.fields["urls_objetivo"].help_text = (
+            "Solo obligatorio en modo Rastreo de Sitio Web. "
+            "Pega una URL por línea (RSS, Sitemap o URL de categoría de blog)."
+        )
+        self.fields["modo_busqueda"].required = False
+        self.fields["modo_busqueda"].initial = "sitio"
+        self.fields["consulta_busqueda"].required = False
+        self.fields["consulta_busqueda"].widget.attrs.update({"class": "textarea"})
+        self.fields["consulta_busqueda"].help_text = (
+            "Obligatorio en modo Búsqueda Web Activa y Alerta de Noticias. "
+            "Escribe el tema que quieres buscar o vigilar."
+        )
+        self.fields["limite_por_fuente"].required = False
         self.fields["limite_por_fuente"].widget.attrs.update(
             {"class": "input"}
         )
@@ -224,3 +238,30 @@ class InvestigacionForm(forms.ModelForm):
         self.fields["frecuencia"].widget.attrs.update({"class": "segmented-radio"})
         self.fields["palabras_clave"].widget.attrs.update({"class": "textarea"})
         self.fields["consulta_busqueda"].widget.attrs.update({"class": "textarea"})
+        self.fields["modo_busqueda"].widget.attrs.update({"class": "input"})
+
+    def clean(self):
+        cleaned_data = super().clean()
+        modo = cleaned_data.get("modo_busqueda") or "sitio"
+        urls = cleaned_data.get("urls_objetivo")
+        consulta = cleaned_data.get("consulta_busqueda")
+
+        if modo == "sitio" and (not urls or not urls.strip()):
+            self.add_error(
+                "urls_objetivo",
+                "Indica al menos una URL en modo Rastreo de Sitio Web.",
+            )
+
+        if modo == "busqueda" and (not consulta or not consulta.strip()):
+            self.add_error(
+                "consulta_busqueda",
+                "Escribe el tema que quieres buscar.",
+            )
+
+        if modo == "noticias" and (not consulta or not consulta.strip()):
+            self.add_error(
+                "consulta_busqueda",
+                "Escribe el tema de las noticias.",
+            )
+
+        return cleaned_data
