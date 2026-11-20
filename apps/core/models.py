@@ -731,6 +731,10 @@ class InvestigacionProgramada(models.Model):
         default="",
         help_text="Términos específicos para enfocar o filtrar el análisis, separados por comas.",
     )
+    limite_por_fuente = models.PositiveIntegerField(
+        default=15,
+        help_text="Máximo de artículos a procesar por cada URL.",
+    )
     activa = models.BooleanField(default=True)
     ultima_ejecucion = models.DateTimeField(null=True, blank=True)
     creado_en = models.DateTimeField(auto_now_add=True)

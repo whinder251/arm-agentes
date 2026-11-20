@@ -210,7 +210,9 @@ def ejecutar_investigacion(investigacion: InvestigacionProgramada) -> dict:
             if entradas and "error" in entradas[0]:
                 fallos.append({"url": url, "error": entradas[0]["error"]})
                 continue
-            for entrada in entradas:
+            # Límite de artículos por URL antes de filtrar y guardar.
+            entradas_limitadas = entradas[: investigacion.limite_por_fuente]
+            for entrada in entradas_limitadas:
                 url_articulo = entrada.get("url") or ""
                 if not url_articulo:
                     continue
@@ -244,7 +246,9 @@ def ejecutar_investigacion(investigacion: InvestigacionProgramada) -> dict:
             if items and "error" in items[0]:
                 fallos.append({"url": url, "error": items[0]["error"]})
                 continue
-            for item in items:
+            # Límite de artículos por URL antes de filtrar y guardar.
+            items_limitados = items[: investigacion.limite_por_fuente]
+            for item in items_limitados:
                 url_articulo = item.get("link") or ""
                 if not url_articulo:
                     continue

@@ -45,6 +45,15 @@
             </div>
 
             <div class="form-group">
+                <label class="label" for="{{ form.limite_por_fuente.id_for_label }}">Límite de artículos por URL</label>
+                {{ form.limite_por_fuente }}
+                <p class="help-text">Máximo de artículos a evaluar de cada fuente (por defecto 15).</p>
+                {% if form.limite_por_fuente.errors %}
+                <p class="error-text">{{ form.limite_por_fuente.errors|first }}</p>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
                 <label class="label" for="frecuencia">Frecuencia de revisión</label>
                 <div class="segmented" id="segmented-frecuencia">
                     {% for valor, etiqueta in form.fields.frecuencia.choices %}
