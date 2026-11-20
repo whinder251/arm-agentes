@@ -21,7 +21,11 @@ from django.utils import timezone
 from urllib.parse import urljoin
 from duckduckgo_search import DDGS
 
-from apps.core.models import Hallazgo, InvestigacionProgramada
+from apps.core.models import (
+    Hallazgo,
+    InvestigacionProgramada,
+    RegistroEjecucionMonitoreo,
+)
 from apps.engine.tool_executor import (
     _parsear_rss,
     _parsear_sitemap,
@@ -328,6 +332,12 @@ def ejecutar_investigacion(investigacion: InvestigacionProgramada) -> dict:
     Nunca lanza excepciones por errores de red de una URL: las captura,
     registra en fallos y continúa con la siguiente.
     """
+    registro = RegistroEjecucionMonitoreo.objects.create(
+        investigacion=investigacion,
+        inicio=timezone.now(),
+        estado="parcial",
+    )
+
     ejecutadas = 0
     hallazgos_nuevos = 0
     filtrados = 0
@@ -342,6 +352,19 @@ def ejecutar_investigacion(investigacion: InvestigacionProgramada) -> dict:
                 "error": error_urls,
             }
         )
+        # Fallo en la etapa de descubrimiento: registrar como fallido,
+        # no tocar ultima_ejecucion para evitar desplazamiento horario.
+        registro.estado = "fallido"
+        registro.fin = timezone.now()
+        registro.fallos_detalle = fallos
+        registro.save(update_fields=["estado", "fin", "fallos_detalle"])
+        return {
+            "ejecutadas": ejecutadas,
+            "hallazgos_nuevos": hallazgos_nuevos,
+            "filtrados": filtrados,
+            "fallos": fallos,
+        }
+
     else:
         for url in urls_a_procesar:
             # Validar SSRF antes de cada petición (seguridad.md §5).
@@ -458,9 +481,20 @@ def ejecutar_investigacion(investigacion: InvestigacionProgramada) -> dict:
                             hallazgo.save(update_fields=["contenido_extraido"])
                     hallazgos_nuevos += 1
 
-    # Actualizar última ejecución fuera de cualquier transacción abierta
-    # durante llamadas de red (seguridad.md §9: no mantener transacciones abiertas).
-    investigacion.ultima_ejecucion = timezone.now()
+    # Al final de una ejecución exitosa o parcial.
+    fin = timezone.now()
+    estado = "exitoso" if not fallos else "parcial"
+    registro.fin = fin
+    registro.estado = estado
+    registro.hallazgos_nuevos = hallazgos_nuevos
+    registro.filtrados = filtrados
+    registro.fallos_detalle = fallos
+    registro.save(
+        update_fields=["fin", "estado", "hallazgos_nuevos", "filtrados", "fallos_detalle"]
+    )
+
+    # Solo actualizar ultima_ejecucion si no hubo fallo en la etapa de descubrimiento.
+    investigacion.ultima_ejecucion = fin
     investigacion.save(update_fields=["ultima_ejecucion"])
 
     return {

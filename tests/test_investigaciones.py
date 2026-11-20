@@ -5,7 +5,11 @@ Todas las peticiones HTTP se mockean; no se llama a APIs reales.
 import pytest
 from unittest.mock import Mock, patch
 from django.utils import timezone
-from apps.core.models import InvestigacionProgramada, Hallazgo
+from apps.core.models import (
+    InvestigacionProgramada,
+    Hallazgo,
+    RegistroEjecucionMonitoreo,
+)
 from apps.engine.investigaciones import ejecutar_investigacion, _detectar_tipo
 
 
@@ -544,3 +548,39 @@ class TestEjecutarInvestigacion:
         assert len(resultado["fallos"]) == 1
         assert "competencia SEO" in resultado["fallos"][0]["url"]
         assert "Rate limit" in resultado["fallos"][0]["error"]
+
+    def test_busqueda_fallida_crea_registro_fallido_sin_tocar_ultima_ejecucion(self):
+        """Si DDGS falla, se crea RegistroEjecucionMonitoreo con estado='fallido',
+        ultima_ejecucion no cambia y el dict de retorno contiene el fallo."""
+        investigacion = self._crear_investigacion(
+            urls="",
+            modo_busqueda="busqueda",
+            consulta_busqueda="competencia SEO",
+        )
+        ultima_antes = investigacion.ultima_ejecucion
+
+        class _DDGSMockFallo:
+            def text(self, consulta, max_results):
+                raise Exception("Rate limit")
+
+        with patch("apps.engine.investigaciones.DDGS", return_value=_DDGSMockFallo()):
+            resultado = ejecutar_investigacion(investigacion)
+
+        investigacion.refresh_from_db()
+        assert resultado["ejecutadas"] == 0
+        assert resultado["hallazgos_nuevos"] == 0
+        assert len(resultado["fallos"]) == 1
+        assert "competencia SEO" in resultado["fallos"][0]["url"]
+        assert "Rate limit" in resultado["fallos"][0]["error"]
+
+        registros = RegistroEjecucionMonitoreo.objects.filter(investigacion=investigacion)
+        assert registros.count() == 1
+        reg = registros.first()
+        assert reg.estado == "fallido"
+        assert reg.fin is not None
+        assert reg.hallazgos_nuevos == 0
+        assert reg.filtrados == 0
+        assert len(reg.fallos_detalle) == 1
+        assert "Rate limit" in reg.fallos_detalle[0]["error"]
+
+        assert investigacion.ultima_ejecucion == ultima_antes

@@ -832,3 +832,58 @@ class Hallazgo(models.Model):
 
     def __str__(self):
         return self.titulo or self.url_articulo
+
+
+class RegistroEjecucionMonitoreo(models.Model):
+    """Registro histórico de cada ejecución de una investigación programada.
+
+    Permite auditar cuándo se ejecutó un monitoreo, cuántos hallazgos encontró,
+    cuántos se filtraron y si hubo fallos, sin modificar ultima_ejecucion cuando
+    la etapa de descubrimiento falla (evita desplazamiento horario acumulativo).
+    """
+
+    investigacion = models.ForeignKey(
+        InvestigacionProgramada,
+        on_delete=models.CASCADE,
+        related_name="ejecuciones_monitoreo",
+        help_text="Investigación programada que se ejecutó.",
+    )
+    inicio = models.DateTimeField(help_text="Fecha y hora de inicio de la ejecución.")
+    fin = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Fecha y hora de fin de la ejecución (nula si aún no termina).",
+    )
+    estado = models.CharField(
+        max_length=10,
+        choices=[
+            ("exitoso", "Exitoso"),
+            ("parcial", "Parcial"),
+            ("fallido", "Fallido"),
+        ],
+        default="exitoso",
+        help_text="Resultado general de la ejecución.",
+    )
+    hallazgos_nuevos = models.IntegerField(
+        default=0,
+        help_text="Número de hallazgos nuevos guardados en esta ejecución.",
+    )
+    filtrados = models.IntegerField(
+        default=0,
+        help_text="Número de hallazgos filtrados por palabras clave.",
+    )
+    fallos_detalle = models.JSONField(
+        default=list,
+        help_text="Lista de errores específicos de esta ejecución.",
+    )
+
+    class Meta:
+        verbose_name = "registro de ejecución de monitoreo"
+        verbose_name_plural = "registros de ejecución de monitoreo"
+        ordering = ["-inicio"]
+        indexes = [
+            models.Index(fields=["investigacion", "-inicio"]),
+        ]
+
+    def __str__(self):
+        return f"Ejecución {self.pk} de {self.investigacion.nombre} ({self.estado})"

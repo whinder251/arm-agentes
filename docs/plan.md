@@ -2680,3 +2680,32 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "investigacion" -q` → passed (incluye las 3 nuevas).
 
 **Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo validación de formulario y presentación del template. Retrocompatible: modo "sitio" conserva el comportamiento existente.
+
+## Paso M.1a - Trazabilidad de ejecuciones de monitoreo y corrección de desplazamiento horario — COMPLETADO
+
+**Objetivo:** Crear un registro histórico visible de cada ejecución de monitoreo (`RegistroEjecucionMonitoreo`) para que una búsqueda fallida deje rastro y no marque la investigación como "ejecutada" sin evidencia, evitando el desplazamiento horario acumulativo (`ultima_ejecucion` solo avanza si no hubo fallo en la etapa de descubrimiento).
+
+**Archivos tocados (4):**
+- `apps/core/models.py`: creado modelo `RegistroEjecucionMonitoreo` con FK a `InvestigacionProgramada`, `inicio`, `fin` (null), `estado` (exitoso/parcial/fallido), `hallazgos_nuevos`, `filtrados` y `fallos_detalle` (JSONField).
+- `apps/engine/investigaciones.py`: al inicio de `ejecutar_investigacion` se crea el registro con `inicio=timezone.now()` y estado='parcial'; si `_construir_urls_a_procesar` devuelve error, el registro se marca 'fallido' con el error en `fallos_detalle` y **no** se toca `investigacion.ultima_ejecucion`; al final de ejecución exitosa/parcial se actualiza el registro con `fin`, `estado`, contadores y `fallos_detalle`; `ultima_ejecucion` solo se actualiza si no hubo fallo en la etapa de descubrimiento.
+- `apps/panel/templates/panel/investigacion_detalle.html`: añadida sección "Historial de Ejecuciones" con tabla compacta (`.tabla`) con columnas Fecha/Hora, Duración, Estado (badge `.badge-success`/`.badge-warning`/`.badge-error`), Nuevos, Filtrados y Errores (primer error si fallido/parcial).
+- `tests/test_investigaciones.py`: nueva prueba `test_busqueda_fallida_crea_registro_fallido_sin_tocar_ultima_ejecucion` que mockea DDGS lanzando excepción y verifica: registro con estado='fallido', `ultima_ejecucion` sin cambios, y dict de retorno con el fallo.
+
+**Migración generada y aplicada:** `apps/core/migrations/0031_registroejecucionmonitoreo.py`.
+
+**Reglas respetadas:**
+- Máximo 4 archivos modificados.
+- CERO estilos inline en CSS (usando clases existentes `.tabla`, `.badge`, `.badge-success`, `.badge-warning`, `.badge-error`).
+- CERO emojis en la UI.
+- `.venv\Scripts\python.exe` línea por línea, sin `&&`.
+- No se ejecutó `git push`.
+- Commit pendiente: "M.1a: Trazabilidad de ejecuciones de monitoreo y corrección de desplazamiento horario".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations core` → migración `0031_registroejecucionmonitoreo` creada.
+- `.venv\Scripts\python.exe manage.py migrate` → `Applying core.0031_registroejecucionmonitoreo... OK`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_investigaciones.py -q` → `19 passed` (incluye la nueva prueba de ejecución fallida).
+
+**Impacto en contratos/datos:** SÍ datos persistidos (nueva tabla `core_registroejecucionmonitoreo` vía migración 0031). NO contratos de API (firma de `ejecutar_investigacion` conservada), NO credenciales, NO permisos, NO tareas en cola. Retrocompatible: ejecución exitosa y parcial conservan el comportamiento previo; solo cambia el manejo de fallo en la etapa de descubrimiento.

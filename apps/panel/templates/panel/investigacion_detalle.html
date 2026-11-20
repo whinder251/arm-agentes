@@ -72,6 +72,62 @@
         {% endif %}
     </div>
 </div>
+{% endif %}
+
+{% if investigacion.ejecuciones_monitoreo.all %}
+<div class="card">
+    <h3>Historial de Ejecuciones</h3>
+    <table class="tabla">
+        <thead>
+            <tr>
+                <th>Fecha/Hora</th>
+                <th>Duración</th>
+                <th>Estado</th>
+                <th>Nuevos</th>
+                <th>Filtrados</th>
+                <th>Errores</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for ejecucion in investigacion.ejecuciones_monitoreo.all %}
+        <tr>
+            <td>{{ ejecucion.inicio|date:"d/m/Y H:i" }}</td>
+            <td>
+                {% if ejecucion.fin %}
+                    {{ ejecucion.fin|date:"H:i:s" }}
+                {% else %}
+                    <span class="help-text">—</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if ejecucion.estado == "exitoso" %}
+                <span class="badge badge-success">{{ ejecucion.get_estado_display }}</span>
+                {% elif ejecucion.estado == "parcial" %}
+                <span class="badge badge-warning">{{ ejecucion.get_estado_display }}</span>
+                {% else %}
+                <span class="badge badge-error">{{ ejecucion.get_estado_display }}</span>
+                {% endif %}
+            </td>
+            <td>{{ ejecucion.hallazgos_nuevos }}</td>
+            <td>{{ ejecucion.filtrados }}</td>
+            <td>
+                {% if ejecucion.estado == "fallido" or ejecucion.estado == "parcial" %}
+                {% if ejecucion.fallos_detalle %}
+                    {{ ejecucion.fallos_detalle.0|truncatechars:80 }}
+                {% else %}
+                    <span class="help-text">—</span>
+                {% endif %}
+                {% else %}
+                    <span class="help-text">—</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
 {% else %}
 <div class="vacio">
     <p class="help-text">Aún no se han detectado artículos. Ejecuta el monitoreo manualmente.</p>
