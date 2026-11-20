@@ -341,17 +341,20 @@ def crear_tarea_desde_hallazgo(request, hallazgo_pk):
     """Crea una Tarea de generación de contenido pre-llenada desde un Hallazgo."""
     hallazgo = get_object_or_404(Hallazgo, pk=hallazgo_pk)
 
+    # Idempotencia: no duplicar tareas para el mismo hallazgo
+    if Tarea.objects.filter(payload__hallazgo_id=hallazgo.pk).exists():
+        messages.warning(request, "Ya existe una tarea para este hallazgo.")
+        return redirect("lista_tareas")
+
     investigacion = hallazgo.investigacion
     agente = investigacion.agente if investigacion else None
 
-    habilidad = None
-    if agente:
-        habilidad = agente.habilidades.first()
-    if not habilidad:
-        habilidad = Habilidad.objects.first()
-    if not habilidad:
-        messages.error(request, "No hay ninguna habilidad disponible para crear la tarea.")
+    # Validación estricta de habilidad: no usar fallback arbitrario
+    if not agente or not agente.habilidades.exists():
+        messages.error(request, "El agente asignado no tiene habilidades configuradas.")
         return redirect("lista_tareas")
+
+    habilidad = agente.habilidades.first()
 
     tarea = Tarea.objects.create(
         agente=agente,
@@ -360,10 +363,12 @@ def crear_tarea_desde_hallazgo(request, hallazgo_pk):
         payload={
             "accion": "escribir_desde_hallazgo",
             "hallazgo_id": hallazgo.pk,
-            "titulo_base": hallazgo.titulo or "",
-            "contenido_base": hallazgo.contenido_extraido or "",
+            "texto": f"{hallazgo.titulo or ''}\n\n{hallazgo.contenido_extraido or ''}",
         },
     )
+
+    # Encolado real en Huey
+    ejecutar_tarea(tarea.pk)
 
     messages.success(
         request,

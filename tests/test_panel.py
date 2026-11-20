@@ -1,5 +1,6 @@
 import pytest
 from unittest.mock import Mock, patch
+from django.contrib import messages
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
@@ -1393,7 +1394,7 @@ class TestPanel(TestCase):
         assert not Hallazgo.objects.filter(pk=hallazgo.pk).exists()
 
     def test_crear_tarea_desde_hallazgo(self):
-        """POST a crear_tarea_desde_hallazgo crea una Tarea con el payload del hallazgo."""
+        """POST crea tarea con payload 'texto' y encola en Huey."""
         inv = InvestigacionProgramada.objects.create(
             nombre='Con Hallazgo',
             urls_objetivo='https://ejemplo.com/rss',
@@ -1410,9 +1411,10 @@ class TestPanel(TestCase):
             contenido_extraido='Texto extraído del artículo.',
         )
         self.client.login(username='testuser', password='testpass123')
-        response = self.client.post(
-            reverse('crear_tarea_desde_hallazgo', args=[hallazgo.pk])
-        )
+        with patch('apps.panel.views.ejecutar_tarea') as mock_ejecutar:
+            response = self.client.post(
+                reverse('crear_tarea_desde_hallazgo', args=[hallazgo.pk])
+            )
         assert response.status_code == 302
         assert response.url == reverse('lista_tareas')
 
@@ -1422,8 +1424,78 @@ class TestPanel(TestCase):
         assert tarea.agente == self.agente
         assert tarea.payload['accion'] == 'escribir_desde_hallazgo'
         assert tarea.payload['hallazgo_id'] == hallazgo.pk
-        assert tarea.payload['titulo_base'] == hallazgo.titulo
-        assert tarea.payload['contenido_base'] == hallazgo.contenido_extraido
+        assert tarea.payload['texto'] == 'Artículo de prueba\n\nTexto extraído del artículo.'
+        assert 'titulo_base' not in tarea.payload
+        assert 'contenido_base' not in tarea.payload
+        mock_ejecutar.assert_called_once_with(tarea.pk)
+
+    def test_crear_tarea_desde_hallazgo_idempotente(self):
+        """Segundo POST para el mismo hallazgo no crea segunda tarea."""
+        inv = InvestigacionProgramada.objects.create(
+            nombre='Con Hallazgo',
+            urls_objetivo='https://ejemplo.com/rss',
+            frecuencia='semanal',
+            activa=True,
+            agente=self.agente,
+        )
+        hallazgo = Hallazgo.objects.create(
+            investigacion=inv,
+            url_fuente='https://ejemplo.com/rss',
+            tipo_fuente='rss',
+            titulo='Artículo de prueba',
+            url_articulo='https://ejemplo.com/articulo',
+            contenido_extraido='Texto extraído del artículo.',
+        )
+        self.client.login(username='testuser', password='testpass123')
+        with patch('apps.panel.views.ejecutar_tarea'):
+            self.client.post(
+                reverse('crear_tarea_desde_hallazgo', args=[hallazgo.pk])
+            )
+        assert Tarea.objects.filter(payload__hallazgo_id=hallazgo.pk).count() == 1
+        with patch('apps.panel.views.ejecutar_tarea') as mock_ejecutar:
+            response = self.client.post(
+                reverse('crear_tarea_desde_hallazgo', args=[hallazgo.pk])
+            )
+        assert response.status_code == 302
+        assert response.url == reverse('lista_tareas')
+        assert Tarea.objects.filter(payload__hallazgo_id=hallazgo.pk).count() == 1
+        mock_ejecutar.assert_not_called()
+        mensajes = list(messages.get_messages(response.wsgi_request))
+        assert any('Ya existe una tarea para este hallazgo' in str(m) for m in mensajes)
+
+    def test_crear_tarea_desde_hallazgo_sin_habilidades(self):
+        """Agente sin habilidades muestra error y no crea tarea."""
+        agente_sin_habilidades = Agente.objects.create(
+            nombre='Sin Habilidades',
+            modelo=self.modelo,
+            rol='Eres un agente sin habilidades.',
+        )
+        inv = InvestigacionProgramada.objects.create(
+            nombre='Sin Habilidades',
+            urls_objetivo='https://ejemplo.com/rss',
+            frecuencia='semanal',
+            activa=True,
+            agente=agente_sin_habilidades,
+        )
+        hallazgo = Hallazgo.objects.create(
+            investigacion=inv,
+            url_fuente='https://ejemplo.com/rss',
+            tipo_fuente='rss',
+            titulo='Artículo de prueba',
+            url_articulo='https://ejemplo.com/articulo',
+            contenido_extraido='Texto extraído del artículo.',
+        )
+        self.client.login(username='testuser', password='testpass123')
+        with patch('apps.panel.views.ejecutar_tarea') as mock_ejecutar:
+            response = self.client.post(
+                reverse('crear_tarea_desde_hallazgo', args=[hallazgo.pk])
+            )
+        assert response.status_code == 302
+        assert response.url == reverse('lista_tareas')
+        assert not Tarea.objects.filter(payload__hallazgo_id=hallazgo.pk).exists()
+        mock_ejecutar.assert_not_called()
+        mensajes = list(messages.get_messages(response.wsgi_request))
+        assert any('El agente asignado no tiene habilidades configuradas' in str(m) for m in mensajes)
 
     def test_detalle_investigacion_muestra_boton_reporte(self):
         """El GET conserva los hallazgos y ofrece el botón de reporte."""
