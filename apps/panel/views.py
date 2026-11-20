@@ -337,6 +337,43 @@ def eliminar_tarea(request, pk):
 
 @login_required
 @require_POST
+def crear_tarea_desde_hallazgo(request, hallazgo_pk):
+    """Crea una Tarea de generación de contenido pre-llenada desde un Hallazgo."""
+    hallazgo = get_object_or_404(Hallazgo, pk=hallazgo_pk)
+
+    investigacion = hallazgo.investigacion
+    agente = investigacion.agente if investigacion else None
+
+    habilidad = None
+    if agente:
+        habilidad = agente.habilidades.first()
+    if not habilidad:
+        habilidad = Habilidad.objects.first()
+    if not habilidad:
+        messages.error(request, "No hay ninguna habilidad disponible para crear la tarea.")
+        return redirect("lista_tareas")
+
+    tarea = Tarea.objects.create(
+        agente=agente,
+        habilidad=habilidad,
+        estado=Tarea.Estado.COLA,
+        payload={
+            "accion": "escribir_desde_hallazgo",
+            "hallazgo_id": hallazgo.pk,
+            "titulo_base": hallazgo.titulo or "",
+            "contenido_base": hallazgo.contenido_extraido or "",
+        },
+    )
+
+    messages.success(
+        request,
+        f"Tarea creada desde el hallazgo: {hallazgo.titulo}",
+    )
+    return redirect("lista_tareas")
+
+
+@login_required
+@require_POST
 def acciones_lote_tareas(request):
     action = request.POST.get('action')
     task_ids = request.POST.getlist('task_ids')

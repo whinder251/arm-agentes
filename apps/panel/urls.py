@@ -67,4 +67,5 @@ urlpatterns = [
     path('monitoreo/<int:pk>/eliminar/', views.eliminar_investigacion, name='eliminar_investigacion'),
     path('monitoreo/<int:pk>/ejecutar/', views.ejecutar_investigacion_ahora, name='ejecutar_investigacion_ahora'),
     path('monitoreo/<int:pk>/detalle/', views.detalle_investigacion, name='detalle_investigacion'),
+    path('hallazgos/<int:hallazgo_pk>/crear-tarea/', views.crear_tarea_desde_hallazgo, name='crear_tarea_desde_hallazgo'),
 ]

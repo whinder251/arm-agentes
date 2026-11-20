@@ -1392,6 +1392,39 @@ class TestPanel(TestCase):
         assert not InvestigacionProgramada.objects.filter(pk=inv.pk).exists()
         assert not Hallazgo.objects.filter(pk=hallazgo.pk).exists()
 
+    def test_crear_tarea_desde_hallazgo(self):
+        """POST a crear_tarea_desde_hallazgo crea una Tarea con el payload del hallazgo."""
+        inv = InvestigacionProgramada.objects.create(
+            nombre='Con Hallazgo',
+            urls_objetivo='https://ejemplo.com/rss',
+            frecuencia='semanal',
+            activa=True,
+            agente=self.agente,
+        )
+        hallazgo = Hallazgo.objects.create(
+            investigacion=inv,
+            url_fuente='https://ejemplo.com/rss',
+            tipo_fuente='rss',
+            titulo='Artículo de prueba',
+            url_articulo='https://ejemplo.com/articulo',
+            contenido_extraido='Texto extraído del artículo.',
+        )
+        self.client.login(username='testuser', password='testpass123')
+        response = self.client.post(
+            reverse('crear_tarea_desde_hallazgo', args=[hallazgo.pk])
+        )
+        assert response.status_code == 302
+        assert response.url == reverse('lista_tareas')
+
+        tarea = Tarea.objects.get(payload__hallazgo_id=hallazgo.pk)
+        assert tarea.estado == Tarea.Estado.COLA
+        assert tarea.habilidad is not None
+        assert tarea.agente == self.agente
+        assert tarea.payload['accion'] == 'escribir_desde_hallazgo'
+        assert tarea.payload['hallazgo_id'] == hallazgo.pk
+        assert tarea.payload['titulo_base'] == hallazgo.titulo
+        assert tarea.payload['contenido_base'] == hallazgo.contenido_extraido
+
     def test_detalle_investigacion_muestra_boton_reporte(self):
         """El GET conserva los hallazgos y ofrece el botón de reporte."""
         inv = InvestigacionProgramada.objects.create(
