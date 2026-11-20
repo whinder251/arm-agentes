@@ -1,10 +1,11 @@
 # Plan de construcción — ARM
 
-## Estado Actual (2026-11-14)
-**Pasos 0 a 25 COMPLETADOS. Núcleo de ARM v1.0 terminado.** 
-El sistema cuenta con: panel web estilo Apple/SaaS, creación de tareas con asignación automática, modelos Workflow/PasoWorkflow/Equipo, API REST con Pydantic v2, publicación en WordPress (borradores), cifrado de API keys, validación de cuotas, orquestación de workflows paso a paso, conteo real de tokens, dashboard de métricas, integraciones con ARM_API_KEY visible, propagación de fallos y vista de historial de ejecuciones para auditoría.
-*Ver `docs/plan_historial.md` para el registro detallado de evidencias de los pasos 0-20.*
-
+## Estado Actual (2026-11-20)
+**Pasos 0 a 25 y Bloque B (B.1 a B.10) COMPLETADOS. Núcleo de ARM v1.0 terminado.**
+El sistema cuenta con: panel web estilo Apple/SaaS, creación de tareas con asignación automática, modelos Workflow/PasoWorkflow/Equipo, API REST con Pydantic v2, publicación en WordPress (borradores), cifrado de API keys, validación de cuotas, orquestación de workflows paso a paso, conteo real de tokens, dashboard de métricas, integraciones con autenticación por hash SHA-256 en BD, propagación de fallos y vista de historial de ejecuciones para auditoría.
+El motor de monitoreo soporta múltiples fuentes por investigación (RSS, Sitemap y HTML), límite de artículos por fuente, Búsqueda Web con metadatos directos (DuckDuckGo), reintentos automáticos de extracción de contenido para hallazgos vacíos, historial de ejecuciones con trazabilidad (RegistroEjecucionMonitoreo) y corrección del desplazamiento horario (ultima_ejecucion guarda hora de inicio).
+*Ver `docs/plan_historial.md` para el registro detallado de evidencias de los pasos 0-20.*
+
 **Bloque B (Rediseño UX/UI) 100% COMPLETADO.** Cero CSS embebido, cero clases huérfanas en el panel.
 
 ## Reglas de Ejecución (NO ROMPER)

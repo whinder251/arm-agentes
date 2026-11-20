@@ -128,3 +128,13 @@ Un paso se considera terminado solo cuando:
 ## 10. Estado del proyecto
 
 Consulta `docs/plan.md` y `docs/requirements/roadmap.md` para conocer el avance. No deduzcas que un paso está completado únicamente porque aparezca descrito en una conversación o en una propuesta.
+
+### Hitos recientes completados
+
+- SEARCH-FIX-01: Búsqueda Web con metadatos directos. Los resultados de DuckDuckGo (titulo, resumen, URL y fecha) se registran directamente como Hallazgo en modo busqueda, sin pasar por extraccion de enlaces internos.
+- RETRY-CONTENT-01: Reintentos automaticos de extraccion de contenido. Si un hallazgo existe pero contenido_extraido esta vacio, el sistema vuelve a intentar la extraccion.
+- SCHEDULE-FIX-01: Correccion del desplazamiento horario en programaciones. ultima_ejecucion guarda la hora de inicio, no la de fin, evitando desplazamientos acumulativos (10:00, 11:00, 12:00...).
+- PUENTE-02: Flujo funcional Hallazgo -> Tarea con idempotencia por hallazgo_id, payload con clave texto, validacion estricta de habilidad y encolado real en Huey.
+- HYGIENE-01 y UI-FIX-01: Limpieza de repositorio y correcciones de UI (etiqueta de columna de tiempo en historial de ejecuciones).
+
+El motor de monitoreo soporta multiples fuentes por investigacion, limite de articulos por fuente, historial de ejecuciones con trazabilidad (RegistroEjecucionMonitoreo), y correccion de horarios.
