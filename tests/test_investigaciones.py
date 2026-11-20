@@ -523,3 +523,24 @@ class TestEjecutarInvestigacion:
         assert resultado["ejecutadas"] == 0
         assert resultado["hallazgos_nuevos"] == 0
         assert resultado["fallos"] == []
+
+    def test_fallo_busqueda_duckduckgo_registra_error(self):
+        """Si DDGS lanza excepción, el error se registra en fallos y no hay hallazgos."""
+        investigacion = self._crear_investigacion(
+            urls="",
+            modo_busqueda="busqueda",
+            consulta_busqueda="competencia SEO",
+        )
+
+        class _DDGSMockFallo:
+            def text(self, consulta, max_results):
+                raise Exception("Rate limit")
+
+        with patch("apps.engine.investigaciones.DDGS", return_value=_DDGSMockFallo()):
+            resultado = ejecutar_investigacion(investigacion)
+
+        assert resultado["ejecutadas"] == 0
+        assert resultado["hallazgos_nuevos"] == 0
+        assert len(resultado["fallos"]) == 1
+        assert "competencia SEO" in resultado["fallos"][0]["url"]
+        assert "Rate limit" in resultado["fallos"][0]["error"]
