@@ -94,6 +94,7 @@
     <form method="post" action="{% url 'acciones_lote_tareas' %}">
         {% csrf_token %}
         <div class="form-lote">
+            <label><input type="checkbox" id="select-all-tasks"> Seleccionar todo</label>
             <select name="action" class="input">
                 <option value="aprobar">Aprobar seleccionadas</option>
                 <option value="eliminar">Eliminar seleccionadas</option>
@@ -101,28 +102,29 @@
             <button type="submit" class="btn-primary" onclick="return confirm('¿Aplicar esta acción a las tareas seleccionadas?');">Aplicar</button>
         </div>
 
-    <table class="tabla">
-        <thead>
-            <tr>
-                <th><input type="checkbox" id="select-all-tasks"></th>
-                <th>ID</th>
-                <th>Estado</th>
-                <th>Agente</th>
-                <th>Habilidad</th>
-                <th>Actualizado en</th>
-                <th>Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for t in page_obj %}
-                {% include "panel/fila_tarea.html" with tarea=t %}
-            {% empty %}
-                <tr>
-                    <td colspan="7" class="vacio">No hay tareas encontradas.</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+        {% for t in page_obj %}
+        <div class="card">
+            <h3 class="subtitulo">El agente tiene una solicitud pendiente para: {{ t.habilidad }}</h3>
+            <p class="help-text">Fuente: {{ t.agente }} | Estado: {{ t.get_estado_display }}</p>
+            <p class="help-text"><a href="{% url 'detalle_tarea' t.pk %}">Ver detalle de la tarea #{{ t.pk }}</a></p>
+            <label><input type="checkbox" name="task_ids" value="{{ t.pk }}"> Seleccionar esta tarea</label>
+            {% if t.estado == 'ok' %}
+                <span class="badge badge-success">Completado</span>
+            {% else %}
+                <form method="post" action="{% url 'aprobar_tarea' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="task_id" value="{{ t.pk }}">
+                    <button type="submit" class="btn-primary">Aprobar y Procesar</button>
+                </form>
+                <form method="post" action="{% url 'eliminar_tarea' t.pk %}" onsubmit="return confirm('¿Estás seguro de archivar/descartar esta tarea? Esta acción no se puede deshacer.');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-danger-sm">Archivar / Descartar</button>
+                </form>
+            {% endif %}
+        </div>
+        {% empty %}
+            <div class="vacio">No hay tareas encontradas.</div>
+        {% endfor %}
     </form>
 
     <div class="paginacion">

@@ -1019,6 +1019,10 @@ class TestPanel(TestCase):
         # Verificar que hay checkboxes
         assert 'name="task_ids"' in content
         assert 'id="select-all-tasks"' in content
+        # Verificar nueva estructura de tarjetas de actividad del Centro de Mando
+        assert 'class="card"' in content
+        assert 'Aprobar y Procesar' in content
+        assert 'Archivar / Descartar' in content
         # Segunda página
         response = self.client.get(url + '?page=2')
         assert response.status_code == 200
