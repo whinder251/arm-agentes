@@ -1154,3 +1154,22 @@ td input[type="checkbox"] {
 .enlace-externo:hover {
   color: var(--accent-primary);
 }
+
+/* MONITOR-UX-01: grid compacto de fuentes de monitoreo */
+.grid-monitoreo {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
+}
+@media (max-width: 768px) {
+  .grid-monitoreo {
+    grid-template-columns: 1fr;
+  }
+}
+.acciones-compactas {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 1rem;
+}
