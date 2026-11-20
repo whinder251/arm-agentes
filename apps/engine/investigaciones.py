@@ -27,6 +27,7 @@ from apps.core.models import (
     RegistroEjecucionMonitoreo,
 )
 from apps.engine.tool_executor import (
+    _extraer_contenido_enriquecido,
     _parsear_rss,
     _parsear_sitemap,
     _validar_endpoint_seguro,
@@ -493,14 +494,27 @@ def ejecutar_investigacion(investigacion: InvestigacionProgramada) -> dict:
                     "resumen": resumen,
                 },
             )
-            if creado or not hallazgo.contenido_extraido:
+            if creado or not hallazgo.contenido_extraido or not hallazgo.titulo or not hallazgo.fecha_publicacion:
                 ejecutadas += 1
                 if url_articulo:
                     time.sleep(random.uniform(1.0, 2.5))
-                    contenido = _extraer_contenido(url_articulo)
-                    if contenido:
-                        hallazgo.contenido_extraido = contenido
-                        hallazgo.save(update_fields=["contenido_extraido"])
+                    enriquecido = _extraer_contenido_enriquecido(url_articulo)
+                    if enriquecido.get("contenido"):
+                        hallazgo.contenido_extraido = enriquecido["contenido"]
+                    if not hallazgo.titulo and enriquecido.get("titulo"):
+                        hallazgo.titulo = enriquecido["titulo"]
+                    if not hallazgo.fecha_publicacion and enriquecido.get("fecha"):
+                        hallazgo.fecha_publicacion = enriquecido["fecha"]
+                    if not hallazgo.resumen and enriquecido.get("resumen"):
+                        hallazgo.resumen = enriquecido["resumen"]
+                    hallazgo.save(
+                        update_fields=[
+                            "contenido_extraido",
+                            "titulo",
+                            "fecha_publicacion",
+                            "resumen",
+                        ]
+                    )
                 hallazgos_nuevos += 1
             continue
 
@@ -601,13 +615,26 @@ def ejecutar_investigacion(investigacion: InvestigacionProgramada) -> dict:
                     "resumen": item.get("resumen", ""),
                 },
             )
-            if creado or not hallazgo.contenido_extraido:
+            if creado or not hallazgo.contenido_extraido or not hallazgo.titulo or not hallazgo.fecha_publicacion:
                 if url_articulo:
                     time.sleep(random.uniform(1.0, 2.5))
-                    contenido = _extraer_contenido(url_articulo)
-                    if contenido:
-                        hallazgo.contenido_extraido = contenido
-                        hallazgo.save(update_fields=["contenido_extraido"])
+                    enriquecido = _extraer_contenido_enriquecido(url_articulo)
+                    if enriquecido.get("contenido"):
+                        hallazgo.contenido_extraido = enriquecido["contenido"]
+                    if not hallazgo.titulo and enriquecido.get("titulo"):
+                        hallazgo.titulo = enriquecido["titulo"]
+                    if not hallazgo.fecha_publicacion and enriquecido.get("fecha"):
+                        hallazgo.fecha_publicacion = enriquecido["fecha"]
+                    if not hallazgo.resumen and enriquecido.get("resumen"):
+                        hallazgo.resumen = enriquecido["resumen"]
+                    hallazgo.save(
+                        update_fields=[
+                            "contenido_extraido",
+                            "titulo",
+                            "fecha_publicacion",
+                            "resumen",
+                        ]
+                    )
                 hallazgos_nuevos += 1
 
     # Al final de una ejecución exitosa o parcial.

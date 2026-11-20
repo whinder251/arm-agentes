@@ -20,9 +20,23 @@ from urllib.parse import urljoin, urlparse
 import ipaddress
 import requests
 
+from bs4 import BeautifulSoup
+import trafilatura
+
 from apps.core.models import Credencial, Herramienta
 
 logger = logging.getLogger(__name__)
+
+# Constantes de descarga y extracción de contenido (mismas que usa investigaciones.py)
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+TIMEOUT_SEGUNDOS = 15
+
+# Códigos de HTTP que se respetan sin reintentar.
+CODIGOS_NO_REINTENTAR = {429, 503, 403}
+
+# Límite duro de caracteres por artículo extraído.
+LIMITE_CARACTERES_CONTENIDO = 8000
+
 
 # Excepción personalizada para errores de ejecución de herramientas
 class ToolExecutionError(Exception):
@@ -662,6 +676,100 @@ def _ejecutar_herramienta_http(herramienta: Herramienta, payload: dict) -> dict:
             body = _parsear_rss(body)
 
     return {"status": response.status_code, "body": body}
+
+
+def _extraer_contenido_enriquecido(url: str) -> dict:
+    """Descarga la URL una sola vez y extrae contenido, título, fecha y resumen.
+
+    Nivel 1: trafilatura con metadatos sobre el HTML descargado.
+    Nivel 2: Jina AI como fallback si trafilatura no devuelve contenido.
+
+    Best-effort: cualquier error de red, HTTP 429/503/403, HTML vacío o
+    fallo de ambos niveles devuelve diccionario con cadenas vacías sin lanzar
+    excepción, para que un artículo que no carga nunca aborte la investigación.
+
+    Retorna:
+        {"contenido": str, "titulo": str, "fecha": str, "resumen": str}
+    """
+    resultado = {
+        "contenido": "",
+        "titulo": "",
+        "fecha": "",
+        "resumen": "",
+    }
+
+    try:
+        response = requests.get(
+            url,
+            headers={"User-Agent": USER_AGENT},
+            timeout=TIMEOUT_SEGUNDOS,
+            allow_redirects=True,
+        )
+    except requests.RequestException as exc:
+        logger.warning("Error de red extrayendo contenido de %s: %s", url, exc)
+        return resultado
+
+    if response.status_code in CODIGOS_NO_REINTENTAR:
+        logger.warning(
+            "HTTP %s extrayendo contenido de %s, sin reintento",
+            response.status_code,
+            url,
+        )
+        return resultado
+
+    html = response.text or ""
+    if not html.strip():
+        logger.warning("HTML vacío extrayendo contenido de %s", url)
+        return resultado
+
+    # Nivel 1: trafilatura con metadatos sobre el HTML descargado.
+    try:
+        metadata = trafilatura.extract_metadata(html)
+    except Exception:  # noqa: BLE001 - best-effort, nunca aborta
+        metadata = None
+
+    if metadata:
+        resultado["titulo"] = metadata.title or ""
+        resultado["fecha"] = metadata.date or ""
+        resultado["resumen"] = metadata.description or ""
+
+    # Trafilatura también devuelve el cuerpo principal del artículo.
+    try:
+        texto = trafilatura.extract(html)
+    except Exception:  # noqa: BLE001 - best-effort, nunca aborta
+        texto = None
+    if texto and texto.strip():
+        resultado["contenido"] = texto[:LIMITE_CARACTERES_CONTENIDO]
+
+    # Respaldo: si trafilatura no devolvió título, usar <title> del HTML.
+    if not resultado["titulo"]:
+        try:
+            soup = BeautifulSoup(html, "html.parser")
+            title_tag = soup.find("title")
+            if title_tag and title_tag.get_text(strip=True):
+                resultado["titulo"] = title_tag.get_text(strip=True)
+        except Exception:
+            pass
+
+    # Nivel 2: Jina AI si trafilatura no devolvió contenido.
+    if not resultado["contenido"]:
+        try:
+            jina_url = f"https://r.jina.ai/{url}"
+            jina_response = requests.get(
+                jina_url,
+                headers={"User-Agent": USER_AGENT},
+                timeout=TIMEOUT_SEGUNDOS,
+                allow_redirects=True,
+            )
+            if jina_response.status_code == 200 and jina_response.text.strip():
+                logger.info(
+                    "Contenido extraído exitosamente con Jina AI para %s", url
+                )
+                resultado["contenido"] = jina_response.text[:LIMITE_CARACTERES_CONTENIDO]
+        except requests.RequestException as exc:
+            logger.warning("Fallo del fallback Jina AI para %s: %s", url, exc)
+
+    return resultado
 
 
 # ============================================================

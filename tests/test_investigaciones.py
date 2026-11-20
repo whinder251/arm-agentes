@@ -666,6 +666,131 @@ class TestEjecutarInvestigacion:
         desplazado = ahora + timedelta(minutes=10)
         assert investigacion.ultima_ejecucion < desplazado
 
+    def test_sitemap_titulo_vacio_se_puebla_desde_pagina_descargada(self):
+        """Sitemap sin título ni lastmod: al extraer contenido se puebla título, fecha y resumen
+        desde la página ya descargada, sin peticiones extra."""
+        investigacion = self._crear_investigacion(
+            urls="https://ejemplo.com/sitemap.xml"
+        )
+
+        XML_SITEMAP_SIN_LASTMOD = """<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://ejemplo.com/pagina-1</loc>
+  </url>
+  <url>
+    <loc>https://ejemplo.com/pagina-2</loc>
+  </url>
+</urlset>"""
+
+        html_articulo = """<!DOCTYPE html>
+        <html>
+        <head>
+          <title>Título real del artículo</title>
+          <meta name="description" content="Resumen descriptivo del artículo.">
+          <meta property="article:published_time" content="2026-11-18T10:00:00Z">
+        </head>
+        <body>
+          <article>
+            <h1>Título real del artículo</h1>
+            <p>Contenido principal del artículo extraído con trafilatura.</p>
+          </article>
+        </body>
+        </html>"""
+
+        def efecto_get(url, **kwargs):
+            respuesta = Mock()
+            respuesta.status_code = 200
+            if "sitemap" in url:
+                respuesta.text = XML_SITEMAP_SIN_LASTMOD
+            else:
+                respuesta.text = html_articulo
+            return respuesta
+
+        metadata_mock = Mock()
+        metadata_mock.title = "Título real del artículo"
+        metadata_mock.date = "2026-11-18T10:00:00Z"
+        metadata_mock.description = "Resumen descriptivo del artículo."
+
+        with patch(
+            "apps.engine.investigaciones.requests.get", side_effect=efecto_get
+        ), patch(
+            "apps.engine.investigaciones.trafilatura.extract_metadata",
+            return_value=metadata_mock,
+        ), patch(
+            "apps.engine.investigaciones.trafilatura.extract",
+            return_value="Contenido principal del artículo extraído con trafilatura.",
+        ), patch(
+            "apps.engine.investigaciones.time.sleep"
+        ):
+            resultado = ejecutar_investigacion(investigacion)
+
+        assert resultado["hallazgos_nuevos"] == 2
+
+        hallazgos = Hallazgo.objects.filter(investigacion=investigacion).order_by(
+            "url_articulo"
+        )
+        assert hallazgos.count() == 2
+        for h in hallazgos:
+            assert h.titulo == "Título real del artículo"
+            assert h.fecha_publicacion == "2026-11-18T10:00:00Z"
+            assert h.resumen == "Resumen descriptivo del artículo."
+            assert (
+                h.contenido_extraido
+                == "Contenido principal del artículo extraído con trafilatura."
+            )
+
+    def test_rss_titulo_bueno_no_se_pisa_con_pagina(self):
+        """RSS con título bueno: al extraer contenido NO se pisa el título
+        con el <title> de la página descargada."""
+        investigacion = self._crear_investigacion()
+
+        html_articulo = """<!DOCTYPE html>
+        <html>
+        <head>
+          <title>Título de la página web</title>
+        </head>
+        <body>
+          <p>Contenido de la página.</p>
+        </body>
+        </html>"""
+
+        def efecto_get(url, **kwargs):
+            respuesta = Mock()
+            respuesta.status_code = 200
+            if "feed.rss" in url:
+                respuesta.text = XML_RSS
+            else:
+                respuesta.text = html_articulo
+            return respuesta
+
+        metadata_mock = Mock()
+        metadata_mock.title = ""
+        metadata_mock.date = ""
+        metadata_mock.description = ""
+
+        with patch(
+            "apps.engine.investigaciones.requests.get", side_effect=efecto_get
+        ), patch(
+            "apps.engine.investigaciones.trafilatura.extract_metadata",
+            return_value=metadata_mock,
+        ), patch(
+            "apps.engine.investigaciones.trafilatura.extract",
+            return_value="Contenido de la página.",
+        ), patch(
+            "apps.engine.investigaciones.time.sleep"
+        ):
+            resultado = ejecutar_investigacion(investigacion)
+
+        assert resultado["hallazgos_nuevos"] == 2
+
+        hallazgos = Hallazgo.objects.filter(investigacion=investigacion).order_by(
+            "url_articulo"
+        )
+        assert hallazgos.count() == 2
+        assert hallazgos[0].titulo == "Artículo 1"
+        assert hallazgos[1].titulo == "Artículo 2"
+
     def test_reintenta_extraccion_si_hallazgo_existe_vacio(self):
         """Si un hallazgo ya existe con contenido_extraido vacío, se reintenta la extracción."""
         investigacion = self._crear_investigacion()
@@ -683,8 +808,13 @@ class TestEjecutarInvestigacion:
             "apps.engine.investigaciones.requests.get",
             return_value=_mock_get(status_code=200, text=XML_RSS),
         ), patch(
-            "apps.engine.investigaciones._extraer_contenido",
-            return_value="Contenido re-extraído con éxito.",
+            "apps.engine.investigaciones._extraer_contenido_enriquecido",
+            return_value={
+                "contenido": "Contenido re-extraído con éxito.",
+                "titulo": "",
+                "fecha": "",
+                "resumen": "",
+            },
         ), patch("apps.engine.investigaciones.time.sleep"):
             resultado = ejecutar_investigacion(investigacion)
 

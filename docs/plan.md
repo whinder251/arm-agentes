@@ -2967,3 +2967,28 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 - Commit: "MONITOR-INTENT-01: Añadir selectores de tipo de contenido y modo de resultado".
 
 **Impacto en contratos/datos:** SÍ datos persistidos (2 nuevas columnas en `core_investigacionprogramada` vía migración 0034, defaults retrocompatibles para registros existentes). NO contratos de API, NO credenciales, NO permisos, NO tareas en cola. Retrocompatible: registros existentes toman `tipo_contenido="todo"` y `modo_resultado="analizar"`.
+
+## Paso CONTENT-ENRICH-01 — COMPLETADO
+
+**Objetivo:** Enriquecer la extracción de contenido para poblar título, fecha y resumen del hallazgo desde la página ya descargada, sin peticiones extra y sin tocar el modelo.
+
+**Archivos tocados (3):**
+- `apps/engine/tool_executor.py`: añadidas constantes `USER_AGENT`, `TIMEOUT_SEGUNDOS`, `CODIGOS_NO_REINTENTAR`, `LIMITE_CARACTERES_CONTENIDO`; añadida función `_extraer_contenido_enriquecido(url)` que descarga la página una sola vez y devuelve `{"contenido", "titulo", "fecha", "resumen"}` usando `trafilatura.extract_metadata` con respaldo a `<title>` vía BeautifulSoup; nivel 2 con Jina AI si trafilatura no devuelve contenido. `_extraer_contenido` original sin cambios.
+- `apps/engine/investigaciones.py`: importado `_extraer_contenido_enriquecido`; en el bucle común (RSS/Sitemap/HTML) y en la rama búsqueda, se llama a `_extraer_contenido_enriquecido` cuando el hallazgo tiene `titulo` vacío o `fecha_publicacion` vacía; solo se poblan campos vacíos (regla de oro: no pisan metadatos buenos de RSS); se guarda todo en un solo `save(update_fields=["contenido_extraido","titulo","fecha_publicacion","resumen"])`.
+- `tests/test_investigaciones.py`: 2 pruebas nuevas (`test_sitemap_titulo_vacio_se_puebla_desde_pagina_descargada`, `test_rss_titulo_bueno_no_se_pisa_con_pagina`) y actualización de `test_reintenta_extraccion_si_hallazgo_existe_vacio` al nuevo contrato.
+
+**Reglas respetadas:**
+- Máximo 4 archivos (3 modificados).
+- NO modelos, NO migraciones, NO vistas, NO templates.
+- CERO estilos inline, CERO emojis.
+- `_extraer_contenido` original sin modificar (retrocompatible).
+- Comandos PowerShell línea por línea, sin `&&`.
+- No se ejecutó `git push`.
+- Commit: "CONTENT-ENRICH-01: Poblar titulo, fecha y resumen desde la pagina ya descargada".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_investigaciones.py -q` → `24 passed`.
+
+**Impacto en contratos/datos:** NO modelos, NO migraciones, NO credenciales, NO permisos, NO tareas en cola, NO contratos de API. Retrocompatible: `_extraer_contenido` se conserva para llamadores que solo quieren texto; no se pisan metadatos ya buenos de RSS.
