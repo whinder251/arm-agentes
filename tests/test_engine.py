@@ -37,6 +37,7 @@ def load_fixture(name: str) -> dict:
 def crear_escenario() -> Tarea:
     proveedor = Proveedor.objects.create(
         nombre="gemini",
+        tipo_adaptador="gemini",
         base_url=GEMINI_BASE,
         api_key="test-gemini-key",
         limite_diario=100,
@@ -116,6 +117,7 @@ def test_tarea_revision_cuando_modo_manual():
     se crea la siguiente tarea del workflow."""
     proveedor = Proveedor.objects.create(
         nombre="gemini",
+        tipo_adaptador="gemini",
         base_url=GEMINI_BASE,
         api_key="test-gemini-key",
         limite_diario=100,
@@ -333,6 +335,7 @@ def test_artefacto_extrae_cuerpo_cuando_json_no_tiene_contenido():
 def test_workflow_pasa_datos_entre_pasos(monkeypatch):
     proveedor = Proveedor.objects.create(
         nombre="gemini",
+        tipo_adaptador="gemini",
         base_url=GEMINI_BASE,
         api_key="test-gemini-key",
         limite_diario=100,
@@ -417,6 +420,7 @@ def test_tarea_manual_sin_workflow_queda_en_revision():
     debe quedar en REVISION, cumpliendo RB-010 fuera de un workflow."""
     proveedor = Proveedor.objects.create(
         nombre="gemini",
+        tipo_adaptador="gemini",
         base_url=GEMINI_BASE,
         api_key="test-gemini-key",
         limite_diario=100,
@@ -467,6 +471,7 @@ def test_tarea_manual_con_respuesta_no_json_queda_en_revision():
     """Modo manual con respuesta no-JSON va a REVISION, no ERROR (RB-010)."""
     proveedor = Proveedor.objects.create(
         nombre="gemini",
+        tipo_adaptador="gemini",
         base_url=GEMINI_BASE,
         api_key="test-gemini-key",
         limite_diario=100,
