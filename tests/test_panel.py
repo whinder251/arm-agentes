@@ -1498,6 +1498,39 @@ class TestPanel(TestCase):
         mensajes = list(messages.get_messages(response.wsgi_request))
         assert any('El agente asignado no tiene habilidades configuradas' in str(m) for m in mensajes)
 
+    def test_crear_tarea_bloqueada_en_modo_archivar(self):
+        """Modo 'archivar' bloquea creación de tarea desde hallazgo."""
+        inv = InvestigacionProgramada.objects.create(
+            nombre='Archivar',
+            urls_objetivo='https://ejemplo.com/rss',
+            frecuencia='semanal',
+            activa=True,
+            modo_resultado='archivar',
+            agente=self.agente,
+        )
+        hallazgo = Hallazgo.objects.create(
+            investigacion=inv,
+            url_fuente='https://ejemplo.com/rss',
+            tipo_fuente='rss',
+            titulo='Artículo de prueba',
+            url_articulo='https://ejemplo.com/articulo',
+            contenido_extraido='Texto extraído del artículo.',
+        )
+        self.client.login(username='testuser', password='testpass123')
+        with patch('apps.panel.views.ejecutar_tarea') as mock_ejecutar:
+            response = self.client.post(
+                reverse('crear_tarea_desde_hallazgo', args=[hallazgo.pk])
+            )
+        # a) NO se crea tarea
+        assert not Tarea.objects.filter(payload__hallazgo_id=hallazgo.pk).exists()
+        # b) redirige al detalle con 302
+        assert response.status_code == 302
+        assert response.url == reverse('detalle_investigacion', args=[inv.pk])
+        mock_ejecutar.assert_not_called()
+        # c) mensaje de warning en la sesión
+        mensajes = list(messages.get_messages(response.wsgi_request))
+        assert any("modo 'Solo archivar'" in str(m) for m in mensajes)
+
     def test_detalle_investigacion_muestra_boton_reporte(self):
         """El GET conserva los hallazgos y ofrece el botón de reporte."""
         inv = InvestigacionProgramada.objects.create(

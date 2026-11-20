@@ -6,6 +6,11 @@
     <div>
         <h1>{{ investigacion.nombre }}</h1>
         <span class="badge badge-neutral">{{ investigacion.get_frecuencia_display }}</span>
+        {% if investigacion.modo_resultado == 'archivar' %}
+        <span class="badge badge-warning">Modo: Solo archivar</span>
+        {% else %}
+        <span class="badge badge-success">Modo: Analizar con agente</span>
+        {% endif %}
     </div>
     <div class="acciones-encabezado">
         <form id="form-reporte-ia" method="post" onsubmit="return confirmarRegeneracion()">

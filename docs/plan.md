@@ -4802,3 +4802,28 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "herramientas" -q` → `1 passed`.
 
 **Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación del formulario (valor `initial` del campo). Retrocompatible: no se modifica ninguna instancia existente con herramientas ya definidas.
+
+## Paso ARCHIVE-LOGIC-01 — Control manual de modo_resultado en creación de tareas — COMPLETADO
+
+**Objetivo:** Que el campo `modo_resultado` ("analizar" vs "archivar") de `InvestigacionProgramada` actúe como interruptor de seguridad manual: si está en "archivar", el sistema no crea tareas de agente al hacer clic en "Escribir con Agente", evitando gastos de API no deseados.
+
+**Archivos tocados (3):**
+- `apps/panel/views.py`: en `crear_tarea_desde_hallazgo`, antes de crear la tarea, verifica `investigacion.modo_resultado`; si es `'archivar'`, añade `messages.warning` y redirige a `detalle_investigacion` sin crear tarea ni encolar; si es `'analizar'`, conserva la lógica existente.
+- `apps/panel/templates/panel/investigacion_detalle.html`: indicador visual `.badge badge-warning` ("Modo: Solo archivar") o `.badge badge-success` ("Modo: Analizar con agente") junto al título.
+- `tests/test_panel.py`: nueva prueba `test_crear_tarea_bloqueada_en_modo_archivar` que verifica que no se crea tarea, redirige 302 al detalle y hay mensaje de warning.
+
+**Reglas respetadas:**
+- Máximo 3 archivos (4 con docs/plan.md).
+- NO modelos, NO migraciones (el campo ya existe).
+- CERO estilos inline, CERO emojis.
+- Comandos PowerShell línea por línea, sin `&&`.
+- NO `git push`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "archivar" -q` → `1 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "crear_tarea_desde_hallazgo" -q` → `3 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "detalle_investigacion" -q` → `5 passed`.
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola existentes, NO migraciones. Retrocompatible: modo por defecto `'analizar'` conserva el comportamiento actual; `'archivar'` solo bloquea la creación de tareas desde el puente.

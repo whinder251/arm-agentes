@@ -356,6 +356,15 @@ def crear_tarea_desde_hallazgo(request, hallazgo_pk):
 
     habilidad = agente.habilidades.first()
 
+    # Control manual de modo_resultado: modo 'archivar' bloquea creación de tareas
+    if investigacion and investigacion.modo_resultado == 'archivar':
+        messages.warning(
+            request,
+            "Esta investigación está configurada en modo 'Solo archivar'. "
+            "El hallazgo ya está guardado en la base de datos y no se generarán tareas de agente.",
+        )
+        return redirect("detalle_investigacion", pk=investigacion.pk)
+
     tarea = Tarea.objects.create(
         agente=agente,
         habilidad=habilidad,
