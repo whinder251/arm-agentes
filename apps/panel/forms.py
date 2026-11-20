@@ -200,7 +200,7 @@ class InvestigacionForm(forms.ModelForm):
             "urls_objetivo": forms.Textarea(
                 attrs={
                     "rows": 5,
-                    "placeholder": "Pega una URL por línea (RSS, Sitemap o URL de categoría)",
+                    "placeholder": "Pega una URL por línea (RSS, Sitemap o URL de categoría de blog)",
                 }
             ),
             "palabras_clave": forms.Textarea(attrs={"rows": 3}),

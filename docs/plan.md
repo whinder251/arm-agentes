@@ -2509,3 +2509,84 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 
 **Pendiente:** Ninguno para este paso.
 
+
+## Paso MULTI-FUENTE-01 - Soporte para múltiples URLs y límite de artículos por fuente — COMPLETADO
+
+**Objetivo:** Permitir que una fuente de monitoreo procese múltiples URLs (una por línea) y establecer un límite máximo de artículos a evaluar por cada URL individual, evitando la saturación de la base de datos.
+
+**Archivos tocados (4):**
+- `apps/core/models.py`: añadido `limite_por_fuente = models.PositiveIntegerField(default=15, help_text="Máximo de artículos a procesar por cada URL.")` a `InvestigacionProgramada`.
+- `apps/panel/forms.py`: widget de `urls_objetivo` cambiado a `Textarea(rows=5, placeholder="Pega una URL por línea (RSS, Sitemap o URL de categoría)")`; añadido `limite_por_fuente` a `fields` y al `__init__` con clase `.input`.
+- `apps/panel/templates/panel/investigacion_form.html`: renderizado el nuevo campo `limite_por_fuente` con clases ARM Flow (`.form-group`, `.label`, `.input`, `.help-text`, `.error-text`). Cero estilos inline, cero emojis.
+- `apps/engine/investigaciones.py`: en `ejecutar_investigacion`, se itera sobre cada URL limpia de `splitlines()`; para cada URL, tras obtener `entradas` (sitemap) o `items` (rss), se aplica el corte `entradas_limitadas = entradas[:investigacion.limite_por_fuente]` / `items_limitados = items[:investigacion.limite_por_fuente]` *antes* del filtro de palabras clave y `update_or_create`; los contadores `hallazgos_nuevos`, `filtrados` y `fallos` se acumulan de todas las URLs en el dict de retorno.
+
+**Migración generada y aplicada:** `apps/core/migrations/0028_investigacionprogramada_limite_por_fuente.py`.
+
+**Reglas respetadas:**
+- Máximo 4 archivos modificados.
+- CERO estilos inline, CERO emojis en la UI.
+- Comandos PowerShell línea por línea, sin `&&`.
+- No se ejecutó `git push`.
+- Commit: "MULTI-FUENTE-01: Soporte para múltiples URLs y límite de artículos por fuente".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py makemigrations core` → migración `0028_investigacionprogramada_limite_por_fuente` creada.
+- `.venv\Scripts\python.exe manage.py migrate` → `Applying core.0028_investigacionprogramada_limite_por_fuente... OK`.
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_investigaciones.py -q` → `13 passed`.
+
+**Impacto en contratos/datos:** SÍ datos persistidos (nueva columna `limite_por_fuente` en `core_investigacionprogramada` vía migración 0028, default 15 retrocompatible para registros existentes). SÍ contrato interno de `ejecutar_investigacion` (ahora aplica límite por URL antes de filtrar/guardar). NO credenciales, NO permisos, NO tareas en cola, NO contratos de API. Retrocompatible.
+
+**Pendiente:** Ninguno para este paso.
+
+## Paso HTML-SCRAPER-01 - Extraer enlaces de pÃ¡ginas HTML para procesar como artÃ­culos â€” COMPLETADO
+
+**Objetivo:** Cuando una URL no es RSS ni Sitemap XML, el sistema la trata como una pÃ¡gina HTML de categorÃ­a, extrae todos los enlaces vÃ¡lidos (`<a href="...">`) y los procesa como artÃ­culos potenciales usando la cascada de extracciÃ³n existente (Trafilatura -> Jina AI).
+
+**Archivos tocados (2):**
+- `apps/engine/investigaciones.py`: aÃ±adida la funciÃ³n `_extraer_enlaces_de_html(texto_html, url_base)` que usa BeautifulSoup para parsear el HTML, extraer `<a href>`, convertir URLs relativas a absolutas con `urljoin`, filtrar extensiones de imagen/CSS/JS/PDF y anclas/mailto, y devolver `[{"url": ..., "title": ...}]`. En `ejecutar_investigacion`, la rama `tipo == "desconocido"` ahora procesa el HTML como lista de candidatos, aplicando `limite_por_fuente` y filtro de palabras clave, con tipo_fuente `"html"`. Incluye nota documentada sobre no re-validar SSRF en los href extraÃ­dos (consistente con RSS/Sitemap).
+- `tests/test_investigaciones.py`: prueba `test_extraccion_enlaces_de_html` con pÃ¡gina HTML de 5 enlaces (3 vÃ¡lidos, 1 imagen .jpg, 1 ancla #) que verifica `hallazgos_nuevos == 3` y `filtrados == 0`.
+
+**Reglas respetadas:**
+- MÃ¡ximo 2 archivos modificados.
+- NO tocar modelos, NO crear migraciones, NO tocar vistas ni templates.
+- CERO estilos inline, CERO emojis.
+- Comandos PowerShell lÃ­nea por lÃ­nea, sin `&&`.
+- Commit: "HTML-SCRAPER-01: Extraer enlaces de pÃ¡ginas HTML para procesar como artÃ­culos".
+
+**Evidencia de aceptaciÃ³n (ejecutado en esta sesiÃ³n):**
+- `.venv\Scripts\python.exe manage.py check` â†’ `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` â†’ `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_investigaciones.py -q` â†’ `14 passed` (incluye la nueva prueba).
+
+**Impacto en contratos/datos:** NO modelos, NO migraciones, NO credenciales, NO permisos, NO tareas en cola, NO contratos de API. Retrocompatible: sitemap y RSS conservan su comportamiento exacto; solo se aÃ±ade la rama HTML.
+
+## Paso FIX-HTML-SCRAPER - Corregir validaciÃ³n de status code, choice de TipoFuente y placeholder â€” COMPLETADO
+
+**Objetivo:** Desbloquear el procesamiento de URLs de categorÃ­a HTML corrigiendo tres problemas: (1) aceptar cÃ³digos de status 200-299 (no solo 200) al descargar la URL fuente, (2) registrar "html" como `TipoFuente` vÃ¡lido en `Hallazgo`, y (3) actualizar el placeholder del formulario de investigaciÃ³n.
+
+**Archivos tocados (3):**
+- `apps/core/models.py`: aÃ±adida la tupla `HTML = "html", "PÃ¡gina HTML (CategorÃ­a)"` a `Hallazgo.TipoFuente`.
+- `apps/engine/investigaciones.py`: cambiado `if response.status_code != 200:` por `if response.status_code < 200 or response.status_code >= 300:` (acepta 200-299, incluido 202 Accepted).
+- `apps/panel/forms.py`: placeholder de `urls_objetivo` actualizado a "Pega una URL por lÃ­nea (RSS, Sitemap o URL de categorÃ­a de blog)".
+
+**MigraciÃ³n generada y aplicada:** `apps/core/migrations/0029_alter_hallazgo_tipo_fuente.py`.
+
+**Reglas respetadas:**
+- MÃ¡ximo 3 archivos modificados.
+- CERO estilos inline, CERO emojis.
+- Comandos PowerShell lÃ­nea por lÃ­nea, sin `&&`.
+- No se ejecutÃ³ `git push`.
+- Commit: "FIX-HTML-SCRAPER: Corregir validaciÃ³n de status code, choice de TipoFuente y placeholder".
+
+**Evidencia de aceptaciÃ³n (ejecutado en esta sesiÃ³n):**
+- `.venv\Scripts\python.exe manage.py check` â†’ `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations core` â†’ migraciÃ³n `0029_alter_hallazgo_tipo_fuente` creada.
+- `.venv\Scripts\python.exe manage.py migrate` â†’ `Applying core.0029_alter_hallazgo_tipo_fuente... OK`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` â†’ `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_investigaciones.py -q` â†’ `14 passed`.
+
+**Impacto en contratos/datos:** SÃ datos persistidos (nuevo valor `"html"` en `choices` de `tipo_fuente` vÃ­a migraciÃ³n 0029; no afecta datos existentes). NO credenciales, NO permisos, NO tareas en cola, NO contratos de API. Retrocompatible.
+
+**Pendiente:** Ninguno para este paso.

@@ -221,7 +221,7 @@ def ejecutar_investigacion(investigacion: InvestigacionProgramada) -> dict:
 
         ejecutadas += 1
 
-        if response.status_code != 200:
+        if response.status_code < 200 or response.status_code >= 300:
             fallos.append(
                 {"url": url, "error": f"HTTP {response.status_code} al descargar la URL."}
             )

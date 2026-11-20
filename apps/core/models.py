@@ -758,6 +758,7 @@ class Hallazgo(models.Model):
     class TipoFuente(models.TextChoices):
         RSS = "rss", "RSS"
         SITEMAP = "sitemap", "Sitemap"
+        HTML = "html", "Página HTML (Categoría)"
 
     investigacion = models.ForeignKey(
         InvestigacionProgramada,
