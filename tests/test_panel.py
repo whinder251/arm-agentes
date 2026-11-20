@@ -1138,9 +1138,9 @@ class TestPanel(TestCase):
         response = self.client.get(url)
         assert response.status_code == 200
         content = response.content.decode('utf-8')
-        assert 'Investigaciones Programadas' in content
-        assert 'No hay investigaciones programadas todavía' in content
-        assert 'Nueva investigación' in content
+        assert 'Fuentes de Monitoreo' in content
+        assert 'No hay fuentes de monitoreo todavía' in content
+        assert 'Nuevo Monitoreo' in content
         assert reverse('crear_investigacion') in content
 
     def test_crear_investigacion_requiere_login(self):
@@ -1156,7 +1156,7 @@ class TestPanel(TestCase):
         response = self.client.get(url)
         assert response.status_code == 200
         content = response.content.decode('utf-8')
-        assert 'Nueva Investigación de Competencia' in content
+        assert 'Nuevo Monitoreo de Competencia' in content
         assert 'name="nombre"' in content
         assert 'name="urls_objetivo"' in content
         assert 'name="frecuencia"' in content
@@ -1164,7 +1164,7 @@ class TestPanel(TestCase):
         assert 'name="palabras_clave"' in content
         assert 'class="segmented"' in content
         assert 'Diaria' in content and 'Semanal' in content and 'Mensual' in content
-        assert 'Activar investigación' in content
+        assert 'Activar monitoreo' in content
         assert 'btn-primary' in content
 
     def test_crear_investigacion_con_agente_y_palabras_clave(self):
@@ -1247,7 +1247,7 @@ class TestPanel(TestCase):
     def test_lista_investigaciones_muestra_tarjeta(self):
         """Una investigación creada aparece como tarjeta en la lista."""
         InvestigacionProgramada.objects.create(
-            nombre='Investigación Test',
+            nombre='Monitoreo Test',
             urls_objetivo='https://ejemplo.com/sitemap.xml',
             frecuencia='diaria',
             activa=True,
@@ -1257,7 +1257,7 @@ class TestPanel(TestCase):
         response = self.client.get(url)
         assert response.status_code == 200
         content = response.content.decode('utf-8')
-        assert 'Investigación Test' in content
+        assert 'Monitoreo Test' in content
         assert 'Diaria' in content
         assert 'Activa' in content
         assert 'class="card"' in content
@@ -1294,7 +1294,7 @@ class TestPanel(TestCase):
         )
         assert response.status_code == 200
         content = response.content.decode('utf-8')
-        assert 'Editar Investigación de Competencia' in content
+        assert 'Editar Monitoreo de Competencia' in content
         assert 'Guardar cambios' in content
         assert 'Editable' in content
         assert 'https://ejemplo.com/feed' in content

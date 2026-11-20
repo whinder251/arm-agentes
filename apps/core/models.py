@@ -736,8 +736,8 @@ class InvestigacionProgramada(models.Model):
     creado_en = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        verbose_name = "investigación programada"
-        verbose_name_plural = "investigaciones programadas"
+        verbose_name = "fuente de monitoreo"
+        verbose_name_plural = "fuentes de monitoreo"
         ordering = ["-creado_en"]
 
     def __str__(self):

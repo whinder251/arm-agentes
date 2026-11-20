@@ -3,14 +3,14 @@
 {% block content %}
 <div class="pagina-crear">
     <div class="card">
-        <h2>{% if form.instance.pk %}Editar{% else %}Nueva{% endif %} Investigación de Competencia</h2>
+        <h2>{% if form.instance.pk %}Editar{% else %}Nuevo{% endif %} Monitoreo de Competencia</h2>
         <p class="help-text">El sistema revisará estas fuentes automáticamente y guardará los hallazgos para tu agente.</p>
 
         <form method="post" novalidate>
             {% csrf_token %}
 
             <div class="form-group">
-                <label class="label" for="{{ form.nombre.id_for_label }}">Nombre de la investigación</label>
+                <label class="label" for="{{ form.nombre.id_for_label }}">Nombre de la fuente de monitoreo</label>
                 {{ form.nombre }}
                 {% if form.nombre.errors %}
                 <p class="error-text">{{ form.nombre.errors|first }}</p>
@@ -57,7 +57,7 @@
                 {% endif %}
             </div>
 
-            <button type="submit" class="btn btn-primary">{% if form.instance.pk %}Guardar cambios{% else %}Activar investigación{% endif %}</button>
+            <button type="submit" class="btn btn-primary">{% if form.instance.pk %}Guardar cambios{% else %}Activar monitoreo{% endif %}</button>
         </form>
     </div>
 </div>

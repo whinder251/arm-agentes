@@ -1563,7 +1563,7 @@ def crear_investigacion(request):
                 if resultado["hallazgos_nuevos"]:
                     messages.success(
                         request,
-                        f"Investigación '{investigacion.nombre}' creada. "
+                        f"Monitoreo '{investigacion.nombre}' creado. "
                         f"{resultado['hallazgos_nuevos']} hallazgo(s) nuevo(s) detectado(s)."
                     )
                 if resultado["fallos"]:
@@ -1580,7 +1580,7 @@ def crear_investigacion(request):
                 )
                 messages.warning(
                     request,
-                    f"Investigación '{investigacion.nombre}' creada, pero falló la primera ejecución."
+                    f"Monitoreo '{investigacion.nombre}' creado, pero falló la primera ejecución."
                 )
             return redirect("lista_investigaciones")
     else:
@@ -1598,7 +1598,7 @@ def editar_investigacion(request, pk):
             form.save()
             messages.success(
                 request,
-                f"Investigación '{investigacion.nombre}' actualizada.",
+                f"Monitoreo '{investigacion.nombre}' actualizado.",
             )
             return redirect("lista_investigaciones")
     else:
@@ -1617,7 +1617,7 @@ def eliminar_investigacion(request, pk):
     investigacion = get_object_or_404(InvestigacionProgramada, pk=pk)
     nombre = investigacion.nombre
     investigacion.delete()
-    messages.success(request, f"Investigación '{nombre}' eliminada.")
+    messages.success(request, f"Monitoreo '{nombre}' eliminado.")
     return redirect("lista_investigaciones")
 
 
@@ -1647,7 +1647,7 @@ def ejecutar_investigacion_ahora(request, pk):
         logger.exception(
             "Error re-ejecutando investigación %s: %s", pk, exc
         )
-        messages.error(request, "No se pudo re-ejecutar la investigación.")
+        messages.error(request, "No se pudo re-ejecutar el monitoreo.")
     return redirect("lista_investigaciones")
 
 

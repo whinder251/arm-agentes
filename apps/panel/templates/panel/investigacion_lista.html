@@ -2,13 +2,13 @@
 
 {% block content %}
 <div class="page-header">
-    <h1>Investigaciones Programadas</h1>
-    <a href="{% url 'crear_investigacion' %}" class="btn btn-primary">Nueva investigación</a>
+    <h1>Fuentes de Monitoreo</h1>
+    <a href="{% url 'crear_investigacion' %}" class="btn btn-primary">Nuevo Monitoreo</a>
 </div>
 
 {% if not investigaciones %}
 <div class="vacio">
-    <p>No hay investigaciones programadas todavía. Crea la primera para empezar a monitorear fuentes de competencia.</p>
+    <p>No hay fuentes de monitoreo todavía. Crea la primera para empezar a monitorear fuentes de competencia.</p>
 </div>
 {% else %}
 <div class="grid-investigaciones">
@@ -42,7 +42,7 @@
         <div class="acciones-investigacion">
             <div class="tabla-acciones">
                 <a href="{% url 'editar_investigacion' inv.pk %}" class="enlace-editar">Editar</a>
-                <form method="post" action="{% url 'eliminar_investigacion' inv.pk %}" class="form-eliminar" onsubmit="return confirm('¿Estás seguro de que quieres eliminar esta investigación y todos sus hallazgos?');">
+                <form method="post" action="{% url 'eliminar_investigacion' inv.pk %}" class="form-eliminar" onsubmit="return confirm('¿Estás seguro de que quieres eliminar esta fuente de monitoreo y todos sus hallazgos?');">
                     {% csrf_token %}
                     <button type="submit" class="btn-danger-sm">Eliminar</button>
                 </form>

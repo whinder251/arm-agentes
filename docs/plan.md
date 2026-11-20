@@ -2401,3 +2401,34 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "detalle_investigacion" -q` → `5 passed` (sin regresiones).
 
 **Impacto en contratos/datos:** Cambia contrato interno de `analisis.py` (qué modelo recibe el Router y longitud del prompt_sistema). NO modelos, NO migraciones, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola. Investigaciones sin agente conservan el comportamiento anterior. Retrocompatible para consumidores del dict de retorno.
+
+## Paso RENAME-01 - Cambiar terminología de UI de "Investigación" a "Monitoreo" — COMPLETADO
+
+**Objetivo:** Actualizar textos visibles del panel para reflejar "Monitoreo" continuo en lugar de "Investigaciones" puntuales. Se mantiene la clase Python `InvestigacionProgramada`, sus campos, rutas y URLs sin cambios (evita migraciones de datos ni rotura de enlaces). Solo cambian `verbose_name` y textos de UI.
+
+**Archivos tocados (6):**
+- `apps/core/models.py`: `verbose_name = "fuente de monitoreo"` y `verbose_name_plural = "fuentes de monitoreo"` en `InvestigacionProgramada.Meta`.
+- `apps/panel/views.py`: mensajes `messages.success`/`messages.error` ("Monitoreo ... creado/actualizado/eliminado", "No se pudo re-ejecutar el monitoreo").
+- `apps/panel/templates/panel/investigacion_lista.html`: "Fuentes de Monitoreo", "Nuevo Monitoreo", confirmación de eliminación, estado vacío.
+- `apps/panel/templates/panel/investigacion_form.html`: "Nuevo Monitoreo de Competencia", "Nombre de la fuente de monitoreo", "Activar monitoreo".
+- `apps/panel/templates/panel/investigacion_detalle.html`: "Ejecuta el monitoreo manualmente."
+- `apps/panel/templates/panel/base.html`: enlace del sidebar "Monitoreo".
+- `tests/test_panel.py`: aserciones de texto actualizadas ('Fuentes de Monitoreo', 'Nuevo Monitoreo', 'Nuevo Monitoreo de Competencia', 'Monitoreo Test', 'Editar Monitoreo de Competencia', 'Activar monitoreo').
+
+**Reglas respetadas:**
+- Máximo 6 archivos (autorizado explícitamente).
+- NO se cambió el nombre de la clase `InvestigacionProgramada`, ni campos, ni rutas/URLs.
+- NO estilos inline, NO emojis.
+- Migración `0027_alter_investigacionprogramada_options` generada y aplicada (solo opciones de Meta `verbose_name`).
+- Comandos PowerShell línea por línea, sin `&&`. No se ejecutó `git push`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected` (tras aplicar 0027).
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "investigacion" -q` → `19 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_investigaciones.py tests/test_analisis.py -q` → `25 passed` (sin regresiones).
+- Suite completo `tests/test_panel.py -q`: cuelgue preexistente de entorno (documentado en pasos C.2/C.3a/C.4/C.9b), no relacionado con este cambio.
+
+**Impacto en contratos/datos:** SÍ datos persistidos (migración 0027 de opciones de Meta, sin cambios de campos ni tablas). NO contratos de API, NO credenciales, NO permisos, NO tareas en cola, NO rotura de URLs. Retrocompatible.
+
+**Pendiente:** Criterio 4 (verificación visual en navegador: "Fuentes de Monitoreo", "Nuevo Monitoreo") no ejecutable en este entorno sin navegador.
