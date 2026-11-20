@@ -273,6 +273,27 @@ class InvestigacionForm(forms.ModelForm):
         self.fields["tipo_contenido"].required = False
         self.fields["modo_resultado"].required = False
 
+        # Preselección de herramientas de búsqueda por modo (creación o instancia vacía).
+        # No se toca ninguna instancia existente con herramientas ya definidas.
+        modo_busqueda = None
+        if self.instance and self.instance.pk:
+            modo_busqueda = self.instance.modo_busqueda
+        else:
+            modo_busqueda = self.initial.get("modo_busqueda") or self.data.get("modo_busqueda")
+
+        herramientas_actuales = self.initial.get("herramientas_busqueda") or []
+        es_nuevo_o_vacio = (not self.instance.pk) or (
+            self.instance and self.instance.pk and not herramientas_actuales
+        )
+
+        if es_nuevo_o_vacio and modo_busqueda:
+            if modo_busqueda == "busqueda":
+                self.fields["herramientas_busqueda"].initial = ["ddg_text"]
+            elif modo_busqueda == "noticias":
+                self.fields["herramientas_busqueda"].initial = ["google_news"]
+            elif modo_busqueda == "sitio":
+                self.fields["herramientas_busqueda"].initial = []
+
     def clean(self):
         cleaned_data = super().clean()
         modo = cleaned_data.get("modo_busqueda") or "sitio"

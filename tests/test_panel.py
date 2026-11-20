@@ -10,6 +10,7 @@ from apps.core.models import (
     InvestigacionProgramada, Hallazgo,
 )
 from apps.engine.tasks import continuar_workflow
+from apps.panel.forms import InvestigacionForm
 
 @pytest.mark.django_db
 class TestPanel(TestCase):
@@ -1658,3 +1659,9 @@ class TestPanel(TestCase):
         content = response.content.decode('utf-8')
         assert 'Vigila las noticias indexadas por Google sobre tu tema.' in content
         assert 'Tema de las noticias a vigilar' in content
+
+    def test_formulario_inicializa_herramientas_segun_modo(self):
+        """El formulario preselecciona herramientas de búsqueda según el modo."""
+        self.client.login(username='testuser', password='testpass123')
+        form = InvestigacionForm(initial={"modo_busqueda": "busqueda"})
+        assert form.fields["herramientas_busqueda"].initial == ["ddg_text"]
