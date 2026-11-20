@@ -40,6 +40,11 @@
     </div>
     {% endif %}
     <div class="content">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="mensaje {% if 'error' in message.tags %}alerta-error{% elif 'warning' in message.tags %}alerta-warning{% else %}mensaje-exito{% endif %}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
         {% block content %}
         {% if is_login %}
             <h2>Iniciar Sesión</h2>

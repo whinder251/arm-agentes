@@ -16,7 +16,7 @@
         {% endif %}
         <form method="post" action="{% url 'eliminar_tarea' tarea.pk %}" style="display:inline;">
             {% csrf_token %}
-            <button type="submit" class="btn-danger-sm">Eliminar</button>
+            <button type="submit" class="btn-danger-sm" onclick="return confirm('¿Estás seguro de que deseas eliminar esta tarea? Esta acción no se puede deshacer.');">Eliminar</button>
         </form>
     </td>
 </tr>

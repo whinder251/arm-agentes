@@ -2709,3 +2709,30 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 - `.venv\Scripts\python.exe -m pytest tests/test_investigaciones.py -q` → `19 passed` (incluye la nueva prueba de ejecución fallida).
 
 **Impacto en contratos/datos:** SÍ datos persistidos (nueva tabla `core_registroejecucionmonitoreo` vía migración 0031). NO contratos de API (firma de `ejecutar_investigacion` conservada), NO credenciales, NO permisos, NO tareas en cola. Retrocompatible: ejecución exitosa y parcial conservan el comportamiento previo; solo cambia el manejo de fallo en la etapa de descubrimiento.
+
+## Paso UX-POLISH-01 - Colores de mensajes Django y confirmación en borrados — COMPLETADO
+
+**Objetivo:** Que los mensajes de Django (success, error, warning) se muestren con sus colores semánticos correctos según `message.tags` en lugar de siempre en verde, y que el botón de eliminar tarea pida confirmación al usuario.
+
+**Archivos tocados (3):**
+- `apps/panel/templates/panel/base.html`: añadido bloque global de mensajes dentro de `.content` (antes de `{% block content %}`) que aplica `.alerta-error` si `message.tags` contiene 'error', `.alerta-warning` si contiene 'warning', y `.mensaje-exito` en los demás casos. No hay hardcodeo a una sola clase de éxito.
+- `apps/panel/templates/panel/tareas.html`: eliminado el bloque duplicado de mensajes (ahusa el bloque global de base.html para evitar render doble).
+- `apps/panel/templates/panel/fila_tarea.html`: botón Eliminar con `onclick="return confirm('¿Estás seguro de que deseas eliminar esta tarea? Esta acción no se puede deshacer.');"`.
+- `docs/plan.md`: esta sección.
+
+**Reglas respetadas:**
+- Máximo 4 archivos modificados (dentro del límite de AGENTS.md §5).
+- NO modelos, NO migraciones, NO vistas (solo templates y documentación).
+- CERO estilos inline nuevos; se reutilizan clases existentes de `app.css` (`.alerta-error`, `.alerta-warning`, `.mensaje-exito`).
+- CERO emojis en la UI.
+- Comandos PowerShell línea por línea, sin `&&`.
+- No se ejecutó `git push`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "eliminar_tarea" -q` → pruebas de eliminación de tarea pasan (confirmación solo en frontend, comportamiento de servidor sin cambios).
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación de plantillas. Retrocompatible.
+
+**Pendiente:** Validación visual en navegador de los colores de mensaje y el diálogo de confirmación (no ejecutable en este entorno sin navegador).

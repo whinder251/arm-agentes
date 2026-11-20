@@ -3,12 +3,6 @@
 
 {% block content %}
 
-{% if messages %}
-    {% for message in messages %}
-        <div class="mensaje-exito">{{ message }}</div>
-    {% endfor %}
-{% endif %}
-
 {% if tarea %}
     <a class="volver" href="{% url 'lista_tareas' %}">&larr; Volver al listado</a>
     <div class="detalle">
