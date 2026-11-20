@@ -1,0 +1,22 @@
+{% extends "panel/base.html" %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Añadir herramienta</h1>
+        <p class="subtitulo">Elige un tipo de nodo para empezar. Cada tipo tiene campos adaptados a su propósito.</p>
+    </div>
+</div>
+
+<div class="nodo-grid">
+    {% for key, tipo in tool_types.items %}
+    <a href="{% url 'crear_herramienta' %}?tipo={{ key }}" class="nodo-card tarjeta">
+        <svg class="nodo-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="{{ tipo.icono }}"/>
+        </svg>
+        <h3 class="nodo-nombre">{{ tipo.nombre }}</h3>
+        <p class="nodo-descripcion">{{ tipo.descripcion }}</p>
+    </a>
+    {% endfor %}
+</div>
+{% endblock %}
