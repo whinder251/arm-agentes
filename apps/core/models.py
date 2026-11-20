@@ -786,6 +786,25 @@ class InvestigacionProgramada(models.Model):
         blank=True,
         help_text="Motores de búsqueda seleccionados (ej: ['ddg_text','google_news']).",
     )
+    tipo_contenido = models.CharField(
+        max_length=20,
+        choices=[
+            ("todo", "Todo el sitio"),
+            ("posts", "Solo posts/artículos"),
+            ("paginas", "Solo páginas estáticas"),
+        ],
+        default="todo",
+        help_text="Qué tipo de contenido priorizar al rastrear.",
+    )
+    modo_resultado = models.CharField(
+        max_length=20,
+        choices=[
+            ("analizar", "Analizar con agente"),
+            ("archivar", "Solo archivar hallazgo"),
+        ],
+        default="analizar",
+        help_text="Acción a realizar con los hallazgos encontrados.",
+    )
     activa = models.BooleanField(default=True)
     ultima_ejecucion = models.DateTimeField(null=True, blank=True)
     creado_en = models.DateTimeField(auto_now_add=True)

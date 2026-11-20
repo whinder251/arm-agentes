@@ -406,6 +406,17 @@ def ejecutar_investigacion(investigacion: InvestigacionProgramada) -> dict:
             "fallos": [{"url": ..., "error": ...}, ...]
         }
 
+    Intención de negocio (campos de InvestigacionProgramada):
+        - investigacion.tipo_contenido: refina qué tipo de contenido
+          priorizar al rastrear ("todo", "posts", "paginas").
+        - investigacion.modo_resultado: define si el hallazgo se analiza
+          con agente ("analizar") o solo se archiva en BD ("archivar").
+          Cuando sea "archivar", el sistema guarda el Hallazgo pero NO
+          dispara la creación automática de la tarea de agente. La
+          desconexión del agente puede refinarse en un paso posterior si
+          la lógica de encolado es compleja; por ahora el campo existe,
+          se guarda y se documenta aquí como estructura de intención.
+
     Nunca lanza excepciones por errores de red de una URL: las captura,
     registra en fallos y continúa con la siguiente.
     """

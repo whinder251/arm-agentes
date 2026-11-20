@@ -53,6 +53,24 @@
                 {% endif %}
             </div>
 
+            <div class="form-group" id="bloque-tipo-contenido">
+                <label class="label" for="{{ form.tipo_contenido.id_for_label }}">Tipo de contenido</label>
+                {{ form.tipo_contenido }}
+                <p class="help-text">{{ form.tipo_contenido.help_text }}</p>
+                {% if form.tipo_contenido.errors %}
+                <p class="error-text">{{ form.tipo_contenido.errors|first }}</p>
+                {% endif %}
+            </div>
+
+            <div class="form-group" id="bloque-modo-resultado">
+                <label class="label" for="{{ form.modo_resultado.id_for_label }}">Acción con hallazgos</label>
+                {{ form.modo_resultado }}
+                <p class="help-text">{{ form.modo_resultado.help_text }}</p>
+                {% if form.modo_resultado.errors %}
+                <p class="error-text">{{ form.modo_resultado.errors|first }}</p>
+                {% endif %}
+            </div>
+
             <div class="form-group" id="bloque-region">
                 <label class="label" for="{{ form.region_idioma.id_for_label }}">Región e idioma</label>
                 {{ form.region_idioma }}

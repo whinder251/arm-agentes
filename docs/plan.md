@@ -2937,3 +2937,33 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 - `.venv\Scripts\python.exe -m pytest tests/test_investigaciones.py -q` → `22 passed`.
 
 **Impacto en contratos/datos:** NO modelos, NO migraciones, NO credenciales, NO permisos, NO tareas en cola, NO contratos de API. Cambio interno retrocompatible (valor por defecto `"cualquier"` no pasa el kwarg `time`, preservando el comportamiento anterior). No persiste datos.
+
+## Paso MONITOR-INTENT-01 — COMPLETADO
+
+**Objetivo:** Añadir selectores de tipo de contenido y modo de resultado a `InvestigacionProgramada` para refinar qué se extraer al rastrear y decidir si el hallazgo se analiza con agente o solo se archiva.
+
+**Archivos tocados (4):**
+- `apps/core/models.py`: añadidos `tipo_contenido` (choices: todo/posts/paginas, default "todo") y `modo_resultado` (choices: analizar/archivar, default "analizar") a `InvestigacionProgramada`.
+- `apps/panel/forms.py`: añadidos ambos campos a `Meta.fields` con widgets `Select(class="input")` y labels "Tipo de contenido" / "Acción con hallazgos"; `required=False` para que los defaults del modelo cubran los tests existentes sin enviar los campos.
+- `apps/panel/templates/panel/investigacion_form.html`: dos bloques `.form-group` con labels, renderizado del campo y help_text, integrados tras el bloque de herramientas de búsqueda.
+- `apps/engine/investigaciones.py`: documentación en el docstring de `ejecutar_investigacion` sobre la intención de los campos y la condición `if investigacion.modo_resultado == "archivar":` para evitar encolado automático futuro (estructura de intención, sin encolar por ahora).
+
+**Migración generada y aplicada:** `apps/core/migrations/0034_investigacionprogramada_modo_resultado_and_more.py`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations core` → migración `0034...` creada.
+- `.venv\Scripts\python.exe manage.py migrate` → `Applying core.0034... OK`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "investigacion" -q` → `22 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_investigaciones.py -q` → `22 passed` (sin regresiones).
+
+**Reglas respetadas:**
+- Máximo 4 archivos modificados.
+- CERO estilos inline, CERO emojis.
+- Comandos PowerShell línea por línea, sin `&&`.
+- NO se tocaron `tests/test_panel.py` ni `tests/test_investigaciones.py`.
+- NO se ejecutó `git push`.
+- Commit: "MONITOR-INTENT-01: Añadir selectores de tipo de contenido y modo de resultado".
+
+**Impacto en contratos/datos:** SÍ datos persistidos (2 nuevas columnas en `core_investigacionprogramada` vía migración 0034, defaults retrocompatibles para registros existentes). NO contratos de API, NO credenciales, NO permisos, NO tareas en cola. Retrocompatible: registros existentes toman `tipo_contenido="todo"` y `modo_resultado="analizar"`.

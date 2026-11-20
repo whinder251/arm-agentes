@@ -211,6 +211,8 @@ class InvestigacionForm(forms.ModelForm):
             "region_idioma",
             "rango_fecha",
             "herramientas_busqueda",
+            "tipo_contenido",
+            "modo_resultado",
         ]
         widgets = {
             "urls_objetivo": forms.Textarea(
@@ -227,6 +229,8 @@ class InvestigacionForm(forms.ModelForm):
             ),
             "region_idioma": forms.Select(attrs={"class": "input"}),
             "rango_fecha": forms.Select(attrs={"class": "input"}),
+            "tipo_contenido": forms.Select(attrs={"class": "input"}),
+            "modo_resultado": forms.Select(attrs={"class": "input"}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -264,6 +268,10 @@ class InvestigacionForm(forms.ModelForm):
         self.fields["region_idioma"].initial = InvestigacionProgramada._meta.get_field("region_idioma").default
         self.fields["rango_fecha"].initial = InvestigacionProgramada._meta.get_field("rango_fecha").default
         self.fields["herramientas_busqueda"].required = False
+        self.fields["tipo_contenido"].label = "Tipo de contenido"
+        self.fields["modo_resultado"].label = "Acción con hallazgos"
+        self.fields["tipo_contenido"].required = False
+        self.fields["modo_resultado"].required = False
 
     def clean(self):
         cleaned_data = super().clean()
