@@ -434,8 +434,10 @@ class TestEjecutarInvestigacion:
         assert h.fecha_publicacion == "2026-11-18"
         assert h.tipo_fuente == "html"
 
-    def test_modo_busqueda_usa_duckduckgo(self):
-        """Modo 'busqueda': usa DDGS para obtener URLs y las procesa como sitemap."""
+    def test_modo_busqueda_registra_resultados_directo_como_hallazgos(self):
+        """Modo 'busqueda': los resultados de DDG se registran directamente como
+        hallazgos con sus metadatos (titulo, resumen, fecha), sin extraer enlaces
+        internos de cada URL."""
         investigacion = self._crear_investigacion(
             urls="",
             modo_busqueda="busqueda",
@@ -461,36 +463,67 @@ class TestEjecutarInvestigacion:
             def text(self, consulta, max_results):
                 return resultados_ddgs
 
-        html_por_url = {
-            "https://ejemplo.com/resultado-1": (
-                '<html><body><a href="https://ejemplo.com/articulo-a">'
-                "Nuevo descubrimiento científico en el Amazonas</a></body></html>"
-            ),
-            "https://ejemplo.com/resultado-2": (
-                '<html><body><a href="https://ejemplo.com/articulo-b">'
-                "Análisis profundo del cambio climático global</a></body></html>"
-            ),
-        }
-
-        def efecto_get(url, **kwargs):
-            return _mock_get(
-                status_code=200,
-                text=html_por_url.get(url, "<html></html>"),
-            )
-
         with patch("apps.engine.investigaciones.DDGS", return_value=_DDGSMock()), patch(
-            "apps.engine.investigaciones.requests.get", side_effect=efecto_get
-        ), patch(
-            "apps.engine.investigaciones.trafilatura.extract", return_value="contenido"
-        ), patch(
-            "apps.engine.investigaciones.time.sleep"
-        ):
+            "apps.engine.investigaciones._extraer_contenido", return_value="contenido extraído"
+        ), patch("apps.engine.investigaciones.time.sleep"):
             resultado = ejecutar_investigacion(investigacion)
 
-        # Se buscó en DuckDuckGo y se procesaron las 2 URLs encontradas
+        # Se buscó en DuckDuckGo y se registraron los 2 resultados como hallazgos
         assert resultado["ejecutadas"] == 2
         assert resultado["hallazgos_nuevos"] == 2
         assert resultado["fallos"] == []
+
+        hallazgos = Hallazgo.objects.filter(investigacion=investigacion).order_by(
+            "url_articulo"
+        )
+        assert hallazgos.count() == 2
+        assert hallazgos[0].titulo == "Resultado 1"
+        assert hallazgos[0].url_articulo == "https://ejemplo.com/resultado-1"
+        assert hallazgos[0].resumen == "Resumen 1"
+        assert hallazgos[0].fecha_publicacion == ""
+        assert hallazgos[0].tipo_fuente == "html"
+        assert hallazgos[1].titulo == "Resultado 2"
+        assert hallazgos[1].url_articulo == "https://ejemplo.com/resultado-2"
+        assert hallazgos[1].resumen == "Resumen 2"
+        assert hallazgos[1].fecha_publicacion == ""
+        assert hallazgos[1].tipo_fuente == "html"
+        # No se crearon hallazgos para enlaces internos (articulo-a, articulo-b)
+        assert not Hallazgo.objects.filter(
+            investigacion=investigacion, url_articulo__contains="articulo-"
+        ).exists()
+
+    def test_modo_busqueda_con_fecha_guarda_fecha_publicacion(self):
+        """Modo 'busqueda': si DDG devuelve fecha, se guarda en fecha_publicacion."""
+        investigacion = self._crear_investigacion(
+            urls="",
+            modo_busqueda="busqueda",
+            consulta_busqueda="competencia SEO",
+        )
+
+        resultados_ddgs = [
+            {
+                "href": "https://ejemplo.com/resultado-1",
+                "title": "Resultado con fecha",
+                "body": "Resumen con fecha",
+                "date": "2026-11-18",
+            },
+        ]
+
+        class _DDGSMock:
+            def text(self, consulta, max_results):
+                return resultados_ddgs
+
+        with patch("apps.engine.investigaciones.DDGS", return_value=_DDGSMock()), patch(
+            "apps.engine.investigaciones._extraer_contenido", return_value=""
+        ), patch("apps.engine.investigaciones.time.sleep"):
+            resultado = ejecutar_investigacion(investigacion)
+
+        assert resultado["hallazgos_nuevos"] == 1
+        h = Hallazgo.objects.filter(investigacion=investigacion).first()
+        assert h.titulo == "Resultado con fecha"
+        assert h.resumen == "Resumen con fecha"
+        assert h.fecha_publicacion == "2026-11-18"
+        assert h.tipo_fuente == "html"
 
     def test_modo_noticias_usa_google_news(self):
         """Modo 'noticias': construye URL de Google News y la procesa como RSS."""

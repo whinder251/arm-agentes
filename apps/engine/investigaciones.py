@@ -279,15 +279,19 @@ def _construir_url_google_news(consulta: str) -> str:
     )
 
 
-def _construir_urls_a_procesar(investigacion: InvestigacionProgramada) -> tuple[list[str], str | None]:
-    """Construye la lista de URLs a procesar según el modo de búsqueda.
+def _construir_urls_a_procesar(investigacion: InvestigacionProgramada) -> tuple[list[dict], str | None]:
+    """Construye la lista de entradas a procesar según el modo de búsqueda.
 
     - sitio: usa urls_objetivo línea por línea (comportamiento existente).
-    - busqueda: busca en DuckDuckGo y usa las URLs encontradas.
+    - busqueda: busca en DuckDuckGo y devuelve los metadatos de cada resultado
+      (url, title, resumen, fecha) para registrarlo directamente como hallazgo.
     - noticias: construye la URL de Google News RSS para la consulta.
 
-    Retorna (urls, mensaje_error). Si hay error de búsqueda, urls es [] y
-    mensaje_error describe el fallo.
+    Cada entrada es un dict con al menos la clave "url". En modo "busqueda"
+    incluye además "title", "resumen", "fecha" y "origen": "busqueda".
+
+    Retorna (entradas, mensaje_error). Si hay error de búsqueda, entradas es []
+    y mensaje_error describe el fallo.
     """
     modo = investigacion.modo_busqueda or InvestigacionProgramada.MODO_SITIO
 
@@ -300,17 +304,27 @@ def _construir_urls_a_procesar(investigacion: InvestigacionProgramada) -> tuple[
         )
         if error_busqueda:
             return [], error_busqueda
-        return [r["url"] for r in resultados if r.get("url")], None
+        return [
+            {
+                "url": r.get("url", ""),
+                "title": r.get("title", ""),
+                "resumen": r.get("resumen", ""),
+                "fecha": r.get("fecha", ""),
+                "origen": "busqueda",
+            }
+            for r in resultados
+            if r.get("url")
+        ], None
 
     if modo == InvestigacionProgramada.MODO_NOTICIAS:
         consulta = investigacion.consulta_busqueda or ""
         if not consulta.strip():
             return [], None
-        return [_construir_url_google_news(consulta)], None
+        return [{"url": _construir_url_google_news(consulta)}], None
 
     # Modo sitio (default): URLs objetivo línea por línea.
     return [
-        u.strip() for u in (investigacion.urls_objetivo or "").splitlines() if u.strip()
+        {"url": u.strip()} for u in (investigacion.urls_objetivo or "").splitlines() if u.strip()
     ], None
 
 
@@ -365,121 +379,162 @@ def ejecutar_investigacion(investigacion: InvestigacionProgramada) -> dict:
             "fallos": fallos,
         }
 
-    else:
-        for url in urls_a_procesar:
-            # Validar SSRF antes de cada petición (seguridad.md §5).
-            try:
-                _validar_endpoint_seguro(url)
-            except ValueError as exc:
-                fallos.append({"url": url, "error": str(exc)})
+    for entry in urls_a_procesar:
+        url = entry.get("url", "") if isinstance(entry, dict) else entry
+        es_busqueda = isinstance(entry, dict) and entry.get("origen") == "busqueda"
+
+        if not url:
+            continue
+
+        # Validar SSRF antes de cada petición (seguridad.md §5).
+        try:
+            _validar_endpoint_seguro(url)
+        except ValueError as exc:
+            fallos.append({"url": url, "error": str(exc)})
+            continue
+
+        if es_busqueda:
+            # Modo búsqueda: registrar el resultado de DuckDuckGo directamente
+            # como hallazgo, sin pasar por _extraer_enlaces_de_html.
+            url_articulo = entry.get("url") or ""
+            titulo = entry.get("title", "")
+            resumen = entry.get("resumen", "")
+            fecha_publicacion = entry.get("fecha", "")
+
+            texto_a_evaluar = f"{titulo} {url_articulo}"
+            if not _coincide_con_palabras_clave(
+                texto_a_evaluar, investigacion.palabras_clave
+            ):
+                filtrados += 1
+                continue  # Descartar el resultado, no guardar como Hallazgo
+
+            hallazgo, creado = Hallazgo.objects.update_or_create(
+                investigacion=investigacion,
+                url_articulo=url_articulo,
+                defaults={
+                    "url_fuente": url,
+                    "tipo_fuente": "html",
+                    "titulo": titulo,
+                    "fecha_publicacion": fecha_publicacion,
+                    "resumen": resumen,
+                },
+            )
+            if creado:
+                ejecutadas += 1
+                if url_articulo:
+                    time.sleep(random.uniform(1.0, 2.5))
+                    contenido = _extraer_contenido(url_articulo)
+                    if contenido:
+                        hallazgo.contenido_extraido = contenido
+                        hallazgo.save(update_fields=["contenido_extraido"])
+                hallazgos_nuevos += 1
+            continue
+
+        # Comportamiento existente: descargar HTML, detectar tipo, extraer enlaces/items.
+        try:
+            response = requests.get(
+                url,
+                headers={"User-Agent": USER_AGENT},
+                timeout=TIMEOUT_SEGUNDOS,
+                allow_redirects=True,
+            )
+        except requests.RequestException as exc:
+            fallos.append({"url": url, "error": f"Error de red: {exc}"})
+            logger.warning(
+                "Error de red descargando URL de investigación %s: %s - %s",
+                investigacion.pk,
+                url,
+                exc,
+            )
+            continue
+
+        ejecutadas += 1
+
+        if response.status_code < 200 or response.status_code >= 300:
+            fallos.append(
+                {"url": url, "error": f"HTTP {response.status_code} al descargar la URL."}
+            )
+            continue
+
+        texto_html = response.text
+        tipo = _detectar_tipo(texto_html)
+
+        # Obtener la lista de artículos candidatos y el tipo de fuente.
+        if tipo == "sitemap":
+            entradas = _parsear_sitemap(texto_html)
+            if entradas and "error" in entradas[0]:
+                fallos.append({"url": url, "error": entradas[0]["error"]})
                 continue
-
-            # Descarga con timeout siguiendo redirecciones (necesario para muchos feeds).
-            # La validación SSRF ya se ejecutó sobre la URL original.
-            try:
-                response = requests.get(
-                    url,
-                    headers={"User-Agent": USER_AGENT},
-                    timeout=TIMEOUT_SEGUNDOS,
-                    allow_redirects=True,
-                )
-            except requests.RequestException as exc:
-                fallos.append({"url": url, "error": f"Error de red: {exc}"})
-                logger.warning(
-                    "Error de red descargando URL de investigación %s: %s - %s",
-                    investigacion.pk,
-                    url,
-                    exc,
-                )
+            items = [
+                {
+                    "url": e.get("url") or "",
+                    "title": e.get("title", ""),
+                    "fecha_publicacion": e.get("lastmod") or "",
+                    "resumen": "",
+                }
+                for e in entradas[: investigacion.limite_por_fuente]
+            ]
+            tipo_fuente = Hallazgo.TipoFuente.SITEMAP
+        elif tipo == "rss":
+            items_rss = _parsear_rss(texto_html)
+            if items_rss and "error" in items_rss[0]:
+                fallos.append({"url": url, "error": items_rss[0]["error"]})
                 continue
+            items = [
+                {
+                    "url": i.get("link") or "",
+                    "title": i.get("title", ""),
+                    "fecha_publicacion": i.get("pubDate") or "",
+                    "resumen": i.get("description") or "",
+                }
+                for i in items_rss[: investigacion.limite_por_fuente]
+            ]
+            tipo_fuente = Hallazgo.TipoFuente.RSS
+        else:
+            # Página HTML de categoría: extraer enlaces y procesarlos como artículos.
+            # NOTA: Los href extraídos no se re-validan con SSRF, consistente con el
+            # comportamiento de RSS/Sitemap. Documentado en HTML-SCRAPER-01.
+            items = [
+                {
+                    "url": it.get("url") or "",
+                    "title": it.get("title", ""),
+                    "fecha_publicacion": it.get("fecha", ""),
+                    "resumen": "",
+                }
+                for it in _extraer_enlaces_de_html(texto_html, url)
+            ][: investigacion.limite_por_fuente]
+            tipo_fuente = "html"
 
-            ejecutadas += 1
-
-            if response.status_code < 200 or response.status_code >= 300:
-                fallos.append(
-                    {"url": url, "error": f"HTTP {response.status_code} al descargar la URL."}
-                )
+        # Bucle común de filtrado por palabras clave y guardado como Hallazgo.
+        for item in items:
+            url_articulo = item.get("url") or ""
+            if not url_articulo:
                 continue
-
-            texto_html = response.text
-            tipo = _detectar_tipo(texto_html)
-
-            # Obtener la lista de artículos candidatos y el tipo de fuente.
-            if tipo == "sitemap":
-                entradas = _parsear_sitemap(texto_html)
-                if entradas and "error" in entradas[0]:
-                    fallos.append({"url": url, "error": entradas[0]["error"]})
-                    continue
-                items = [
-                    {
-                        "url": e.get("url") or "",
-                        "title": e.get("title", ""),
-                        "fecha_publicacion": e.get("lastmod") or "",
-                        "resumen": "",
-                    }
-                    for e in entradas[: investigacion.limite_por_fuente]
-                ]
-                tipo_fuente = Hallazgo.TipoFuente.SITEMAP
-            elif tipo == "rss":
-                items_rss = _parsear_rss(texto_html)
-                if items_rss and "error" in items_rss[0]:
-                    fallos.append({"url": url, "error": items_rss[0]["error"]})
-                    continue
-                items = [
-                    {
-                        "url": i.get("link") or "",
-                        "title": i.get("title", ""),
-                        "fecha_publicacion": i.get("pubDate") or "",
-                        "resumen": i.get("description") or "",
-                    }
-                    for i in items_rss[: investigacion.limite_por_fuente]
-                ]
-                tipo_fuente = Hallazgo.TipoFuente.RSS
-            else:
-                # Página HTML de categoría: extraer enlaces y procesarlos como artículos.
-                # NOTA: Los href extraídos no se re-validan con SSRF, consistente con el
-                # comportamiento de RSS/Sitemap. Documentado en HTML-SCRAPER-01.
-                items = [
-                    {
-                        "url": it.get("url") or "",
-                        "title": it.get("title", ""),
-                        "fecha_publicacion": it.get("fecha", ""),
-                        "resumen": "",
-                    }
-                    for it in _extraer_enlaces_de_html(texto_html, url)
-                ][: investigacion.limite_por_fuente]
-                tipo_fuente = "html"
-
-            # Bucle común de filtrado por palabras clave y guardado como Hallazgo.
-            for item in items:
-                url_articulo = item.get("url") or ""
-                if not url_articulo:
-                    continue
-                texto_a_evaluar = f"{item.get('title', '')} {url_articulo}"
-                if not _coincide_con_palabras_clave(
-                    texto_a_evaluar, investigacion.palabras_clave
-                ):
-                    filtrados += 1
-                    continue  # Descartar el artículo, no guardar como Hallazgo
-                hallazgo, creado = Hallazgo.objects.update_or_create(
-                    investigacion=investigacion,
-                    url_articulo=url_articulo,
-                    defaults={
-                        "url_fuente": url,
-                        "tipo_fuente": tipo_fuente,
-                        "titulo": item.get("title") or "",
-                        "fecha_publicacion": item.get("fecha_publicacion", ""),
-                        "resumen": item.get("resumen", ""),
-                    },
-                )
-                if creado:
-                    if url_articulo:
-                        time.sleep(random.uniform(1.0, 2.5))
-                        contenido = _extraer_contenido(url_articulo)
-                        if contenido:
-                            hallazgo.contenido_extraido = contenido
-                            hallazgo.save(update_fields=["contenido_extraido"])
-                    hallazgos_nuevos += 1
+            texto_a_evaluar = f"{item.get('title', '')} {url_articulo}"
+            if not _coincide_con_palabras_clave(
+                texto_a_evaluar, investigacion.palabras_clave
+            ):
+                filtrados += 1
+                continue  # Descartar el artículo, no guardar como Hallazgo
+            hallazgo, creado = Hallazgo.objects.update_or_create(
+                investigacion=investigacion,
+                url_articulo=url_articulo,
+                defaults={
+                    "url_fuente": url,
+                    "tipo_fuente": tipo_fuente,
+                    "titulo": item.get("title") or "",
+                    "fecha_publicacion": item.get("fecha_publicacion", ""),
+                    "resumen": item.get("resumen", ""),
+                },
+            )
+            if creado:
+                if url_articulo:
+                    time.sleep(random.uniform(1.0, 2.5))
+                    contenido = _extraer_contenido(url_articulo)
+                    if contenido:
+                        hallazgo.contenido_extraido = contenido
+                        hallazgo.save(update_fields=["contenido_extraido"])
+                hallazgos_nuevos += 1
 
     # Al final de una ejecución exitosa o parcial.
     fin = timezone.now()
