@@ -157,6 +157,7 @@ def ejecutar_investigacion(investigacion: InvestigacionProgramada) -> dict:
     """
     ejecutadas = 0
     hallazgos_nuevos = 0
+    filtrados = 0
     fallos = []
 
     urls = [u.strip() for u in (investigacion.urls_objetivo or "").splitlines() if u.strip()]
@@ -217,6 +218,7 @@ def ejecutar_investigacion(investigacion: InvestigacionProgramada) -> dict:
                 if not _coincide_con_palabras_clave(
                     texto_a_evaluar, investigacion.palabras_clave
                 ):
+                    filtrados += 1
                     continue  # Descartar el artículo, no guardar como Hallazgo
                 hallazgo, creado = Hallazgo.objects.update_or_create(
                     investigacion=investigacion,
@@ -250,6 +252,7 @@ def ejecutar_investigacion(investigacion: InvestigacionProgramada) -> dict:
                 if not _coincide_con_palabras_clave(
                     texto_a_evaluar, investigacion.palabras_clave
                 ):
+                    filtrados += 1
                     continue  # Descartar el artículo, no guardar como Hallazgo
                 hallazgo, creado = Hallazgo.objects.update_or_create(
                     investigacion=investigacion,
@@ -279,5 +282,6 @@ def ejecutar_investigacion(investigacion: InvestigacionProgramada) -> dict:
     return {
         "ejecutadas": ejecutadas,
         "hallazgos_nuevos": hallazgos_nuevos,
+        "filtrados": filtrados,
         "fallos": fallos,
     }

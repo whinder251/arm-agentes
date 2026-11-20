@@ -2481,3 +2481,31 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 **Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Retrocompatible.
 
 **Pendiente:** Criterio 4 (verificación visual en navegador: números reales y botones funcionales) no ejecutable en este entorno sin navegador.
+
+## Paso FILTRO-VISIBILIDAD-01 - Reportar hallazgos descartados por palabras clave — COMPLETADO
+
+**Objetivo:** Cuando el filtro de palabras clave descarta artículos en la fuente, el sistema informa cuántos se descartaron en el resultado de la ejecución y en la vista de detalle, evitando la confusión de "0 hallazgos" silenciosos.
+
+**Archivos tocados (4):**
+- `apps/engine/investigaciones.py`: contador `filtrados = 0`; `filtrados += 1` en cada `continue` del filtro `_coincide_con_palabras_clave` (bucles de RSS y Sitemap); clave `"filtrados": filtrados` en el dict de retorno.
+- `apps/panel/views.py` (vista `ejecutar_investigacion_ahora`): al construir el `messages.info`, si `hallazgos_nuevos == 0` y `filtrados > 0`, añade "Se descartaron X artículo(s) por no coincidir con las palabras clave definidas."
+- `apps/panel/templates/panel/investigacion_detalle.html`: en el bloque de estado vacío (sin hallazgos), si `investigacion.palabras_clave` está definido, añade línea de ayuda visible: "Nota: si filtraste por palabras clave, es posible que ningún artículo de la fuente coincida con ellas."
+- `tests/test_investigaciones.py`: prueba `test_filtrado_por_palabras_clave_reporte_filtrados` que verifica `hallazgos_nuevos == 0` y `filtrados == 2` con un feed y palabras clave sin coincidencia.
+
+**Reglas respetadas:**
+- Máximo 4 archivos modificados.
+- NO tocar modelos, NO migraciones, NO cambiar la lógica del filtro (solo reportar su resultado).
+- CERO estilos inline, CERO emojis en la UI.
+- Comandos PowerShell línea por línea, sin `&&`.
+- No se ejecutó `git push`.
+- Commit: "FILTRO-VISIBILIDAD-01: Reportar hallazgos descartados por palabras clave".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_investigaciones.py -q` → `13 passed` (incluye la prueba nueva).
+
+**Impacto en contratos/datos:** NO contratos públicos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Contrato interno aditivo: clave `filtrados` nueva en el dict de retorno de `ejecutar_investigacion` (retrocompatible).
+
+**Pendiente:** Ninguno para este paso.
+

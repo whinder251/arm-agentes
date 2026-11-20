@@ -326,3 +326,41 @@ class TestEjecutarInvestigacion:
         assert "Aprender Python desde cero" in titulos
         assert "Seguridad en aplicaciones web" in titulos
         assert "Recetas de cocina italiana" not in titulos
+
+    def test_filtrado_por_palabras_clave_reporte_filtrados(self):
+        """Cuando ninguna entrada coincide, filtrados > 0 y hallazgos_nuevos == 0."""
+        investigacion = self._crear_investigacion(
+            urls="https://ejemplo.com/feed.rss",
+            palabras_clave="python, seguridad",
+        )
+
+        xml_sin_coincidencia = """<?xml version="1.0" encoding="UTF-8" ?>
+        <rss version="2.0">
+        <channel>
+          <title>Feed de prueba</title>
+          <item>
+            <title>Recetas de cocina italiana</title>
+            <link>https://ejemplo.com/cocina</link>
+            <pubDate>Wed, 03 Jan 2024 00:00:00 GMT</pubDate>
+            <description>Pasta y pizza casera</description>
+          </item>
+          <item>
+            <title>Deportes internacionales</title>
+            <link>https://ejemplo.com/deportes</link>
+            <pubDate>Thu, 04 Jan 2024 00:00:00 GMT</pubDate>
+            <description>Fútbol y baloncesto</description>
+          </item>
+        </channel>
+        </rss>"""
+
+        with patch("apps.engine.investigaciones.requests.get") as mock_get:
+            mock_get.return_value = _mock_get(
+                status_code=200, text=xml_sin_coincidencia
+            )
+            resultado = ejecutar_investigacion(investigacion)
+
+        assert resultado["ejecutadas"] == 1
+        assert resultado["hallazgos_nuevos"] == 0
+        assert resultado["filtrados"] == 2
+        assert resultado["fallos"] == []
+        assert Hallazgo.objects.filter(investigacion=investigacion).count() == 0

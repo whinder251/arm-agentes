@@ -1657,7 +1657,14 @@ def ejecutar_investigacion_ahora(request, pk):
                 f"Algunas fuentes fallaron: {mensajes_fallos}"
             )
         if not resultado["fallos"] and not resultado["hallazgos_nuevos"]:
-            messages.info(request, "Re-ejecución completada sin hallazgos nuevos.")
+            filtrados = resultado.get("filtrados", 0)
+            if filtrados > 0:
+                messages.info(
+                    request,
+                    f"Re-ejecución completada sin hallazgos nuevos. Se descartaron {filtrados} artículo(s) por no coincidir con las palabras clave definidas.",
+                )
+            else:
+                messages.info(request, "Re-ejecución completada sin hallazgos nuevos.")
     except Exception as exc:  # límite de ejecución
         logger.exception(
             "Error re-ejecutando investigación %s: %s", pk, exc

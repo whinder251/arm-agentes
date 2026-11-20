@@ -66,12 +66,18 @@
         </ul>
         {% else %}
         <p class="help-text">Aún no se han detectado artículos. Ejecuta el monitoreo manualmente.</p>
+        {% if investigacion.palabras_clave %}
+        <p class="help-text">Nota: si filtraste por palabras clave, es posible que ningún artículo de la fuente coincida con ellas.</p>
+        {% endif %}
         {% endif %}
     </div>
 </div>
 {% else %}
 <div class="vacio">
     <p class="help-text">Aún no se han detectado artículos. Ejecuta el monitoreo manualmente.</p>
+    {% if investigacion.palabras_clave %}
+    <p class="help-text">Nota: si filtraste por palabras clave, es posible que ningún artículo de la fuente coincida con ellas.</p>
+    {% endif %}
 </div>
 {% endif %}
 {% endblock %}
