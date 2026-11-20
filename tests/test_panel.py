@@ -141,8 +141,15 @@ class TestPanel(TestCase):
         self.client.login(username='testuser', password='testpass123')
         response = self.client.get(reverse('lista_tareas'))
         content = response.content.decode('utf-8')
+        # 4 items principales del navbar Centro de Mando
+        assert 'Centro de Mando' in content
+        assert 'Monitoreo' in content
+        assert 'Biblioteca' in content
+        assert 'Configuración' in content
+        # Enlaces secundarios reubicados dentro del menú Configuración (details)
         assert f'href="{reverse("lista_proveedores")}"' in content
         assert f'href="{reverse("lista_modelos")}"' in content
+        assert f'href="{reverse("configuracion")}"' in content
         assert 'Proveedores' in content
         assert 'Modelos' in content
         assert 'Modelos y proveedores' not in content
@@ -710,10 +717,16 @@ class TestPanel(TestCase):
         self.client.login(username='testuser', password='testpass123')
         response = self.client.get(reverse('lista_tareas'))
         content = response.content.decode('utf-8')
-        assert 'href="{}"'.format(reverse('lista_workflows')) in content
-        assert 'href="{}"'.format(reverse('lista_equipos')) in content
+        # Workflows y Equipos se reubicaron al menú secundario (details)
+        assert f'href="{reverse("lista_workflows")}"' in content
+        assert f'href="{reverse("lista_equipos")}"' in content
         assert 'Workflows' in content
         assert 'Equipos' in content
+        # Los 4 items principales del navbar Centro de Mando siguen presentes
+        assert 'Centro de Mando' in content
+        assert 'Monitoreo' in content
+        assert 'Biblioteca' in content
+        assert 'Configuración' in content
 
     def test_configuracion_render(self):
         self.client.login(username='testuser', password='testpass123')

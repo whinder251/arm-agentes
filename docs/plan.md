@@ -4827,3 +4827,29 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "detalle_investigacion" -q` → `5 passed`.
 
 **Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola existentes, NO migraciones. Retrocompatible: modo por defecto `'analizar'` conserva el comportamiento actual; `'archivar'` solo bloquea la creación de tareas desde el puente.
+
+## Paso UI-NOD-01 - Reorganizar Navbar y actualizar nomenclatura visual hacia Centro de Mando — COMPLETADO
+
+**Objetivo:** Cambiar la percepción del sistema de "panel administrativo" a "Centro de Mando de Agente" (estilo Nod), actualizando el menú de navegación y las etiquetas visibles en los templates, sin alterar la lógica de backend ni los nombres de los modelos Django.
+
+**Archivos tocados (5):**
+- `apps/panel/templates/panel/base.html`: reemplazo del `<nav>` por navbar de 4 items principales (Centro de Mando → lista_tareas, Monitoreo → lista_investigaciones, Biblioteca → lista_investigaciones placeholder, Configuración → configuracion) con iconos SVG inline 20×20 stroke currentColor, más menú secundario `<details>` que reubica (sin eliminar) Dashboard, Workflows, Equipos, Ejecuciones, Agentes, Habilidades, Proveedores, Modelos, Formatos, Herramientas y Credenciales y API.
+- `apps/panel/templates/panel/investigacion_lista.html`: botón cambiado de "Nuevo Monitoreo" a "Nueva Fuente de Monitoreo" (título ya era "Fuentes de Monitoreo").
+- `apps/panel/templates/panel/tareas.html`: `<h1>Tareas</h1>` cambiado a `<h1>Centro de Mando</h1>` (ninguna columna/botón decía "Investigación").
+- `tests/test_panel.py`: `test_sidebar_enlaza_configuracion` y `test_sidebar_contiene_workflows_y_equipos` actualizados para verificar los 4 items principales y que los enlaces secundarios siguen presentes dentro del menú Configuración (details).
+- `docs/plan.md`: esta sección.
+
+**Reglas respetadas:**
+- Máximo 5 archivos (4 templates/tests + documentación, excepción aprobada).
+- SOLO cambios en templates (HTML) y tests. NO se tocó views.py, models.py, forms.py ni urls.py.
+- CERO emojis. Iconos SVG inline siguiendo el patrón existente (20×20, stroke=currentColor).
+- CERO estilos inline nuevos; clases existentes de app.css (`.seccion`, `.activo`).
+- Comandos PowerShell línea por línea, sin `&&`.
+- No se ejecutó `git push`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "sidebar" -q` → `2 passed`.
+
+**Impacto en contratos/datos:** NO contratos de API, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones, NO nombres de modelos ni URLs. Solo presentación (HTML). Retrocompatible.
