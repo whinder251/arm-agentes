@@ -460,7 +460,7 @@ class TestEjecutarInvestigacion:
         ]
 
         class _DDGSMock:
-            def text(self, consulta, max_results):
+            def text(self, consulta, max_results, **kwargs):
                 return resultados_ddgs
 
         with patch("apps.engine.investigaciones.DDGS", return_value=_DDGSMock()), patch(
@@ -510,7 +510,7 @@ class TestEjecutarInvestigacion:
         ]
 
         class _DDGSMock:
-            def text(self, consulta, max_results):
+            def text(self, consulta, max_results, **kwargs):
                 return resultados_ddgs
 
         with patch("apps.engine.investigaciones.DDGS", return_value=_DDGSMock()), patch(
@@ -572,7 +572,7 @@ class TestEjecutarInvestigacion:
         )
 
         class _DDGSMockFallo:
-            def text(self, consulta, max_results):
+            def text(self, consulta, max_results, **kwargs):
                 raise Exception("Rate limit")
 
         with patch("apps.engine.investigaciones.DDGS", return_value=_DDGSMockFallo()):
@@ -595,7 +595,7 @@ class TestEjecutarInvestigacion:
         ultima_antes = investigacion.ultima_ejecucion
 
         class _DDGSMockFallo:
-            def text(self, consulta, max_results):
+            def text(self, consulta, max_results, **kwargs):
                 raise Exception("Rate limit")
 
         with patch("apps.engine.investigaciones.DDGS", return_value=_DDGSMockFallo()):

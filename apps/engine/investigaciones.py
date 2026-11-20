@@ -244,15 +244,25 @@ def _extraer_enlaces_de_html(texto_html: str, url_base: str) -> list[dict]:
     return enlaces
 
 
-def _buscar_con_duckduckgo(consulta: str, max_resultados: int = 10) -> tuple[list[dict], str | None]:
+def _buscar_con_duckduckgo(
+    consulta: str, max_resultados: int = 10, rango_fecha: str = "cualquier"
+) -> tuple[list[dict], str | None]:
     """Busca por palabra clave en DuckDuckGo sin API key.
 
     Retorna (lista_resultados, mensaje_error).
     Best-effort: si la búsqueda falla, retorna lista vacía y el mensaje de error
     para que el llamante lo registre como un fallo visible.
+
+    rango_fecha controla el parametro 'time' de DDGS (d, w, m, y). Si es
+    "cualquier", no se pasa el parametro time.
     """
+    time_param = RANGO_TIME.get(rango_fecha)
     try:
-        resultados = DDGS().text(consulta, max_results=max_resultados)
+        resultados = DDGS().text(
+            consulta,
+            max_results=max_resultados,
+            **({"time": time_param} if time_param else {}),
+        )
         return (
             [
                 {
@@ -277,6 +287,14 @@ RANGO_TBS = {
     "semana": "qdr:w",
     "mes": "qdr:m",
     "ano": "qdr:y",
+}
+
+# Mapeo de rango de fecha al parametro time de DuckDuckGo.
+RANGO_TIME = {
+    "dia": "d",
+    "semana": "w",
+    "mes": "m",
+    "ano": "y",
 }
 
 
@@ -329,7 +347,7 @@ def _construir_urls_a_procesar(investigacion: InvestigacionProgramada) -> tuple[
         for herramienta in herramientas:
             if herramienta == "ddg_text":
                 resultados, error_busqueda = _buscar_con_duckduckgo(
-                    consulta, investigacion.limite_por_fuente
+                    consulta, investigacion.limite_por_fuente, rango_fecha=investigacion.rango_fecha
                 )
                 if error_busqueda:
                     return [], error_busqueda

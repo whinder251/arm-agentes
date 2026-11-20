@@ -2914,3 +2914,26 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 - .venv\Scripts\python.exe -m pytest tests/test_panel.py -k "investigacion" -q -> 22 passed.
 
 **Impacto en contratos/datos:** SÍ datos persistidos (2 nuevas columnas en core_investigacionprogramada, defaults retrocompatibles para registros existentes). NO contratos de API, NO credenciales, NO permisos, NO tareas en cola, NO compatibilidad (valores internos de modo sin cambios; defaults reproducen URL actual).
+
+## Paso SEARCH-REGION-02 - Conectar el campo rango_fecha con la búsqueda de DuckDuckGo — COMPLETADO
+
+**Objetivo:** Pasar el parametro `time` de DuckDuckGo (`d`, `w`, `m`, `y`) basado en `investigacion.rango_fecha` a `DDGS().text()`, de modo que el modo "busqueda" respete el rango de fecha elegido en lugar de buscar siempre en "cualquier momento".
+
+**Archivos tocados (2):**
+- `apps/engine/investigaciones.py`: añadido `RANGO_TIME = {"dia": "d", "semana": "w", "mes": "m", "ano": "y"}` junto a `RANGO_TBS`; firma de `_buscar_con_duckduckgo` ampliada a `(consulta, max_resultados=10, rango_fecha="cualquier")` que construye `time_param = RANGO_TIME.get(rango_fecha)` y llama a `DDGS().text(consulta, max_results=max_resultados, **({"time": time_param} if time_param else {}))`; en `_construir_urls_a_procesar` la rama `busqueda` ahora pasa `rango_fecha=investigacion.rango_fecha` al llamado de búsqueda.
+- `tests/test_investigaciones.py`: mocks `_DDGSMock` y `_DDGSMockFallo` actualizados a `def text(self, consulta, max_results, **kwargs)` para aceptar el nuevo kwarg `time` sin fallar, manteniendo el retorno simulado.
+
+**Reglas respetadas:**
+- Máximo 2 archivos modificados.
+- NO modelos, NO migraciones, NO vistas, NO templates.
+- CERO estilos inline, CERO emojis.
+- Comandos PowerShell línea por línea, sin `&&`.
+- No se ejecutó `git push`.
+- Commit pendiente: "SEARCH-REGION-02: Conectar rango_fecha con la búsqueda de DuckDuckGo".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_investigaciones.py -q` → `22 passed`.
+
+**Impacto en contratos/datos:** NO modelos, NO migraciones, NO credenciales, NO permisos, NO tareas en cola, NO contratos de API. Cambio interno retrocompatible (valor por defecto `"cualquier"` no pasa el kwarg `time`, preservando el comportamiento anterior). No persiste datos.
