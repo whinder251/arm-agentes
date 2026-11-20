@@ -2432,3 +2432,52 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 **Impacto en contratos/datos:** SÍ datos persistidos (migración 0027 de opciones de Meta, sin cambios de campos ni tablas). NO contratos de API, NO credenciales, NO permisos, NO tareas en cola, NO rotura de URLs. Retrocompatible.
 
 **Pendiente:** Criterio 4 (verificación visual en navegador: "Fuentes de Monitoreo", "Nuevo Monitoreo") no ejecutable en este entorno sin navegador.
+## Paso DASH-01 - Mejorar el Dashboard con estadísticas reales y accesos rápidos — COMPLETADO
+
+**Objetivo:** Transformar el Dashboard en centro de comando con métricas reales de la base de datos (fuentes de monitoreo activas, ejecuciones exitosas hoy, hallazgos recientes) y botones de acceso rápido a las acciones más frecuentes.
+
+**Archivos tocados (4):**
+- `apps/panel/views.py`: vista `dashboard()` calcula `total_monitoreos`, `monitoreos_activos`, `ejecuciones_hoy`, `hallazgos_recientes` y las pasa al contexto. Se añadieron los imports `timedelta` (datetime) y `Hallazgo` (apps.core.models).
+- `apps/panel/templates/panel/dashboard.html`: métricas renderizadas con variables de contexto; nueva sección `Accesos Rápidos` con botones `btn btn-primary`/`btn btn-secondary` a Nuevo Monitoreo, Ver Ejecuciones y Gestionar Agentes.
+- `static/css/app.css`: añadidas clases `.grid-dashboard`, `.card-metrica`, `.accesos-rapidos` al final del archivo.
+- `tests/test_panel.py`: `test_dashboard_render` actualizado para verificar que el contexto contiene las claves `total_monitoreos`, `monitoreos_activos`, `ejecuciones_hoy`, `hallazgos_recientes`, `tokens_hoy`, `workflows_activos` y que sus valores son enteros.
+
+**Reglas respetadas:**
+- Máximo 4 archivos modificados (dentro del límite aprobado).
+- NO se crearon modelos ni migraciones (solo consultas `.count()` sobre modelos existentes).
+- CERO estilos inline, CERO emojis en la UI.
+- Comandos PowerShell línea por línea, sin `&&`. No se ejecutó `git push`.
+- Commit: `1182cb2` DASH-01: Mejorar Dashboard con estadísticas reales y accesos rápidos.
+
+**Pendiente:** Criterio 4 (verificacion visual en navegador: numeros reales y botones funcionales) no ejecutable en este entorno sin navegador.
+
+## Paso FIX-REGRESION - Reparar visualización de ejecuciones y enrutamiento de ejecución manual — COMPLETADO
+
+**Objetivo:** Corregir la regresión visual donde la lista de ejecuciones parecía vacía (ordenamiento por tarea__actualizado_en forzaba JOIN/NULL que ocultaba registros) y asegurar que el botón "Ejecutar ahora" funcione y redirija correctamente.
+
+**Archivos tocados (1):**
+- apps/panel/views.py: en lista_ejecuciones, .order_by('-tarea__actualizado_en') revertido a .order_by('-id'). Ordenar por -id es infalible y garantiza orden cronológico inverso sin JOIN.
+- apps/panel/templates/panel/investigacion_lista.html: verificado y SIN cambios (ya tiene {% csrf_token %}, action="{% url 'ejecutar_investigacion_ahora' inv.pk %}" y <button type="submit"> correctos).
+
+**Reglas respetadas:**
+- Máximo 2 archivos (solo 1 modificado).
+- NO se borraron datos, NO se crearon migraciones.
+- CERO estilos inline, CERO emojis.
+- Comandos PowerShell línea por línea, sin &&. No se ejecutó git push.
+- Commit: "FIX-REGRESION: Revertir ordenamiento de ejecuciones a -id para garantizar visualización".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- .venv\Scripts\python.exe manage.py check → System check identified no issues (0 silenced).
+- .venv\Scripts\python.exe manage.py makemigrations --check --dry-run → No changes detected.
+- .venv\Scripts\python.exe -m pytest tests/test_panel.py -k "ejecucion" -q → 3 passed (test_lista_ejecuciones_render, test_lista_ejecuciones_paginacion, test_acciones_lote_ejecuciones_eliminar).
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Retrocompatible. Solo cambia el orden de lectura del queryset (sin JOIN).
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "dashboard" -q` → `1 passed`.
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Retrocompatible.
+
+**Pendiente:** Criterio 4 (verificación visual en navegador: números reales y botones funcionales) no ejecutable en este entorno sin navegador.
