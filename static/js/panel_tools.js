@@ -354,6 +354,16 @@
         }
     });
 
+    // Confirmación nativa antes de regenerar reporte de IA existente
+    function confirmarRegeneracion() {
+        var btn = document.getElementById('btn-generar-reporte');
+        if (btn && btn.dataset.tieneReporte === 'true') {
+            return confirm('Ya existe un reporte guardado. ¿Deseas generar uno nuevo? Esto consumirá tokens adicionales.');
+        }
+        return true;
+    }
+
     // Exponer globalmente para uso externo
     window.PanelTools.discoverTables = discoverTables;
+    window.confirmarRegeneracion = confirmarRegeneracion;
 })();

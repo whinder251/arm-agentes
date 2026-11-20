@@ -1,4 +1,5 @@
 {% extends "panel/base.html" %}
+{% load static markdown_tags %}
 
 {% block content %}
 <div class="page-header">
@@ -14,29 +15,241 @@
 </div>
 <form method="post" action="{% url 'restaurar_herramienta' herramienta_editar.pk %}" class="form-eliminar" onsubmit="return confirm('¿Restaurar los valores de fábrica? Esta acción sobrescribirá tus cambios.')">
     {% csrf_token %}
-    <button type="submit" class="btn-secondary">Restaurar valores de fábrica</button>
+    <button type="submit" class="btn-secondary btn-sm">Restaurar valores de fábrica</button>
 </form>
 {% endif %}
 
-<div class="tarjeta">
-    <form method="post" class="form-edicion">
-        {% csrf_token %}
-        {% for field in form %}
-        <div class="form-group">
-            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-            {{ field }}
-            {% if field.errors %}
-            <ul class="errorlist">
-                {% for error in field.errors %}<li>{{ error }}</li>{% endfor %}
+<div class="layout-herramienta">
+    <!-- Columna principal: Formulario -->
+    <div class="formulario-principal">
+        <div class="tarjeta">
+            <form method="post" class="form-edicion" id="herramienta-form">
+                {% csrf_token %}
+                <input type="hidden" name="tool_type" value="{{ tool_type }}" id="id_tool_type">
+                
+                <!-- Selector de Credencial -->
+                <div class="form-group">
+                    <label for="{{ form.credencial.id_for_label }}">{{ form.credencial.label }}</label>
+                    {{ form.credencial }}
+                    {% if form.credencial.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.credencial.errors %}<li>{{ error }}</li>{% endfor %}
+                    </ul>
+                    {% endif %}
+                    {% if form.credencial.help_text %}<p class="ayuda">{{ form.credencial.help_text }}</p>{% endif %}
+                </div>
+
+                <!-- Campos ocultos del modelo (nombre, slug, tipo, descripcion, es_sistema) -->
+                <input type="hidden" name="nombre" id="id_nombre" value="{{ form.initial.nombre|default:form.instance.nombre|default:'' }}">
+                <input type="hidden" name="slug" id="id_slug" value="{{ form.initial.slug|default:form.instance.slug|default:'' }}">
+                <input type="hidden" name="tipo" id="id_tipo" value="{{ form.initial.tipo|default:form.instance.tipo|default:'api' }}">
+                <input type="hidden" name="descripcion" id="id_descripcion" value="{{ form.initial.descripcion|default:form.instance.descripcion|default:'' }}">
+                <input type="hidden" name="es_sistema" id="id_es_sistema" value="{{ form.initial.es_sistema|default:form.instance.es_sistema|default:False }}">
+
+                <!-- Fieldset dinámico: Campos estructurados -->
+                <fieldset id="fieldset-estructurado" class="fieldset-estructurado{% if advanced_mode %} oculto{% endif %}">
+                    <legend>Campos de configuración</legend>
+                    
+                    {% for campo in tipo_def.campos %}
+                    <div class="form-group" data-campo-name="{{ campo.name }}">
+                        <label for="id_{{ campo.name }}">{{ campo.label }}</label>
+                        {% with valor=valores_campos|get_item:campo.name %}
+                        {% if campo.widget == "select" %}
+                            <select name="{{ campo.name }}" id="id_{{ campo.name }}" class="input">
+                                {% for choice in campo.choices %}
+                                <option value="{{ choice }}" {% if valor == choice or campo.initial == choice %}selected{% endif %}>{{ choice }}</option>
+                                {% endfor %}
+                            </select>
+                        {% elif campo.widget == "textarea" %}
+                            <textarea name="{{ campo.name }}" id="id_{{ campo.name }}" class="input" rows="{{ campo.rows|default:4 }}" placeholder="{{ campo.placeholder|default:'' }}">{{ valor|default:'' }}</textarea>
+                        {% elif campo.widget == "number" %}
+                            <input type="number" name="{{ campo.name }}" id="id_{{ campo.name }}" class="input" value="{{ valor|default:campo.initial }}" {% if campo.min %}min="{{ campo.min }}"{% endif %} {% if campo.max %}max="{{ campo.max }}"{% endif %}>
+                        {% else %}
+                            <input type="text" name="{{ campo.name }}" id="id_{{ campo.name }}" class="input" value="{{ valor|default:'' }}" placeholder="{{ campo.placeholder|default:'' }}">
+                        {% endif %}
+                        {% endwith %}
+                        {% if campo.help_text %}<p class="ayuda">{{ campo.help_text }}</p>{% endif %}
+                    </div>
+                    {% empty %}
+                    <p class="nota-vacia">Este tipo no tiene campos estructurados. Usa el modo avanzado para editar el JSON directamente.</p>
+                    {% endfor %}
+
+                    <!-- Headers adicionales dinámicos -->
+                    <div class="form-group">
+                        <label>Headers adicionales</label>
+                        <div id="headers-container" class="headers-container">
+                            {% if valores_campos.headers %}
+                                {% for key, value in valores_campos.headers.items %}
+                                <div class="header-row">
+                                    <input type="text" name="header_key[]" class="input" value="{{ key }}" placeholder="Nombre header">
+                                    <input type="text" name="header_value[]" class="input" value="{{ value }}" placeholder="Valor">
+                                    <button type="button" class="btn-danger-sm btn-header-remove" aria-label="Eliminar header">×</button>
+                                </div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                        <button type="button" id="btn-add-header" class="btn-secondary btn-sm" aria-label="Añadir header">+ Añadir header</button>
+                    </div>
+                </fieldset>
+
+                <!-- Modo avanzado: Textarea JSON crudo -->
+                <div id="fieldset-avanzado" class="fieldset-avanzado {% if not advanced_mode %}oculto{% endif %}">
+                    <div class="form-group">
+                        <label for="{{ form.configuracion.id_for_label }}">{{ form.configuracion.label }}</label>
+                        {{ form.configuracion }}
+                        {% if form.configuracion.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.configuracion.errors %}<li>{{ error }}</li>{% endfor %}
+                        </ul>
+                        {% endif %}
+                        {% if form.configuracion.help_text %}<p class="ayuda">{{ form.configuracion.help_text }}</p>{% endif %}
+                    </div>
+                </div>
+
+                <!-- Toggle Modo Avanzado -->
+                <div class="form-group form-check">
+                    <input type="checkbox" name="advanced_mode" id="id_advanced_mode" class="input-checkbox" {% if advanced_mode %}checked{% endif %}>
+                    <label for="id_advanced_mode" class="form-check-label">Modo avanzado (editar JSON directamente)</label>
+                    <p class="ayuda">Al activar, los campos estructurados se serializan al JSON. Al desactivar, se intenta parsear el JSON para poblar los campos. Claves no mapeadas se conservan.</p>
+                </div>
+
+                <div id="json-error" class="alerta-error oculto"></div>
+
+                <div class="acciones-formulario">
+                    <button type="submit" class="btn-primary">Guardar cambios</button>
+                    <a href="{% url 'lista_herramientas' %}" class="btn-secondary">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Sidebar derecho: Ayuda contextual -->
+    <aside class="sidebar-ayuda tarjeta">
+        <div class="sidebar-header">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="{{ tipo_def.icono }}"/>
+            </svg>
+            <h3>{{ tipo_def.nombre }}</h3>
+        </div>
+        <div class="sidebar-contenido">
+            <p class="ayuda">{{ tipo_def.ayuda_sidebar }}</p>
+        </div>
+        {% if tipo_def.campos %}
+        <div class="sidebar-campos">
+            <h4>Campos disponibles</h4>
+            <ul>
+                {% for campo in tipo_def.campos %}
+                <li><strong>{{ campo.label }}</strong> ({{ campo.name }})</li>
+                {% endfor %}
             </ul>
-            {% endif %}
-            {% if field.help_text %}<p class="ayuda">{{ field.help_text }}</p>{% endif %}
         </div>
-        {% endfor %}
-        <div class="acciones-formulario">
-            <button type="submit" class="btn-primary">Guardar cambios</button>
-            <a href="{% url 'lista_herramientas' %}" class="btn-secondary">Cancelar</a>
-        </div>
-    </form>
+        {% endif %}
+    </aside>
 </div>
+
+<script src="{% static 'js/panel_tools.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar el toggle de modo avanzado
+    const checkbox = document.getElementById('id_advanced_mode');
+    const simpleContainer = document.getElementById('fieldset-estructurado');
+    const jsonContainer = document.getElementById('fieldset-avanzado');
+    const errorDiv = document.getElementById('json-error');
+    
+    if (checkbox && simpleContainer && jsonContainer) {
+        // Configurar el handler global
+        window.toggleAdvancedMode = function(cb, simple, json, err) {
+            if (cb.checked) {
+                // Serializar campos estructurados a JSON
+                const formData = new FormData(document.getElementById('herramienta-form'));
+                const config = {};
+                
+                // Recopilar campos del fieldset estructurado
+                document.querySelectorAll('#fieldset-estructurado [name]').forEach(function(el) {
+                    const name = el.name;
+                    if (name.endsWith('[]')) return; // Skip header arrays for now
+                    if (el.type === 'checkbox') {
+                        config[name] = el.checked;
+                    } else if (el.type === 'number') {
+                        config[name] = parseInt(el.value) || 0;
+                    } else {
+                        config[name] = el.value;
+                    }
+                });
+                
+                // Headers
+                const headers = {};
+                document.querySelectorAll('.header-row').forEach(function(row) {
+                    const key = row.querySelector('input[name="header_key[]"]');
+                    const val = row.querySelector('input[name="header_value[]"]');
+                    if (key && key.value) {
+                        headers[key.value] = val ? val.value : '';
+                    }
+                });
+                if (Object.keys(headers).length > 0) {
+                    config.headers = headers;
+                }
+                
+                const textarea = json.querySelector('textarea');
+                if (textarea) {
+                    textarea.value = JSON.stringify(config, null, 2);
+                }
+                simple.classList.add('oculto');
+                json.classList.remove('oculto');
+                err.classList.add('oculto');
+            } else {
+                // Intentar parsear JSON y poblar campos
+                const textarea = json.querySelector('textarea');
+                if (!textarea) return;
+                try {
+                    const config = JSON.parse(textarea.value || '{}');
+                    // Poblar campos simples
+                    Object.keys(config).forEach(function(key) {
+                        if (key === 'headers') return;
+                        const el = simple.querySelector('[name="' + key + '"]');
+                        if (el) {
+                            if (el.type === 'checkbox') {
+                                el.checked = !!config[key];
+                            } else if (el.tagName === 'SELECT') {
+                                el.value = config[key];
+                            } else {
+                                el.value = config[key];
+                            }
+                        }
+                    });
+                    // Poblar headers
+                    const container = document.getElementById('headers-container');
+                    if (container && config.headers) {
+                        container.innerHTML = '';
+                        Object.entries(config.headers).forEach(function([k, v]) {
+                            const row = document.createElement('div');
+                            row.className = 'header-row';
+                            row.innerHTML = '<input type="text" name="header_key[]" class="input" value="' + escapeHtml(k) + '" placeholder="Nombre header"><input type="text" name="header_value[]" class="input" value="' + escapeHtml(v) + '" placeholder="Valor"><button type="button" class="btn-danger-sm btn-header-remove" aria-label="Eliminar header">×</button>';
+                            container.appendChild(row);
+                        });
+                    }
+                    simple.classList.remove('oculto');
+                    json.classList.add('oculto');
+                    err.classList.add('oculto');
+                } catch (e) {
+                    err.textContent = 'JSON inválido: ' + e.message;
+                    err.classList.remove('oculto');
+                    // Mantener modo avanzado activo
+                    checkbox.checked = true;
+                }
+            }
+        };
+        
+        checkbox.addEventListener('change', function() {
+            window.toggleAdvancedMode(checkbox, simpleContainer, jsonContainer, errorDiv);
+        });
+    }
+    
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+});
+</script>
 {% endblock %}
