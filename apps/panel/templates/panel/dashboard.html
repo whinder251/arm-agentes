@@ -5,24 +5,40 @@
     <h1>Panel de Control</h1>
     <p class="subtitulo">Resumen de actividad y consumo</p>
 
-    <div class="grid">
-        <div class="tarjeta">
-            <h3>Tareas en Cola</h3>
-            <div class="valor valor--info">{{ tareas_cola }}</div>
+    <div class="grid-dashboard">
+        <div class="card-metrica">
+            <span class="etiqueta">Fuentes de Monitoreo</span>
+            <span class="numero">{{ total_monitoreos }}</span>
         </div>
-        <div class="tarjeta">
-            <h3>Tareas Completadas</h3>
-            <div class="valor valor--success">{{ tareas_ok }}</div>
+        <div class="card-metrica">
+            <span class="etiqueta">Monitoreos Activos</span>
+            <span class="numero">{{ monitoreos_activos }}</span>
         </div>
-        <div class="tarjeta">
-            <h3>Tokens Consumidos Hoy</h3>
-            <div class="valor">{{ tokens_hoy }}</div>
-            <p class="subtexto">Suma de todos los proveedores</p>
+        <div class="card-metrica">
+            <span class="etiqueta">Ejecuciones Exitosas Hoy</span>
+            <span class="numero">{{ ejecuciones_hoy }}</span>
         </div>
-        <div class="tarjeta">
-            <h3>Workflows Activos</h3>
-            <div class="valor valor--warning">{{ workflows_activos }}</div>
+        <div class="card-metrica">
+            <span class="etiqueta">Hallazgos Recientes (7 días)</span>
+            <span class="numero">{{ hallazgos_recientes }}</span>
+        </div>
+        <div class="card-metrica">
+            <span class="etiqueta">Tokens Consumidos Hoy</span>
+            <span class="numero">{{ tokens_hoy }}</span>
+        </div>
+        <div class="card-metrica">
+            <span class="etiqueta">Workflows Activos</span>
+            <span class="numero">{{ workflows_activos }}</span>
         </div>
     </div>
+
+    <section class="accesos-rapidos">
+        <h3>Accesos Rápidos</h3>
+        <div class="acciones-grid">
+            <a href="{% url 'crear_investigacion' %}" class="btn btn-primary">Nuevo Monitoreo</a>
+            <a href="{% url 'lista_ejecuciones' %}" class="btn btn-secondary">Ver Ejecuciones</a>
+            <a href="{% url 'lista_agentes' %}" class="btn btn-secondary">Gestionar Agentes</a>
+        </div>
+    </section>
 </div>
 {% endblock %}

@@ -2,6 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
+from datetime import timedelta
 from django.utils import timezone
 from django.views.decorators.http import require_POST, require_GET
 from django import forms
@@ -21,7 +22,7 @@ from apps.checks.analisis import generar_reporte_competencia
 from apps.core.models import (
     Tarea, Proveedor, ModeloLLM, Habilidad, FormatoSalida, Herramienta, Agente, Equipo,
     Workflow, PasoWorkflow, Ejecucion, IntegracionConfig, DestinoPublicacion, Credencial,
-    InvestigacionProgramada, Artefacto,
+    InvestigacionProgramada, Artefacto, Hallazgo,
 )
 import json
 import requests
@@ -1297,12 +1298,26 @@ def dashboard(request):
     tareas_fallo = Tarea.objects.filter(estado='fallo').count()
     tokens_hoy = Proveedor.objects.aggregate(total=Sum('tokens_consumidos_hoy'))['total'] or 0
     workflows_activos = Workflow.objects.filter(estado='en_ejecucion').count()
+    total_monitoreos = InvestigacionProgramada.objects.count()
+    monitoreos_activos = InvestigacionProgramada.objects.filter(activa=True).count()
+    hoy = timezone.now().date()
+    ejecuciones_hoy = Ejecucion.objects.filter(
+        tarea__actualizado_en__date=hoy, error__isnull=True
+    ).count()
+    semana_pasada = timezone.now() - timedelta(days=7)
+    hallazgos_recientes = Hallazgo.objects.filter(
+        detectado_en__gte=semana_pasada
+    ).count()
     return render(request, 'panel/dashboard.html', {
         'tareas_cola': tareas_cola,
         'tareas_ok': tareas_ok,
         'tareas_fallo': tareas_fallo,
         'tokens_hoy': tokens_hoy,
         'workflows_activos': workflows_activos,
+        'total_monitoreos': total_monitoreos,
+        'monitoreos_activos': monitoreos_activos,
+        'ejecuciones_hoy': ejecuciones_hoy,
+        'hallazgos_recientes': hallazgos_recientes,
     })
 
 

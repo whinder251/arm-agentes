@@ -151,9 +151,18 @@ class TestPanel(TestCase):
         response = self.client.get(url)
         assert response.status_code == 200
         content = response.content.decode('utf-8')
-        assert 'Tareas en Cola' in content
-        assert 'Tokens Consumidos Hoy' in content
-        assert 'Workflows Activos' in content
+        assert 'Panel de Control' in content
+        assert 'Accesos Rápidos' in content
+        assert 'Nuevo Monitoreo' in content
+        assert 'Ver Ejecuciones' in content
+        assert 'Gestionar Agentes' in content
+        ctx = response.context
+        assert isinstance(ctx['total_monitoreos'], int)
+        assert isinstance(ctx['monitoreos_activos'], int)
+        assert isinstance(ctx['ejecuciones_hoy'], int)
+        assert isinstance(ctx['hallazgos_recientes'], int)
+        assert isinstance(ctx['tokens_hoy'], int)
+        assert isinstance(ctx['workflows_activos'], int)
 
     def test_integraciones_render(self):
         self.client.login(username='testuser', password='testpass123')

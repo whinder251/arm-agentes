@@ -1208,3 +1208,62 @@ td input[type="checkbox"] {
   background-color: #fce8e6;
   color: #c5221f;
 }
+
+/* ============================================================
+   Paso DASH-01: Dashboard con métricas reales y accesos rápidos
+   ============================================================ */
+.grid-dashboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+
+.card-metrica {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.card-metrica .etiqueta {
+  display: block;
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+  margin-bottom: var(--space-xs);
+}
+
+.card-metrica .numero {
+  display: block;
+  font-size: 2rem;
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+}
+
+.accesos-rapidos {
+  margin-top: var(--space-xl);
+}
+
+.accesos-rapidos h3 {
+  margin: 0 0 var(--space-md) 0;
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+}
+
+.accesos-rapidos .acciones-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-md);
+}
+
+.accesos-rapidos .btn {
+  width: 100%;
+  height: auto;
+  padding: var(--space-md) var(--space-lg);
+}
