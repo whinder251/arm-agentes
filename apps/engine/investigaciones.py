@@ -493,8 +493,10 @@ def ejecutar_investigacion(investigacion: InvestigacionProgramada) -> dict:
         update_fields=["fin", "estado", "hallazgos_nuevos", "filtrados", "fallos_detalle"]
     )
 
-    # Solo actualizar ultima_ejecucion si no hubo fallo en la etapa de descubrimiento.
-    investigacion.ultima_ejecucion = fin
+    # Guarda la hora de INICIO (no el fin) para evitar el desplazamiento
+    # acumulativo: el siguiente vencimiento se calcula desde la hora programada
+    # de esta ejecución, independientemente de cuánto tardó en completarse.
+    investigacion.ultima_ejecucion = registro.inicio
     investigacion.save(update_fields=["ultima_ejecucion"])
 
     return {

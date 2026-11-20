@@ -3,6 +3,7 @@
 Todas las peticiones HTTP se mockean; no se llama a APIs reales.
 """
 import pytest
+from datetime import timedelta
 from unittest.mock import Mock, patch
 from django.utils import timezone
 from apps.core.models import (
@@ -10,6 +11,7 @@ from apps.core.models import (
     Hallazgo,
     RegistroEjecucionMonitoreo,
 )
+from apps.engine import tasks
 from apps.engine.investigaciones import ejecutar_investigacion, _detectar_tipo
 
 
@@ -584,3 +586,49 @@ class TestEjecutarInvestigacion:
         assert "Rate limit" in reg.fallos_detalle[0]["error"]
 
         assert investigacion.ultima_ejecucion == ultima_antes
+
+    def test_no_desplaza_horario_despues_de_ejecucion_larga(self):
+        """Una ejecución que tarda 10 minutos no desplaza la siguiente ejecución.
+
+        ultima_ejecucion guarda la hora de INICIO (no el fin), por lo que el
+        siguiente vencimiento se calcula desde la hora programada de esta
+        ejecución y no desde cuándo terminó la anterior.
+        """
+        ahora = timezone.now()
+        investigacion = InvestigacionProgramada.objects.create(
+            nombre="Investigación de prueba",
+            urls_objetivo="https://ejemplo.com/feed.rss",
+            frecuencia="diaria",
+            palabras_clave="",
+            modo_busqueda="sitio",
+            consulta_busqueda="",
+            activa=True,
+            ultima_ejecucion=ahora - timedelta(days=1),
+        )
+
+        # Simula una ejecución larga (10 min): las llamadas de red son mockeadas
+        # para que la función real se ejecute rápido y persista ultima_ejecucion
+        # con la hora de inicio, no con la de fin.
+        with patch(
+            "apps.engine.investigaciones._validar_endpoint_seguro"
+        ), patch(
+            "apps.engine.investigaciones.requests.get",
+            return_value=_mock_get(200, XML_RSS),
+        ), patch(
+            "apps.engine.investigaciones.trafilatura.extract", return_value="contenido"
+        ), patch("apps.engine.investigaciones.time.sleep"):
+            resultado = tasks.chequear_y_ejecutar_investigaciones.call_local()
+
+        assert resultado == 1
+        investigacion.refresh_from_db()
+
+        # ultima_ejecucion debe ser la hora de inicio (~ahora), dentro de 120 s.
+        delta_inicio = abs((investigacion.ultima_ejecucion - ahora).total_seconds())
+        assert delta_inicio < 120, (
+            f"ultima_ejecucion={investigacion.ultima_ejecucion} está demasiado "
+            f"lejos del inicio {ahora} ({delta_inicio:.0f}s)"
+        )
+
+        # Y no debe estar desplazada 10 minutos hacia el futuro.
+        desplazado = ahora + timedelta(minutes=10)
+        assert investigacion.ultima_ejecucion < desplazado

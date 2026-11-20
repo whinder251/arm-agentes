@@ -2736,3 +2736,72 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 **Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación de plantillas. Retrocompatible.
 
 **Pendiente:** Validación visual en navegador de los colores de mensaje y el diálogo de confirmación (no ejecutable en este entorno sin navegador).
+
+## Paso PUENTE-02 - Corregir funcionalidad del puente Hallazgo → Tarea — COMPLETADO
+
+**Objetivo:** Corregir 4 defectos en `crear_tarea_desde_hallazgo`: payload con clave "texto" en lugar de "contenido_base", encolado real en Huey con `ejecutar_tarea(tarea.pk)`, idempotencia por `hallazgo_id`, y validación estricta de habilidad sin fallback `Habilidad.objects.first()`.
+
+**Archivos tocados (2):**
+- `apps/panel/views.py`: vista `crear_tarea_desde_hallazgo` corregida con idempotencia (`payload__hallazgo_id`), validación estricta de habilidad (sin `Habilidad.objects.first()` como fallback), payload con clave "texto" y encolado real vía `ejecutar_tarea(tarea.pk)`.
+- `tests/test_panel.py`: pruebas `test_crear_tarea_desde_hallazgo` (payload "texto" + encolado mockeado), `test_crear_tarea_desde_hallazgo_idempotente` (segundo POST no duplica), `test_crear_tarea_desde_hallazgo_sin_habilidades` (error en messages, no crea tarea).
+
+**Reglas respetadas:**
+- Máximo 2 archivos modificados.
+- NO modelos, NO migraciones, NO templates.
+- CERO emojis en la UI.
+- Comandos PowerShell línea por línea, sin `&&`.
+- No se ejecutó `git push`.
+- Commit: "PUENTE-02: Corregir payload, idempotencia, validación de habilidad y encolado real".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "crear_tarea_desde_hallazgo" -q` → `3 passed`.
+
+**Impacto en contratos/datos:** SÍ tareas en cola (enculado real), SÍ datos persistidos (evita duplicados por hallazgo). NO contratos de API, NO credenciales, NO permisos. Retrocompatible: el payload cambia de `titulo_base`/`contenido_base` a `texto`, pero es interno del puente.
+
+## Paso UI-FIX-01 - Corregir etiqueta de columna de tiempo en historial de ejecuciones — COMPLETADO
+
+**Objetivo:** En la tabla de 'Historial de Ejecuciones' de `investigacion_detalle.html`, la columna mostraba la hora de fin pero el encabezado decía 'Duración'. Se cambió el encabezado a 'Hora de fin' para que sea semánticamente correcto y coincida con el dato renderizado (`{{ ejecucion.fin|date:"H:i:s" }}`).
+
+**Archivos tocados (1):**
+- `apps/panel/templates/panel/investigacion_detalle.html`: cambió `<th>Duración</th>` por `<th>Hora de fin</th>` (línea 87). No se modificó la lógica de renderizado del dato.
+
+**Reglas respetadas:**
+- Máximo 1 archivo modificado.
+- NO lógica Python, NO modelos, NO migraciones.
+- CERO estilos inline, CERO emojis.
+- No se ejecutó `git push`.
+- Commit: 'UI-FIX-01: Corregir etiqueta de columna de tiempo en historial de ejecuciones'.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "detalle_investigacion" -q` → `5 passed`.
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación de plantilla. Retrocompatible.
+
+**Pendiente:** Ninguno para este paso.
+## Paso SCHEDULE-FIX-01 - Corregir el desplazamiento horario en la programación de monitoreos — COMPLETADO
+
+**Objetivo:** Evitar que las ejecuciones programadas (diaria/semanal/mensual) se desplacen acumulativamente (10:00, 11:00, 12:00...) cuando una ejecución tarda unos minutos. Ahora `ultima_ejecucion` guarda la hora de INICIO (no el fin), por lo que `_debe_ejecutar` calcula el próximo vencimiento desde la hora programada de esta ejecución y no desde cuándo terminó la anterior.
+
+**Archivos tocados (2):**
+- `apps/engine/investigaciones.py`: al final de `ejecutar_investigacion`, se guarda `investigacion.ultima_ejecucion = registro.inicio` (hora de inicio) en vez de `fin` (hora de fin).
+- `tests/test_investigaciones.py`: nueva prueba `test_no_desplaza_horario_despues_de_ejecucion_larga` que verifica que `ultima_ejecucion` se guarda como la hora de inicio y no se desplaza 10 minutos aunque la ejecución sea larga.
+
+**Reglas respetadas:**
+- Máximo 2 archivos modificados.
+- NO modelos, NO migraciones (`makemigrations --check --dry-run` → No changes detected).
+- CERO estilos inline, CERO emojis.
+- Comandos PowerShell línea por línea, sin `&&`.
+- No se ejecutó `git push`.
+- Commit: "SCHEDULE-FIX-01: Corregir desplazamiento horario acumulativo en programaciones".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_investigaciones.py -q` → `20 passed` (incluye la nueva prueba de no desplazamiento).
+
+**Impacto en contratos/datos:** SÍ dato persistido (semántica de `ultima_ejecucion` cambia de hora de fin a hora de inicio; valores existentes no se migran, se sobrescriben en la próxima ejecución exitosa). NO modelos, NO migraciones, NO contratos de API, NO credenciales, NO permisos, NO tareas en cola. Retrocompatible: el siguiente vencimiento se calcula desde el inicio programado.
+
