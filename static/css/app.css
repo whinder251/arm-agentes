@@ -1586,3 +1586,26 @@ td input[type="checkbox"] {
 .form-lote select {
   min-width: 200px;
 }
+
+.tool-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  margin-bottom: var(--space-sm);
+}
+
+.icono-integracion {
+  width: 32px;
+  height: 32px;
+}
+
+.tool-logo--mono svg {
+  width: 24px;
+  height: 24px;
+  color: var(--text-secondary);
+}

@@ -1405,6 +1405,67 @@ def dashboard(request):
     })
 
 
+_ICONOS_CATALOGO = None
+_ICONOS_SVG_NAVEGACION = {}
+
+# Mapeo verificado: slug de tools_status -> slug de catalogo para iconos de marca.
+# Las herramientas sin entrada en el catalogo (tavily-search, google-news) no
+# aparecen aqui y conservan su SVG inline actual.
+_SLUG_MARCA = {
+    "duckduckgo-search": "duckduckgo",
+    "wordpress": "wordpress",
+}
+
+
+def _cargar_catalogo_iconos():
+    """Carga catalogo.json una sola vez (cache de módulo) y devuelve un
+    dict mapeando slug -> entrada del catalogo para iconos de marca con
+    logotipo_oficial=True. Si falta el archivo, devuelve {} sin lanzar."""
+    global _ICONOS_CATALOGO
+    if _ICONOS_CATALOGO is not None:
+        return _ICONOS_CATALOGO
+    _ICONOS_CATALOGO = {}
+    try:
+        ruta = Path(settings.BASE_DIR) / "static" / "iconos-integraciones" / "catalogo.json"
+        if ruta.exists():
+            datos = json.loads(ruta.read_text(encoding="utf-8"))
+            for entrada in datos.get("iconos", []):
+                if entrada.get("logotipo_oficial"):
+                    _ICONOS_CATALOGO[entrada["slug"]] = entrada
+    except Exception:
+        _ICONOS_CATALOGO = {}
+    return _ICONOS_CATALOGO
+
+
+def _leer_svg_navegacion(slug):
+    """Lee el contenido de un SVG de navegacion (navegacion/<slug>.svg) con
+    cache de módulo. Devuelve el texto del SVG o None si no existe."""
+    if slug in _ICONOS_SVG_NAVEGACION:
+        return _ICONOS_SVG_NAVEGACION[slug]
+    try:
+        ruta = Path(settings.BASE_DIR) / "static" / "iconos-integraciones" / "navegacion" / f"{slug}.svg"
+        if ruta.exists():
+            contenido = ruta.read_text(encoding="utf-8")
+            _ICONOS_SVG_NAVEGACION[slug] = contenido
+            return contenido
+    except Exception:
+        pass
+    _ICONOS_SVG_NAVEGACION[slug] = None
+    return None
+
+
+def _icono_archivo_marca(slug):
+    """Devuelve la ruta relativa 'iconos-integraciones/marca/<slug>.svg' si
+    el slug (mapeado si es necesario) existe en el catalogo con
+    logotipo_oficial=True; si no, ''."""
+    slug_catalogo = _SLUG_MARCA.get(slug, slug)
+    catalogo = _cargar_catalogo_iconos()
+    entrada = catalogo.get(slug_catalogo)
+    if entrada:
+        return f"iconos-integraciones/marca/{slug_catalogo}.svg"
+    return ""
+
+
 @login_required
 def integraciones(request):
     """Gestiona las integraciones externas, rota la clave ARM API y
@@ -1435,6 +1496,7 @@ def integraciones(request):
             "slug": "tavily-search",
             "descripcion": "Búsqueda web avanzada con IA para descubrir contenido de la competencia.",
             "icono": '<path d="M21 21l-4.35-4.35M19 11a8 8 0 1 1-16 0 8 8 0 0 1 16 0z"/>',
+            "icono_archivo": _icono_archivo_marca("tavily-search"),
             "url": "lista_herramientas",
             "estado": (
                 "conectado"
@@ -1448,6 +1510,7 @@ def integraciones(request):
             "slug": "duckduckgo-search",
             "descripcion": "Búsqueda web privada y gratuita para rastrear fuentes de información.",
             "icono": '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+            "icono_archivo": _icono_archivo_marca("duckduckgo-search"),
             "url": "lista_herramientas",
             "estado": (
                 "conectado"
@@ -1461,6 +1524,7 @@ def integraciones(request):
             "slug": "google-news",
             "descripcion": "Rastreo de actualidad mediante feeds de Google News RSS.",
             "icono": '<path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h8M8 16h5"/>',
+            "icono_archivo": _icono_archivo_marca("google-news"),
             "url": "lista_herramientas",
             "estado": (
                 "conectado"
@@ -1474,6 +1538,7 @@ def integraciones(request):
             "slug": "wordpress",
             "descripcion": "Publicación de artefactos en sitios WordPress mediante REST API.",
             "icono": '<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1.5 14.5L7 8h2.5l2 6 2-6H16l-3.5 8.5h-2z" fill="currentColor"/>',
+            "icono_archivo": _icono_archivo_marca("wordpress"),
             "url": "integraciones",
             "estado": "conectado" if wordpress_activo else "pendiente",
         },
@@ -1481,7 +1546,8 @@ def integraciones(request):
             "nombre": "Webhooks",
             "slug": "webhooks",
             "descripcion": "Endpoints HTTP para recibir eventos de servicios externos.",
-            "icono": '<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>',
+            "icono": _leer_svg_navegacion("conexiones") or '<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>',
+            "icono_archivo": _icono_archivo_marca("webhooks"),
             "url": "integraciones",
             "estado": "conectado" if webhook_activo else "pendiente",
         },
@@ -1489,7 +1555,8 @@ def integraciones(request):
             "nombre": "API del Sistema",
             "slug": "arm-api",
             "descripcion": "Clave de autenticación para consumir la API REST de ARM desde sistemas externos.",
-            "icono": '<path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>',
+            "icono": _leer_svg_navegacion("boveda") or '<path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>',
+            "icono_archivo": _icono_archivo_marca("arm-api"),
             "url": "integraciones",
             "estado": "conectado" if api_activa else "pendiente",
         },

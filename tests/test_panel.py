@@ -251,6 +251,22 @@ class TestPanel(TestCase):
         # No queda la tabla antigua
         assert '<table' not in content
         assert 'class="tabla"' not in content
+        # Iconos de marca (duckduckgo y wordpress usan marca/<slug>.svg)
+        assert 'iconos-integraciones/marca/duckduckgo.svg' in content
+        assert 'iconos-integraciones/marca/wordpress.svg' in content
+        # Los img de marca llevan alt="" y width/height
+        assert '<img class="icono-integracion" src="' in content
+        assert 'alt=""' in content
+        assert 'width="32"' in content
+        assert 'height="32"' in content
+        assert 'loading="lazy"' in content
+        # tavily-search y google-news no tienen logo de marca: no renderizan img de marca inexistente
+        assert 'iconos-integraciones/marca/tavily-search.svg' not in content
+        assert 'iconos-integraciones/marca/google-news.svg' not in content
+        # webhooks y arm-api usan icono mono (clase tool-logo--mono)
+        assert 'tool-logo--mono' in content
+        # Cero estilos inline
+        assert 'style="' not in content
 
     def test_lista_ejecuciones_render(self):
         tarea = Tarea.objects.create(

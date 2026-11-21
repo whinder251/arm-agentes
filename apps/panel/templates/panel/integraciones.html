@@ -1,4 +1,5 @@
 {% extends 'panel/base.html' %}
+{% load static %}
 
 {% block content %}
 <div class="page-header">
@@ -19,9 +20,15 @@
 <div class="grid-integraciones">
     {% for tool in tools_status %}
     <div class="card">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            {{ tool.icono|safe }}
-        </svg>
+        <span class="tool-logo{% if not tool.icono_archivo %} tool-logo--mono{% endif %}">
+            {% if tool.icono_archivo %}
+            <img class="icono-integracion" src="{% static tool.icono_archivo %}" alt="" width="32" height="32" loading="lazy">
+            {% else %}
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                {{ tool.icono|safe }}
+            </svg>
+            {% endif %}
+        </span>
         <h3>{{ tool.nombre }}</h3>
         <p class="help-text">{{ tool.descripcion }}</p>
         <div>
