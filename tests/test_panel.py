@@ -1,6 +1,8 @@
 import os
 import pytest
 from unittest.mock import Mock, patch
+from django.test.utils import CaptureQueriesContext
+from django.db import connection
 from django.conf import settings
 from django.utils import timezone
 from django.contrib import messages
@@ -2076,3 +2078,85 @@ class TestPanel(TestCase):
         assert "https://ejemplo.com/sin-titulo" in content
         # La URL no debe aparecer como título (h3), solo como texto de ayuda
         assert "<h3>Sin título</h3>" in content
+
+
+class TestRendimientoListados(TestCase):
+    """Pruebas de conteo de consultas (N+1) en listados del panel.
+
+    Mide con CaptureQueriesContext que select_related elimine el N+1
+    al acceder a agente, modelo, proveedor y habilidad desde cada fila.
+    """
+
+    def setUp(self):
+        self.user = User.objects.create_user('perfuser', password='testpass123')
+        self.proveedor = Proveedor.objects.create(
+            nombre='perf-proveedor', api_key='fake', base_url='http://test.invalid'
+        )
+        self.modelo = ModeloLLM.objects.create(
+            proveedor=self.proveedor, model_id='perf-modelo'
+        )
+        self.habilidad = Habilidad.objects.create(
+            nombre='perf-habilidad', slug='perf-habilidad', instrucciones='x'
+        )
+        self.agente = Agente.objects.create(
+            nombre='perf-agente', modelo=self.modelo, rol='Eres un agente.'
+        )
+        self.agente.habilidades.add(self.habilidad)
+        IntegracionConfig.objects.create(
+            nombre='ARM API', tipo='arm_api', activa=True,
+        )
+
+    def test_lista_ejecuciones_sin_n_plus_1(self):
+        """10 ejecuciones con relaciones propias no disparan N+1: <= 6 consultas."""
+        for i in range(10):
+            p = Proveedor.objects.create(
+                nombre=f'perf-p{i}', api_key='fake', base_url='http://test.invalid'
+            )
+            m = ModeloLLM.objects.create(proveedor=p, model_id=f'perf-m{i}')
+            h = Habilidad.objects.create(
+                nombre=f'perf-h{i}', slug=f'perf-h{i}', instrucciones='x'
+            )
+            a = Agente.objects.create(
+                nombre=f'perf-a{i}', modelo=m, rol='Eres un agente.'
+            )
+            a.habilidades.add(h)
+            t = Tarea.objects.create(
+                agente=a, habilidad=h, estado='ok', payload={'texto': f't{i}'}
+            )
+            Ejecucion.objects.create(
+                tarea=t, modelo_usado='gemini-flash', tokens_in=10, tokens_out=20, ms=500
+            )
+        self.client.login(username='perfuser', password='testpass123')
+        url = reverse('lista_ejecuciones')
+        with CaptureQueriesContext(connection) as ctx:
+            response = self.client.get(url)
+        assert response.status_code == 200
+        num = len(ctx.captured_queries)
+        print(f"\n[PERF] lista_ejecuciones consultas: {num}")
+        assert num <= 6, f"lista_ejecuciones ejecuta {num} consultas, se esperaban <= 6"
+
+    def test_lista_tareas_sin_n_plus_1(self):
+        """10 tareas con agente/habilidad no disparan N+1: <= 10 consultas."""
+        for i in range(10):
+            p = Proveedor.objects.create(
+                nombre=f'perft-p{i}', api_key='fake', base_url='http://test.invalid'
+            )
+            m = ModeloLLM.objects.create(proveedor=p, model_id=f'perft-m{i}')
+            h = Habilidad.objects.create(
+                nombre=f'perft-h{i}', slug=f'perft-h{i}', instrucciones='x'
+            )
+            a = Agente.objects.create(
+                nombre=f'perft-a{i}', modelo=m, rol='Eres un agente.'
+            )
+            a.habilidades.add(h)
+            Tarea.objects.create(
+                agente=a, habilidad=h, estado='ok', payload={'texto': f't{i}'}
+            )
+        self.client.login(username='perfuser', password='testpass123')
+        url = reverse('lista_tareas')
+        with CaptureQueriesContext(connection) as ctx:
+            response = self.client.get(url)
+        assert response.status_code == 200
+        num = len(ctx.captured_queries)
+        print(f"\n[PERF] lista_tareas consultas: {num}")
+        assert num <= 10, f"lista_tareas ejecuta {num} consultas, se esperaban <= 10"

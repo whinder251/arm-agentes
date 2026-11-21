@@ -227,7 +227,11 @@ def lista_tareas(request):
         inicio__date=hoy
     ).count()
     estado_filtro = request.GET.get('estado')
-    tareas_qs = Tarea.objects.all().order_by('-id')
+    tareas_qs = (
+        Tarea.objects
+        .select_related('agente__modelo__proveedor', 'habilidad')
+        .order_by('-id')
+    )
     if estado_filtro:
         tareas_qs = tareas_qs.filter(estado=estado_filtro)
     paginator = Paginator(tareas_qs, 20)
@@ -1620,7 +1624,7 @@ def lista_ejecuciones(request):
     """Historial de solo lectura de todas las ejecuciones de IA."""
     ejecuciones_qs = (
         Ejecucion.objects
-        .select_related('tarea__agente__modelo__proveedor')
+        .select_related('tarea__agente__modelo__proveedor', 'tarea__habilidad')
         .order_by('-id')
     )
     paginator = Paginator(ejecuciones_qs, 50)

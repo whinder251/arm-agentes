@@ -5218,94 +5218,6 @@ tle, radius md, padding md, margin-bottom lg) y `.icono-agente` (color accent-so
 **Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (HTML/CSS). Retrocompatible: las clases sobrescritas mantienen su semántica; las vistas existentes siguen funcionando.
 
 
-## Paso BIBLIOTECA-UX-01 - Corregir alineación, redundancia y etiquetas en vista Biblioteca — COMPLETADO
-
-**Objetivo:** Corregir los problemas visuales de biblioteca.html: alinear el formulario de búsqueda en una sola fila, eliminar la redundancia de la URL cuando no hay título, y condicionar la etiqueta de fecha para que no muestre texto vacío.
-
-**Archivos tocados (3):**
-
-- `apps/panel/templates/panel/biblioteca.html`: título condicional (`{% if hallazgo.titulo %}...{% else %}Sin título{% endif %}`), URL mostrada una sola vez en `<p class="help-text">`, fecha condicional (`{% if hallazgo.fecha_publicacion %}` con "Sin fecha" en el else), formulario de búsqueda dentro de `.form-buscar`. CERO estilos inline, CERO emojis.
-- `static/css/app.css`: añadidas reglas `.form-buscar` (flex, gap, align-items, margin-bottom) y `.grid-biblioteca` (grid, repeat auto-fill minmax 300px, gap). No se tocó ninguna regla existente.
-- `tests/test_panel.py`: añadida prueba `test_biblioteca_sin_titulo_muestra_sin_titulo` que verifica que un hallazgo sin título muestra "Sin título" y no duplica la URL como título.
-
-**Reglas respetadas:**
-
-- Máximo 3 archivos modificados (más docs/plan.md como documentación).
-- CERO estilos inline, CERO emojis, CERO bloques `<style>` en plantillas.
-- No se modificó views.py, models.py, urls.py ni forms.py.
-- Usó exclusivamente clases de app.css (`.card`, `.badge`, `.help-text`, `.form-buscar`, `.grid-biblioteca`).
-- `.venv\Scripts\python.exe` línea por línea, sin `&&`.
-- No se ejecutó `git push`.
-- Commit: "BIBLIOTECA-UX-01: Corregir alineación, redundancia y etiquetas en vista Biblioteca".
-
-**Evidencia de aceptación (ejecutado en esta sesión):**
-
-- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
-- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
-- Select-String en biblioteca.html por 'style="' → 0 coincidencias.
-- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "biblioteca" -q` → `2 passed`.
-
-**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (HTML/CSS). Retrocompatible: la vista y la URL se mantienen; solo cambia el renderizado de título, URL y fecha en el template.
-
-
-## Paso INTEGRATIONS-ICONS-01 - Actualizar paths SVG a iconos oficiales de marca — COMPLETADO
-
-**Objetivo:** Reemplazar los paths SVG genéricos en el diccionario `tools_status` de la vista `integraciones` por los paths oficiales y simplificados de cada marca (estilo Simple Icons, viewBox="0 0 24 24"), usando `fill="currentColor"` o `stroke="currentColor"` para mantener la coherencia visual con el sistema.
-
-**Archivos tocados (1):**
-
-- `apps/panel/views.py`: actualizada la clave "icono" en cada diccionario de `tools_status` con paths SVG limpios para Tavily, DuckDuckGo, Google News, WordPress, Webhooks y API del Sistema. Los atributos `stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"` se mantienen en el `<svg>` padre del template; solo se reemplazó el contenido del `<path>`.
-
-**Reglas respetadas:**
-
-- Máximo 1 archivo modificado (más docs/plan.md como documentación).
-- No se modificó HTML, CSS, tests ni la lógica de negocio. Solo el diccionario de datos en views.py.
-- CERO estilos inline, CERO emojis.
-- `.venv\Scripts\python.exe` línea por línea, sin `&&`.
-- No se ejecutó `git push`.
-- Commit: "INTEGRATIONS-ICONS-01: Actualizar paths SVG a iconos oficiales de marca".
-
-**Evidencia de aceptación (ejecutado en esta sesión):**
-
-- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
-- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
-- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "integraciones" -q` → `3 passed`.
-
-**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (SVG en contexto de vista). Retrocompatible: la URL y la vista se mantienen; solo cambian los iconos renderizados.
-
-
-## Paso FEED-UX-01 - Reemplazar alerta-warning por feed-agente con icono del agente — COMPLETADO
-
-**Objetivo:** Reemplazar `.alerta-warning` (fondo amarillo de advertencia, semánticamente incorrecto para un reporte del agente) por `.feed-agente` (fondo neutro con borde sutil) y añadir un icono SVG inline del agente (sparkle, 20x20, stroke currentColor) en el feed conversacional del Centro de Mando en `tareas.html`.
-
-**Archivos tocados (3):**
-
-- `apps/panel/templates/panel/tareas.html`: cambió `<div class="alerta-warning">` por `<div class="feed-agente">` e insertó `<svg class="icono-agente">` con path de sparkle justo antes del texto narrativo. Los tres contadores `{{ total_hallazgos_hoy }}`, `{{ pendientes_aprobacion }}`, `{{ archivados_hoy }}` y el texto narrativo se mantienen intactos. CERO estilos inline, CERO emojis.
-- `static/css/app.css`: añadidas reglas `.feed-agente` (flex, bg-secondary, borde sub
-tle, radius md, padding md, margin-bottom lg) y `.icono-agente` (color accent-solid, flex-shrink 0, margin-top 2px). No se tocó `.alerta-warning` (se usa en otros sitios para advertencias reales).
-- `tests/test_panel.py`: añadidas aserciones `assert 'feed-agente' in content` y `assert 'icono-agente' in content` a `test_lista_tareas_feed_conversacional`. Todas las aserciones existentes de texto y contexto se mantienen intactas.
-
-**Reglas respetadas:**
-
-- Máximo 3 archivos modificados (más docs/plan.md como documentación).
-- CERO estilos inline, CERO emojis, CERO bloques `<style>` en plantillas.
-- No se modificó views.py, models.py, urls.py ni forms.py. Los contadores del contexto quedan igual.
-- Usó exclusivamente clases de app.css (`.feed-agente`, `.icono-agente`) y tokens ARM Flow 2.0 (`--bg-secondary`, `--border-primary`, `--radius-md`, `--space-md`, `--space-lg`, `--space-sm`, `--accent-solid`).
-- `.venv\Scripts\python.exe` línea por línea, sin `&&`.
-- No se ejecutó `git push`.
-- Commit: "FEED-UX-01: Reemplazar alerta-warning por feed-agente con icono del agente".
-
-**Evidencia de aceptación (ejecutado en esta sesión):**
-
-- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
-- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
-- Select-String en tareas.html por `alerta-warning` → 0 coincidencias en el bloque del feed.
-- Select-String en app.css por `feed-agente` → presente.
-- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "feed" -q` → `1 passed`.
-
-**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (HTML/CSS). Retrocompatible: la lógica de views.py y los contadores del contexto permanecen inalterados.
-
-
 ## Paso AUDIT-DESIGN-01 - Reparar variables CSS rotas y contraste de texto — COMPLETADO
 
 **Objetivo:** Corregir referencias a variables CSS inexistentes y reemplazar tokens de acento usados como texto (que fallan el contraste 4.5:1) por sus variantes de texto seguras, garantizando accesibilidad en todas las vistas.
@@ -5557,3 +5469,42 @@ tle, radius md, padding md, margin-bottom lg) y `.icono-agente` (color accent-so
 - Select-String en `tareas.html` por `style="` → 0 coincidencias.
 
 **Impacto en contratos/datos:** NO contratos de API, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones, NO modelos/urls/forms. Solo presentación HTML/CSS. Retrocompatible.
+
+
+## Paso PERF-LISTADOS-01 - Eliminar N+1 en listados, unificar badges y contener la tabla de ejecuciones — COMPLETADO
+
+**Objetivo:** Eliminar consultas N+1 en `lista_tareas` y `lista_ejecuciones`, unificar los badges de estado de ejecuciones con las clases centrales del sistema, contener el desborde horizontal de la tabla y fijar el formato de fechas, con pruebas de conteo de consultas que impidan regresiones.
+
+**Archivos tocados (5 funcionales + docs, excepción confirmada):**
+
+- `apps/panel/views.py`: `lista_tareas` añade `select_related('agente__modelo__proveedor', 'habilidad')`; `lista_ejecuciones` añade `'tarea__habilidad'` al `select_related` existente. Sin cambios de contrato, filtros ni paginación.
+- `apps/panel/templates/panel/lista_ejecuciones.html`: badges `estado-fallo`/`estado-exito` → `badge-error`/`badge-success`; fechas `d/m/Y H:i:s` → `d/m/Y H:i`; tabla envuelta en `<div class="tabla-scroll">`.
+- `static/css/app.css`: eliminadas `.estado-exito` y `.estado-fallo`, sin uso tras la unificación (`.badge-success`/`.badge-error` ya existen).
+- `apps/panel/templates/panel/investigacion_detalle.html`: `fecha_publicacion` con `|date:"d/m/Y"` y hora de fin con `|date:"d/m/Y H:i"`, coherente con el encabezado "Hora de fin" de UI-FIX-01.
+- `tests/test_panel.py`: nueva clase `TestRendimientoListados` con `test_lista_ejecuciones_sin_n_plus_1` (≤ 6 consultas) y `test_lista_tareas_sin_n_plus_1` (≤ 10), usando `CaptureQueriesContext`; imports `CaptureQueriesContext` y `connection`.
+
+**Decisión sobre `biblioteca_view`:** se evaluó añadir `select_related('investigacion')`, pero `biblioteca.html` solo lee campos propios de `Hallazgo` (título, URL, fecha y `get_tipo_fuente_display`); no accede a `hallazgo.investigacion`. Añadirlo sería un JOIN sin consumidor, por lo que se omitió deliberadamente. Si el template pasa a mostrar el nombre de la fuente, deberá añadirse junto con su prueba de conteo.
+
+**Limpieza documental:** se eliminaron 3 bloques duplicados de `docs/plan.md` (segundas copias de BIBLIOTECA-UX-01, INTEGRATIONS-ICONS-01 y FEED-UX-01). Se conservan las copias originales; no se alteró ningún otro contenido.
+
+**Reglas respetadas:**
+
+- NO modelos, NO migraciones (`makemigrations --check --dry-run` → `No changes detected`).
+- CERO estilos inline, CERO emojis, CERO bloques `<style>`.
+- No se tocó `models.py`, `urls.py` ni `forms.py`.
+- Comandos PowerShell línea por línea, sin `&&`.
+- No se ejecutó `git push`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+
+- Medición previa con `CaptureQueriesContext` (10 filas, `HTTP_HOST='localhost'`): `lista_ejecuciones` 35 consultas; `lista_tareas` 49 consultas.
+- Medición posterior, mismo escenario: `lista_ejecuciones` 4 consultas; `lista_tareas` 9 consultas.
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py::TestRendimientoListados -q` → `2 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "ejecucion" -q` → `3 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py::TestPanel::test_lista_tareas_paginacion -q` → `1 passed`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "investigacion" -q` → `23 passed, 72 deselected, 3 warnings in 85.94s`.
+- Suite completa `pytest -q` no ejecutada: cuelgue de entorno preexistente documentado en C.2/C.3a/C.4/C.9b/UX-3/UX-4, ajeno a este cambio.
+
+**Impacto en contratos/datos:** NO contratos de API, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo consultas (JOIN en lugar de N+1), presentación y pruebas. Retrocompatible.

@@ -16,6 +16,7 @@
     <button type="submit" class="btn-danger" onclick="return confirm('¿Eliminar las ejecuciones seleccionadas? Esta acción no se puede deshacer.');">Eliminar</button>
     </div>
 
+<div class="tabla-scroll">
 <table class="tabla-log-denso">
     <thead>
         <tr>
@@ -31,14 +32,14 @@
         {% for ejecucion in page_obj %}
         <tr>
             <td><input type="checkbox" name="ejecucion_ids" value="{{ ejecucion.pk }}"></td>
-            <td>{{ ejecucion.tarea.actualizado_en|date:"d/m/Y H:i:s" }}</td>
+            <td>{{ ejecucion.tarea.actualizado_en|date:"d/m/Y H:i" }}</td>
             <td>{{ ejecucion.tarea.habilidad.nombre|default:"-" }}</td>
             <td>{{ ejecucion.tarea.agente.modelo.proveedor.nombre|default:"-" }}</td>
             <td>
                 {% if ejecucion.error %}
-                <span class="badge estado-fallo">Fallo</span>
+                <span class="badge badge-error">Fallo</span>
                 {% else %}
-                <span class="badge estado-exito">Éxito</span>
+                <span class="badge badge-success">Éxito</span>
                 {% endif %}
             </td>
             <td>{{ ejecucion.ms }} ms</td>
@@ -50,6 +51,7 @@
         {% endfor %}
     </tbody>
 </table>
+</div>
 </form>
 
 <div class="paginacion">

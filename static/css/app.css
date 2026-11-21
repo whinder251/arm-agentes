@@ -1206,16 +1206,6 @@ td input[type="checkbox"] {
   color: var(--text-primary);
 }
 
-.estado-exito {
-  background-color: #e6f4ea;
-  color: #137333;
-}
-
-.estado-fallo {
-  background-color: #fce8e6;
-  color: #c5221f;
-}
-
 /* ============================================================
    Paso DASH-01: Dashboard con métricas reales y accesos rápidos
    ============================================================ */
