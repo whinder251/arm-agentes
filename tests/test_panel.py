@@ -1,5 +1,7 @@
+import os
 import pytest
 from unittest.mock import Mock, patch
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.test import TestCase
@@ -154,6 +156,20 @@ class TestPanel(TestCase):
         assert 'Proveedores' in content
         assert 'Modelos' in content
         assert 'Modelos y proveedores' not in content
+
+    def test_sidebar_activo_y_tokens_linear_nod(self):
+        self.client.login(username='testuser', password='testpass123')
+        response = self.client.get(reverse('lista_tareas'))
+        content = response.content.decode('utf-8')
+        # La clase .activo existe en el sidebar del HTML renderizado
+        assert 'class="activo"' in content
+        # El CSS de app.css contiene los tokens nuevos de Linear-Nod
+        css_path = os.path.join(settings.BASE_DIR, 'static', 'css', 'app.css')
+        with open(css_path, 'r', encoding='utf-8') as f:
+            css = f.read()
+        assert '--sidebar-bg' in css
+        assert '--accent-solid' in css
+        assert '--accent-on-dark' in css
 
     def test_dashboard_render(self):
         self.client.login(username='testuser', password='testpass123')
