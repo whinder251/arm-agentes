@@ -5464,4 +5464,34 @@ tle, radius md, padding md, margin-bottom lg) y `.icono-agente` (color accent-so
 - Select-String en `app.css` por `opacity: 0` dentro del bloque `.acciones-rapidas` → 0 coincidencias.
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "investigacion or split" -q` → `24 passed`.
 
-**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (HTML/CSS) y anotaciones de consulta en la vista. Retrocompatible: la URL y el comportamiento de `lista_investigaciones` se mantienen.
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (HTML/CSS) y anotaciones de consulta en la vista. Retrocompatible: la URL y el comportamiento de `lista_investigaciones` se mantienen.
+
+
+## Paso CMD-CHAT-01 - Convertir el Centro de Mando en un feed conversacional con tarjetas de aprobación y composer — COMPLETADO
+
+**Objetivo:** Transformar la rama de listado de `tareas.html` en una línea de tiempo conversacional sin perder lote, filtros, paginación, aprobación ni archivo.
+
+**Archivos tocados (4):**
+
+- `apps/panel/templates/panel/tareas.html`: reescrita solo la rama `{% else %}`. Cabecera de estado con `.feed-agente`, `.icono-agente` y nueva fila `.estado-chips` (3 `.chip-estado` con contadores del contexto). Filtros como `<nav class="chips-filtro">` con `.chip-filtro` y `aria-current="page"` en el activo. Toolbar `.barra-lote` con form de lote (checkbox select-all, select name action, botón Aplicar). Feed `<ol class="feed-timeline">` con `<li class="entrada-feed">` por tarea: checkbox, icono SVG 20x20 por estado, cuerpo con línea principal (`{{ t.habilidad }}`) y meta `.help-text` (agente, fecha, enlace detalle), badge de estado, y `.card-aprobacion` con los 2 formularios existentes cuando `estado == revision`. Composer al pie: `<form method="get" action="{% url 'crear_tarea' %}" class="composer">` con label visible y input `descripcion`. Conservada paginación y script de select-all. La rama `{% if tarea %}` queda intacta.
+- `apps/panel/views.py`: en `crear_tarea`, GET añade `descripcion_inicial = request.GET.get("descripcion", "")` al contexto para precargar el campo.
+- `static/css/app.css`: añadidas reglas `.estado-chips`, `.chip-estado`, `.chip-estado--warning`, `.chips-filtro`, `.chip-filtro`, `.chip-filtro--activo`, `.barra-lote`, `.feed-timeline`, `.entrada-feed`, `.entrada-feed--revision`, `.entrada-icono` con variantes por estado, `.entrada-cuerpo`, `.entrada-titulo`, `.card-aprobacion`, `.composer`, `.composer label`, `.composer .input`. Sin tocar reglas existentes.
+- `tests/test_panel.py`: extendido `test_lista_tareas_feed_conversacional` con aserciones `feed-timeline` y `composer`; añadido `test_tarea_revision_renderiza_card_aprobacion`; añadido `test_crear_tarea_con_descripcion_precargada`; actualizado `test_lista_tareas_paginacion` para verificar `entrada-feed` y `badge-cola` en lugar de `class="card"` y "Aprobar y Procesar".
+
+**Reglas respetadas:**
+
+- Máximo 4 archivos modificados (más docs/plan.md como documentación).
+- CERO estilos inline, CERO emojis, CERO bloques `<style>` en plantillas.
+- No se tocó `models.py`, `urls.py` ni `forms.py`. La rama `{% if tarea %}` de `tareas.html` queda intacta.
+- `.venv\Scripts\python.exe` línea por línea, sin `&&`.
+- No se ejecutó `git push`.
+- Commit: "CMD-CHAT-01: Centro de Mando como feed conversacional con aprobaciones en línea y composer".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "tarea or feed" -q` → `31 passed`.
+- Select-String en `tareas.html` por `style="` → 0 coincidencias.
+
+**Impacto en contratos/datos:** NO contratos de API, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones, NO modelos/urls/forms. Solo presentación + `initial` en GET de `crear_tarea`. Retrocompatible.

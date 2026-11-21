@@ -1088,10 +1088,9 @@ class TestPanel(TestCase):
         # Verificar que hay checkboxes
         assert 'name="task_ids"' in content
         assert 'id="select-all-tasks"' in content
-        # Verificar nueva estructura de tarjetas de actividad del Centro de Mando
-        assert 'class="card"' in content
-        assert 'Aprobar y Procesar' in content
-        assert 'Archivar / Descartar' in content
+        # Verificar nueva estructura de entradas del feed conversacional
+        assert 'entrada-feed' in content
+        assert 'badge-cola' in content
         # Segunda página
         response = self.client.get(url + '?page=2')
         assert response.status_code == 200
@@ -1159,6 +1158,32 @@ class TestPanel(TestCase):
         assert 'fueron archivados' in content
         assert 'feed-agente' in content
         assert 'icono-agente' in content
+        assert 'feed-timeline' in content
+        assert 'composer' in content
+
+    def test_tarea_revision_renderiza_card_aprobacion(self):
+        """Una tarea en estado revision renderiza su tarjeta de aprobación con URLs funcionales."""
+        self.client.login(username='testuser', password='testpass123')
+        tarea = Tarea.objects.create(
+            agente=self.agente,
+            habilidad=self.habilidad,
+            estado='revision',
+            payload={'texto': 'pendiente'},
+        )
+        response = self.client.get(reverse('lista_tareas'))
+        content = response.content.decode('utf-8')
+        assert response.status_code == 200
+        assert 'card-aprobacion' in content
+        assert reverse('aprobar_tarea') in content
+        assert reverse('eliminar_tarea', args=[tarea.pk]) in content
+
+    def test_crear_tarea_con_descripcion_precargada(self):
+        """GET a crear_tarea con ?descripcion= precarga ese valor en el campo."""
+        self.client.login(username='testuser', password='testpass123')
+        response = self.client.get(reverse('crear_tarea') + '?descripcion=Escribe+un+articulo')
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        assert 'Escribe un articulo' in content
 
     def test_acciones_lote_tareas_eliminar(self):
         """Acción por lote: eliminar varias tareas."""

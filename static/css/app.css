@@ -1464,3 +1464,30 @@ td input[type="checkbox"] {
   background-color: rgba(16,185,129,0.12);
   color: var(--accent-success-text);
 }
+
+/* ============================================================
+   Paso CMD-CHAT-01: Centro de Mando como feed conversacional
+   ============================================================ */
+.estado-chips { display: flex; gap: var(--space-sm); margin-top: var(--space-md); flex-wrap: wrap; }
+.chip-estado { background: var(--bg-tertiary); color: var(--text-secondary); padding: 4px 10px; border-radius: 999px; font-size: var(--text-xs); }
+.chip-estado--warning { background: rgba(245,158,11,0.12); color: var(--accent-warning-text); }
+.chips-filtro { display: flex; gap: var(--space-xs); margin-bottom: var(--space-md); flex-wrap: wrap; }
+.chip-filtro { background: var(--bg-surface); border: 1px solid var(--border-primary); color: var(--text-secondary); padding: 6px 12px; border-radius: 999px; font-size: var(--text-sm); text-decoration: none; }
+.chip-filtro--activo { background: var(--accent-solid); color: #ffffff; border-color: var(--accent-solid); }
+.barra-lote { display: flex; gap: var(--space-sm); align-items: center; margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--bg-surface); border: 1px solid var(--border-primary); border-radius: var(--radius-md); flex-wrap: wrap; }
+.feed-timeline { list-style: none; padding: 0; margin: 0; }
+.entrada-feed { display: grid; grid-template-columns: auto auto 1fr auto; gap: var(--space-sm); padding: var(--space-md); border-bottom: 1px solid var(--border-primary); align-items: start; }
+.entrada-feed--revision { background: rgba(245,158,11,0.04); }
+.entrada-icono { flex-shrink: 0; margin-top: 2px; }
+.entrada-feed--ok .entrada-icono { color: var(--accent-success-text); }
+.entrada-feed--revision .entrada-icono { color: var(--accent-warning-text); }
+.entrada-feed--fallo .entrada-icono,
+.entrada-feed--error .entrada-icono { color: var(--accent-danger-text); }
+.entrada-feed--cola .entrada-icono,
+.entrada-feed--curso .entrada-icono { color: var(--text-secondary); }
+.entrada-cuerpo { min-width: 0; }
+.entrada-titulo { margin: 0; font-size: var(--text-base); }
+.card-aprobacion { grid-column: 1 / -1; background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-md); padding: var(--space-sm); margin-top: var(--space-sm); display: flex; gap: var(--space-sm); flex-wrap: wrap; }
+.composer { display: flex; gap: var(--space-sm); margin-top: var(--space-lg); align-items: flex-end; flex-wrap: wrap; }
+.composer label { display: block; margin-bottom: var(--space-xs); font-size: var(--text-sm); font-weight: var(--font-weight-medium); color: var(--text-primary); }
+.composer .input { flex: 1; min-width: 0; }

@@ -20,7 +20,7 @@
             <div class="form-group">
                 <label for="texto" class="label">Contenido</label>
                 <textarea id="texto" name="texto" rows="12" class="input" required
-                          placeholder="Escribe o pega aquí el contenido que quieres procesar...">{{ request.POST.texto|default:"" }}</textarea>
+                          placeholder="Escribe o pega aquí el contenido que quieres procesar...">{{ request.POST.texto|default:descripcion_inicial }}</textarea>
             </div>
 
             <div class="fila-campos">

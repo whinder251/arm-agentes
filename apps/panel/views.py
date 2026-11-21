@@ -305,10 +305,11 @@ def crear_tarea(request):
                         f"Tarea creada y encolada con el agente {agente.nombre}.",
                     )
                     return redirect("lista_tareas")
+    descripcion_inicial = request.GET.get("descripcion", "")
     return render(
         request,
         "panel/crear_tarea.html",
-        {"error": error, "agentes": agentes},
+        {"error": error, "agentes": agentes, "descripcion_inicial": descripcion_inicial},
     )
 
 @login_required

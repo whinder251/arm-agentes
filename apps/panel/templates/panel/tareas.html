@@ -82,58 +82,78 @@
         </div>
     </div>
 
-    <nav class="filtros">
-        <a class="{% if not estado_filtro %}btn-primary{% else %}btn-secondary{% endif %}" href="{% url 'lista_tareas' %}">Todas</a>
-        <a class="{% if estado_filtro == 'cola' %}btn-primary{% else %}btn-secondary{% endif %}" href="?estado=cola">Cola</a>
-        <a class="{% if estado_filtro == 'curso' %}btn-primary{% else %}btn-secondary{% endif %}" href="?estado=curso">Curso</a>
-        <a class="{% if estado_filtro == 'revision' %}btn-primary{% else %}btn-secondary{% endif %}" href="?estado=revision">Revisión</a>
-        <a class="{% if estado_filtro == 'ok' %}btn-primary{% else %}btn-secondary{% endif %}" href="?estado=ok">OK</a>
-        <a class="{% if estado_filtro == 'fallo' %}btn-primary{% else %}btn-secondary{% endif %}" href="?estado=fallo">Fallo</a>
-    </nav>
-
-    <div class="card">
-        <div class="feed-agente">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icono-agente"><path d="M12 3l1.9 5.8L20 10l-5.8 1.9L12 18l-1.9-5.8L4 10l5.8-1.9L12 3z"/><path d="M19 15l.9 2.6L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.4L19 15z"/></svg>
-            He sincronizado tus fuentes. Hoy hay <strong>{{ total_hallazgos_hoy }}</strong> descubrimientos.
-            <strong>{{ pendientes_aprobacion }}</strong> requieren tu aprobación y
-            <strong>{{ archivados_hoy }}</strong> fueron archivados.
+    <div class="feed-agente">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icono-agente"><path d="M12 3l1.9 5.8L20 10l-5.8 1.9L12 18l-1.9-5.8L4 10l5.8-1.9L12 3z"/><path d="M19 15l.9 2.6L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.4L19 15z"/></svg>
+        He sincronizado tus fuentes. Hoy hay <strong>{{ total_hallazgos_hoy }}</strong> descubrimientos.
+        <strong>{{ pendientes_aprobacion }}</strong> requieren tu aprobación y
+        <strong>{{ archivados_hoy }}</strong> fueron archivados.
+        <div class="estado-chips">
+            <span class="chip-estado">{{ total_hallazgos_hoy }} descubrimientos</span>
+            <span class="chip-estado chip-estado--warning">{{ pendientes_aprobacion }} pendientes</span>
+            <span class="chip-estado">{{ archivados_hoy }} archivados</span>
         </div>
     </div>
 
+    <nav class="chips-filtro" aria-label="Filtrar por estado">
+        <a class="chip-filtro{% if not estado_filtro %} chip-filtro--activo{% endif %}" href="{% url 'lista_tareas' %}" {% if not estado_filtro %}aria-current="page"{% endif %}>Todas</a>
+        <a class="chip-filtro{% if estado_filtro == 'cola' %} chip-filtro--activo{% endif %}" href="?estado=cola" {% if estado_filtro == 'cola' %}aria-current="page"{% endif %}>Cola</a>
+        <a class="chip-filtro{% if estado_filtro == 'curso' %} chip-filtro--activo{% endif %}" href="?estado=curso" {% if estado_filtro == 'curso' %}aria-current="page"{% endif %}>Curso</a>
+        <a class="chip-filtro{% if estado_filtro == 'revision' %} chip-filtro--activo{% endif %}" href="?estado=revision" {% if estado_filtro == 'revision' %}aria-current="page"{% endif %}>Revisión</a>
+        <a class="chip-filtro{% if estado_filtro == 'ok' %} chip-filtro--activo{% endif %}" href="?estado=ok" {% if estado_filtro == 'ok' %}aria-current="page"{% endif %}>OK</a>
+        <a class="chip-filtro{% if estado_filtro == 'fallo' %} chip-filtro--activo{% endif %}" href="?estado=fallo" {% if estado_filtro == 'fallo' %}aria-current="page"{% endif %}>Fallo</a>
+    </nav>
+
     <form method="post" action="{% url 'acciones_lote_tareas' %}">
         {% csrf_token %}
-        <div class="form-lote">
+        <div class="barra-lote">
             <label><input type="checkbox" id="select-all-tasks"> Seleccionar todo</label>
             <select name="action" class="input">
                 <option value="aprobar">Aprobar seleccionadas</option>
                 <option value="eliminar">Eliminar seleccionadas</option>
             </select>
-            <button type="submit" class="btn-primary" onclick="return confirm('¿Aplicar esta acción a las tareas seleccionadas?');">Aplicar</button>
+            <button type="submit" class="btn btn-primary btn-sm" onclick="return confirm('¿Aplicar esta acción a las tareas seleccionadas?');">Aplicar</button>
         </div>
 
+        <ol class="feed-timeline">
         {% for t in page_obj %}
-        <div class="card">
-            <h3 class="subtitulo">El agente tiene una solicitud pendiente para: {{ t.habilidad }}</h3>
-            <p class="help-text">Fuente: {{ t.agente }} | Estado: {{ t.get_estado_display }}</p>
-            <p class="help-text"><a href="{% url 'detalle_tarea' t.pk %}">Ver detalle de la tarea #{{ t.pk }}</a></p>
-            <label><input type="checkbox" name="task_ids" value="{{ t.pk }}"> Seleccionar esta tarea</label>
-            {% if t.estado == 'ok' %}
-                <span class="badge badge-success">Completado</span>
-            {% else %}
+        <li class="entrada-feed entrada-feed--{{ t.estado }}">
+            <input type="checkbox" name="task_ids" value="{{ t.pk }}">
+            <svg class="entrada-icono" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                {% if t.estado == 'cola' %}
+                    <path d="M12 2a10 10 0 100 20 10 10 0 000-20z M12 12l-3 3 3 3M12 8V12"/>
+                {% elif t.estado == 'curso' %}
+                    <path d="M12 2a10 10 0 100 20 10 10 0 000-20z M12 12l3-3-3-3M12 8V12"/>
+                {% elif t.estado == 'revision' %}
+                    <path d="M12 9V2M12 21V12M4.93 4.93l2.83 2.83M7.07 16.97l-2.83 2.83M16.97 16.97l2.83 2.83M19.07 4.93l-2.83-2.83"/>
+                {% elif t.estado == 'ok' %}
+                    <path d="M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 18l-2-2"/>
+                {% else %}
+                    <path d="M18 6L6 12M6 6l12 6"/>
+                {% endif %}
+            </svg>
+            <div class="entrada-cuerpo">
+                <p class="entrada-titulo">El agente tiene una solicitud pendiente para: <strong>{{ t.habilidad }}</strong></p>
+                <p class="help-text">{{ t.agente }} · {{ t.actualizado_en|date:"d/m H:i" }} · <a href="{% url 'detalle_tarea' t.pk %}">Ver detalle</a></p>
+            </div>
+            <span class="badge badge-{{ t.estado }}">{{ t.get_estado_display }}</span>
+            {% if t.estado == 'revision' %}
+            <div class="card-aprobacion">
                 <form method="post" action="{% url 'aprobar_tarea' %}">
                     {% csrf_token %}
                     <input type="hidden" name="task_id" value="{{ t.pk }}">
-                    <button type="submit" class="btn-primary">Aprobar y Procesar</button>
+                    <button type="submit" class="btn btn-primary btn-sm">Aprobar y Procesar</button>
                 </form>
-                <form method="post" action="{% url 'eliminar_tarea' t.pk %}" onsubmit="return confirm('¿Estás seguro de archivar/descartar esta tarea? Esta acción no se puede deshacer.');">
+                <form method="post" action="{% url 'eliminar_tarea' t.pk %}" onsubmit="return confirm('¿Archivar esta tarea?');">
                     {% csrf_token %}
-                    <button type="submit" class="btn-danger-sm">Archivar / Descartar</button>
+                    <button type="submit" class="btn btn-danger-sm">Archivar</button>
                 </form>
+            </div>
             {% endif %}
-        </div>
+        </li>
         {% empty %}
-            <div class="vacio">No hay tareas encontradas.</div>
+            <li class="vacio">No hay tareas encontradas.</li>
         {% endfor %}
+        </ol>
     </form>
 
     <div class="paginacion">
@@ -147,6 +167,12 @@
             <a href="?page={{ page_obj.paginator.num_pages }}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}">Última</a>
         {% endif %}
     </div>
+
+    <form method="get" action="{% url 'crear_tarea' %}" class="composer">
+        <label for="composer-descripcion">Encargar una tarea al agente</label>
+        <input type="text" id="composer-descripcion" name="descripcion" class="input" placeholder="Ej: Escribe un artículo sobre..." required>
+        <button type="submit" class="btn btn-primary">Encargar</button>
+    </form>
 
     <script>
         const selectAll = document.getElementById('select-all-tasks');
