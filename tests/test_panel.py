@@ -1047,6 +1047,49 @@ class TestPanel(TestCase):
         # Verificar que la tarea en cola NO está en la tabla
         assert f'href="{reverse("detalle_tarea", args=[t_cola.pk])}"' not in content
 
+    def test_lista_tareas_feed_conversacional(self):
+        """El Centro de Mando muestra contadores reales y texto narrativo del agente."""
+        self.client.login(username='testuser', password='testpass123')
+
+        investigacion_archivar = InvestigacionProgramada.objects.create(
+            nombre='Inv archivo',
+            urls_objetivo='https://ejemplo.com',
+            modo_resultado='archivar',
+            activa=True,
+        )
+        Hallazgo.objects.create(
+            investigacion=investigacion_archivar,
+            url_fuente='https://ejemplo.com/a',
+            tipo_fuente='html',
+            titulo='Artículo A',
+        )
+        Hallazgo.objects.create(
+            investigacion=investigacion_archivar,
+            url_fuente='https://ejemplo.com/b',
+            tipo_fuente='html',
+            titulo='Artículo B',
+        )
+        Tarea.objects.create(
+            agente=self.agente,
+            habilidad=self.habilidad,
+            estado='revision',
+            payload={'texto': 'pendiente'},
+        )
+
+        url = reverse('lista_tareas')
+        response = self.client.get(url)
+        assert response.status_code == 200
+
+        assert response.context['total_hallazgos_hoy'] == 2
+        assert response.context['pendientes_aprobacion'] == 1
+        assert response.context['archivados_hoy'] == 2
+
+        content = response.content.decode('utf-8')
+        assert 'He sincronizado tus fuentes' in content
+        assert 'descubrimientos' in content
+        assert 'requieren tu aprobación' in content
+        assert 'fueron archivados' in content
+
     def test_acciones_lote_tareas_eliminar(self):
         """Acción por lote: eliminar varias tareas."""
         self.client.login(username='testuser', password='testpass123')

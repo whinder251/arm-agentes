@@ -206,6 +206,14 @@ class WorkflowForm(forms.ModelForm):
 
 @login_required
 def lista_tareas(request):
+    """Centro de Mando: lista de tareas con feed conversacional del agente."""
+    hoy = timezone.now().date()
+    total_hallazgos_hoy = Hallazgo.objects.filter(detectado_en__date=hoy).count()
+    pendientes_aprobacion = Tarea.objects.filter(estado='revision').count()
+    archivados_hoy = Hallazgo.objects.filter(
+        detectado_en__date=hoy,
+        investigacion__modo_resultado='archivar',
+    ).count()
     estado_filtro = request.GET.get('estado')
     tareas_qs = Tarea.objects.all().order_by('-id')
     if estado_filtro:
@@ -213,7 +221,13 @@ def lista_tareas(request):
     paginator = Paginator(tareas_qs, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    return render(request, 'panel/tareas.html', {'page_obj': page_obj, 'estado_filtro': estado_filtro})
+    return render(request, 'panel/tareas.html', {
+        'page_obj': page_obj,
+        'estado_filtro': estado_filtro,
+        'total_hallazgos_hoy': total_hallazgos_hoy,
+        'pendientes_aprobacion': pendientes_aprobacion,
+        'archivados_hoy': archivados_hoy,
+    })
 
 @login_required
 def crear_tarea(request):

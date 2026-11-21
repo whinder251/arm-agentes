@@ -91,6 +91,14 @@
         <a class="{% if estado_filtro == 'fallo' %}btn-primary{% else %}btn-secondary{% endif %}" href="?estado=fallo">Fallo</a>
     </nav>
 
+    <div class="card">
+        <div class="alerta-warning">
+            He sincronizado tus fuentes. Hoy hay <strong>{{ total_hallazgos_hoy }}</strong> descubrimientos.
+            <strong>{{ pendientes_aprobacion }}</strong> requieren tu aprobación y
+            <strong>{{ archivados_hoy }}</strong> fueron archivados.
+        </div>
+    </div>
+
     <form method="post" action="{% url 'acciones_lote_tareas' %}">
         {% csrf_token %}
         <div class="form-lote">
