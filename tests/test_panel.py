@@ -1715,3 +1715,49 @@ class TestPanel(TestCase):
         self.client.login(username='testuser', password='testpass123')
         form = InvestigacionForm(initial={"modo_busqueda": "busqueda"})
         assert form.fields["herramientas_busqueda"].initial == ["ddg_text"]
+
+    def test_biblioteca_renderiza_y_filtra(self):
+        """La biblioteca lista hallazgos, filtra por búsqueda y requiere login."""
+        investigacion = InvestigacionProgramada.objects.create(
+            nombre="Monitoreo Test",
+            urls_objetivo="https://ejemplo.com/sitemap.xml",
+            frecuencia="semanal",
+        )
+        Hallazgo.objects.create(
+            investigacion=investigacion,
+            url_fuente="https://ejemplo.com/sitemap.xml",
+            tipo_fuente="sitemap",
+            titulo="Noticia sobre python",
+            url_articulo="https://ejemplo.com/python",
+            fecha_publicacion="2024-01-01",
+        )
+        Hallazgo.objects.create(
+            investigacion=investigacion,
+            url_fuente="https://ejemplo.com/sitemap.xml",
+            tipo_fuente="sitemap",
+            titulo="Noticia sobre java",
+            url_articulo="https://ejemplo.com/java",
+            fecha_publicacion="2024-01-02",
+        )
+
+        # Sin login redirige
+        url = reverse("biblioteca")
+        response = self.client.get(url)
+        assert response.status_code == 302
+
+        self.client.login(username="testuser", password="testpass123")
+
+        # Listado completo muestra ambos hallazgos
+        response = self.client.get(url)
+        assert response.status_code == 200
+        content = response.content.decode("utf-8")
+        assert "Biblioteca de Descubrimientos" in content
+        assert "Noticia sobre python" in content
+        assert "Noticia sobre java" in content
+
+        # Filtro por búsqueda: solo el de python aparece
+        response = self.client.get(url + "?q=python")
+        assert response.status_code == 200
+        content = response.content.decode("utf-8")
+        assert "Noticia sobre python" in content
+        assert "Noticia sobre java" not in content

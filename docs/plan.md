@@ -4853,3 +4853,26 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "sidebar" -q` → `2 passed`.
 
 **Impacto en contratos/datos:** NO contratos de API, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones, NO nombres de modelos ni URLs. Solo presentación (HTML). Retrocompatible.
+
+## Paso NOD-03 - Crear la vista "Biblioteca" para explorar descubrimientos archivados con búsqueda — COMPLETADO
+
+**Objetivo:** Implementar la sección "Biblioteca" del Centro de Mando, permitiendo al usuario ver, buscar y revisar todos los hallazgos (descubrimientos) que el sistema ha procesado o archivado, usando el sistema de diseño ARM Flow 2.0.
+
+**Archivos tocados (4):**
+- `apps/panel/templates/panel/biblioteca.html` (nuevo): extiende `base.html`, título "Biblioteca de Descubrimientos", formulario de búsqueda GET con input `.input` y botón `.btn-primary`, grid de tarjetas `.card` con título, fuente, fecha (`|date:"d/m/Y"`) y badge `.badge .badge-neutral`, mensaje `.vacio` si no hay resultados.
+- `apps/panel/views.py`: nueva vista `biblioteca_view` (`@login_required`, <20 líneas) que consulta `Hallazgo.objects.all()`, filtra por `titulo__icontains` o `url_articulo__icontains` si hay `q`, ordena por `-detectado_en` y renderiza el template.
+- `apps/panel/urls.py`: ruta `path('biblioteca/', views.biblioteca_view, name='biblioteca')`.
+- `tests/test_panel.py`: prueba `test_biblioteca_renderiza_y_filtra` que crea una `InvestigacionProgramada` y 2 `Hallazgo`, verifica login requerido (302), listado completo y filtro `?q=python`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "biblioteca" -q` → `1 passed`.
+
+**Reglas respetadas:**
+- Máximo 4 archivos (exento `docs/plan.md`).
+- NO modelos, NO migraciones, NO datos persistidos, NO credenciales, NO permisos nuevos (solo `@login_required`), NO tareas en cola, NO contratos de API. Retrocompatible.
+- CERO estilos inline, CERO emojis. Clases exclusivamente de `app.css` (`.card`, `.input`, `.btn-primary`, `.badge`, `.vacio`, `.help-text`).
+- Vista delgada (<20 líneas), solo consulta ORM y render.
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo añade URL y vista read-only. Retrocompatible.

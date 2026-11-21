@@ -1,0 +1,36 @@
+{% extends "panel/base.html" %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Biblioteca de Descubrimientos</h1>
+</div>
+
+<form method="get" action="{% url 'biblioteca' %}" class="form-buscar">
+    <div class="form-group">
+        <label class="label" for="q">Buscar por título o URL</label>
+        <input type="text" name="q" id="q" class="input" placeholder="Buscar por título o URL..." value="{{ query }}">
+    </div>
+    <button type="submit" class="btn-primary">Buscar</button>
+</form>
+
+{% if not hallazgos %}
+<div class="vacio">
+    {% if query %}
+        <p>No se encontraron hallazgos que coincidan con la búsqueda "{{ query }}".</p>
+    {% else %}
+        <p>No hay hallazgos archivados todavía.</p>
+    {% endif %}
+</div>
+{% else %}
+<div class="grid-biblioteca">
+    {% for hallazgo in hallazgos %}
+    <div class="card">
+        <h3>{{ hallazgo.titulo|default:hallazgo.url_articulo|truncatechars:"100" }}</h3>
+        <p class="subtexto">{{ hallazgo.url_articulo }}</p>
+        <p class="subtexto">Fecha de publicación: {{ hallazgo.fecha_publicacion|date:"d/m/Y" }}</p>
+        <span class="badge badge-neutral">{{ hallazgo.get_tipo_fuente_display }}</span>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

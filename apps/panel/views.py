@@ -1773,3 +1773,19 @@ def detalle_investigacion(request, pk):
         "panel/investigacion_detalle.html",
         contexto,
     )
+
+
+@login_required
+def biblioteca_view(request):
+    """Vista de la Biblioteca: lista de hallazgos archivados con búsqueda."""
+    hallazgos = Hallazgo.objects.all().order_by("-detectado_en")
+    query = request.GET.get("q", "")
+    if query:
+        hallazgos = hallazgos.filter(
+            models.Q(titulo__icontains=query) | models.Q(url_articulo__icontains=query)
+        )
+    return render(
+        request,
+        "panel/biblioteca.html",
+        {"hallazgos": hallazgos, "query": query},
+    )
