@@ -1,5 +1,3 @@
-{% load markdown_tags %}
-
 {% if error_reporte %}
 <div class="alerta-error">No se pudo generar el reporte. Intenta de nuevo más tarde.</div>
 {% endif %}
@@ -36,6 +34,7 @@
 {% endif %}
 
 {% if investigacion.ejecuciones_monitoreo.all %}
+<div class="tabla-scroll">
 <div class="card">
     <h3 class="subtitulo">Historial de Ejecuciones</h3>
     <table class="tabla">
@@ -87,6 +86,7 @@
         </tbody>
     </table>
 </div>
+</div>
 {% endif %}
 
-<a href="{% url 'detalle_investigacion' investigacion.pk %}" class="btn btn-secondary btn-sm mt-4">Ver ficha completa</a>
+<a href="{% url 'detalle_investigacion' investigacion.pk %}" class="btn btn-secondary btn-sm enlace-ficha">Ver ficha completa</a>

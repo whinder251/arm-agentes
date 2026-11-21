@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
+from bs4 import BeautifulSoup
 from apps.core.models import (
     Proveedor, ModeloLLM, Habilidad, Agente, Equipo, Tarea, Artefacto, Ejecucion,
     Workflow, PasoWorkflow, DestinoPublicacion, IntegracionConfig,
@@ -1402,6 +1403,9 @@ class TestPanel(TestCase):
         assert 'Activa' in content
         assert 'split-pane' in content
         assert 'item-fuente' in content
+        assert '<a class="item-fuente"' not in content
+        assert 'item-fuente-btn' in content
+        assert 'detalle-indicator' in content
 
     def test_lista_investigaciones_muestra_acciones_editar_eliminar(self):
         """Cada tarjeta expone enlaces de edición y eliminación."""
@@ -1420,6 +1424,7 @@ class TestPanel(TestCase):
         assert 'form-eliminar' in content
         assert 'btn-danger-sm' in content
         assert 'acciones-rapidas' in content
+        assert 'detalle-indicator' in content
 
     def test_editar_investigacion_formulario_precargado(self):
         """El formulario de edición carga los datos actuales y cambia sus textos."""
@@ -1823,7 +1828,69 @@ class TestPanel(TestCase):
         assert 'Vigila las noticias indexadas por Google sobre tu tema.' in content
         assert 'Tema de las noticias a vigilar' in content
 
-    def test_formulario_inicializa_herramientas_segun_modo(self):
+    def test_detalle_investigacion_fragment_htmx(self):
+        """GET con HX-Request devuelve solo el fragmento de detalle sin layout base."""
+        investigacion = InvestigacionProgramada.objects.create(
+            nombre="Monitoreo HTMX",
+            urls_objetivo="https://ejemplo.com/sitemap.xml",
+            frecuencia="semanal",
+            activa=True,
+        )
+        Hallazgo.objects.create(
+            investigacion=investigacion,
+            url_fuente="https://ejemplo.com/sitemap.xml",
+            tipo_fuente="sitemap",
+            titulo="Hallazgo de prueba",
+            url_articulo="https://ejemplo.com/articulo",
+            fecha_publicacion="2024-01-01",
+        )
+        self.client.login(username="testuser", password="testpass123")
+        url = reverse("detalle_investigacion", args=[investigacion.pk])
+        response = self.client.get(url, HTTP_HX_REQUEST="true")
+        assert response.status_code == 200
+        content = response.content.decode("utf-8")
+        assert "<html" not in content
+        assert "sidebar" not in content
+        assert "Hallazgo de prueba" in content
+        assert "Hallazgos recientes" in content
+
+    def test_estructura_split_pane_valida(self):
+        """La lista de monitoreo tiene .split-pane con exactamente 2 hijos directos,
+        .item-fuente como hijos directos de .lista-maestro, ningún <button> con <form>
+        dentro, y cada .item-fuente tiene .acciones-rapidas como hijo directo."""
+        for i in range(2):
+            InvestigacionProgramada.objects.create(
+                nombre=f"Fuente {i}",
+                urls_objetivo=f"https://ejemplo{i}.com/sitemap.xml",
+                frecuencia="semanal",
+                activa=True,
+            )
+        self.client.login(username="testuser", password="testpass123")
+        url = reverse("lista_investigaciones")
+        response = self.client.get(url)
+        assert response.status_code == 200
+        content = response.content.decode("utf-8")
+        soup = BeautifulSoup(content, "html.parser")
+
+        split_panes = soup.select(".split-pane")
+        assert len(split_panes) == 1
+        split_pane = split_panes[0]
+        direct_children = [c for c in split_pane.children if getattr(c, "name", None)]
+        assert len(direct_children) == 2
+        classes_direct = [c.get("class", []) for c in direct_children]
+        assert ["lista-maestro"] in classes_direct
+        assert ["detalle-panel"] in classes_direct
+
+        lista_maestro = [c for c in direct_children if c.get("class") == ["lista-maestro"]][0]
+        item_fuentes = lista_maestro.find_all("div", class_="item-fuente", recursive=False)
+        assert len(item_fuentes) == 2
+
+        for item in item_fuentes:
+            acciones = item.find("div", class_="acciones-rapidas", recursive=False)
+            assert acciones is not None, "Cada item-fuente debe tener .acciones-rapidas como hijo directo"
+            buttons = item.find_all("button")
+            for btn in buttons:
+                assert btn.find("form") is None, "Ningún button debe contener un <form>"
         """El formulario preselecciona herramientas de búsqueda según el modo."""
         self.client.login(username='testuser', password='testpass123')
         form = InvestigacionForm(initial={"modo_busqueda": "busqueda"})

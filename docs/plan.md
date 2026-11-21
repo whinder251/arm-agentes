@@ -5081,43 +5081,6 @@ tle, radius md, padding md, margin-bottom lg) y `.icono-agente` (color accent-so
 **Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (HTML/CSS). Retrocompatible: la lógica de views.py y los contadores del contexto permanecen inalterados.
 
 
-## Paso AUDIT-DESIGN-01 - Reparar variables CSS rotas y contraste de texto — COMPLETADO
-
-**Objetivo:** Corregir referencias a variables CSS inexistentes y reemplazar tokens de acento usados como texto (que fallan el contraste 4.5:1) por sus variantes de texto seguras, garantizando accesibilidad en todas las vistas.
-
-**Archivo tocado (1):**
-
-- `static/css/app.css`: 
-  - `.btn:focus-visible`: `var(--accent)` → `var(--accent-solid)`.
-  - `.segmented button.active`: `var(--accent)` → `var(--accent-solid)`.
-  - `.btn-aprobar:hover`: `var(--accent-primary-hover)` → `var(--accent-hover)`.
-  - `.habilidades-edicion label`: `var(--font-weight-normal)` → `400`.
-  - `.enlace-editar`, `.volver`, `.paginacion a:hover`, `.paginacion .active`, `.btn-plantilla:hover`, `.enlace-externo:hover`, `.dashboard .valor--info`: `var(--accent-primary)` → `var(--accent-solid)` en propiedades `color:`.
-  - `.errores`, `.errorlist`, `.alerta-error`, `.dashboard .valor--error`: `var(--accent-danger)` → `var(--accent-danger-text)` en propiedades `color:`.
-  - `.alerta-warning`, `.dashboard .valor--warning`: `var(--accent-warning)` → `var(--accent-warning-text)` en propiedades `color:`.
-  - `.dashboard .valor--success`: `var(--accent-success)` → `var(--accent-success-text)` en propiedad `color:`.
-  - No se borró ninguna regla existente; solo se corrigieron valores de propiedades afectadas.
-
-**Reglas respetadas:**
-
-- Máximo 1 archivo modificado (más docs/plan.md como documentación).
-- No se modificó HTML, templates, views.py, models.py, urls.py, forms.py ni tests. Solo CSS.
-- No se borraron reglas existentes; solo se corrigieron valores de propiedades.
-- `.venv\Scripts\python.exe` línea por línea, sin `&&`.
-- No se ejecutó `git push`.
-- Commit: "AUDIT-DESIGN-01: Reparar variables CSS rotas y contraste de texto".
-
-**Evidencia de aceptación (ejecutado en esta sesión):**
-
-- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
-- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
-- Select-String en app.css por `var\(--accent\)[^)]` → 0 coincidencias.
-- Select-String en app.css por `color:\s*var\(--accent-primary\)` → 0 coincidencias.
-- `.venv\Scripts\python.exe -m pytest tests/test_engine.py tests/test_tool_executor.py -q` → `63 passed` (suite completo tiene cuelgue preexistente de entorno, no relacionado).
-
-**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (CSS). Retrocompatible: las clases mantienen su semántica; solo se corrigen valores de variables rotas y contraste de texto.
-
-
 ## Paso MONITOR-SPLITPANE-01 - Layout Master-Detail con HTMX en vista Monitoreo — COMPLETADO
 
 **Objetivo:** Transformar la vista Monitoreo (`investigacion_lista.html`) en un layout split pane de dos columnas (estilo Linear/Gmail): lista de fuentes a la izquierda (350px) y detalle de hallazgos a la derecha (1fr), usando HTMX para actualizar el detalle sin recargar la página.
@@ -5377,4 +5340,69 @@ tle, radius md, padding md, margin-bottom lg) y `.icono-agente` (color accent-so
 - Select-String en app.css por `color:\s*var\(--accent-primary\)` → 0 coincidencias.
 - `.venv\Scripts\python.exe -m pytest tests/test_engine.py tests/test_tool_executor.py -q` → `63 passed` (suite completo tiene cuelgue preexistente de entorno, no relacionado).
 
-**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (CSS). Retrocompatible: las clases mantienen su semántica; solo se corrigen valores de variables rotas y contraste de texto.
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (CSS). Retrocompatible: las clases mantienen su semántica; solo se corrigen valores de variables rotas y contraste de texto.
+
+
+## Paso SPLITPANE-FIX-01 - Corregir HTML inválido, indicador de carga y clase inexistente — COMPLETADO
+
+**Objetivo:** Corregir HTML inválido en el split pane del monitoreo (ancla `<a>` envuelve formularios y otro `<a>`, contenido interactivo anidado), mover el indicador de carga fuera del contenedor que HTMX reemplaza, y eliminar la clase CSS `mt-4` inexistente.
+
+**Archivos tocados (4 + docs):**
+
+- `apps/panel/templates/panel/investigacion_lista.html`: cada item de `.lista-maestro` es ahora `<div class="item-fuente">` con `<button type="button" class="item-fuente-btn">` dentro (contiene SOLO nombre y badges, con `hx-get`, `hx-target`, `hx-swap`, `hx-indicator="#detalle-indicator"`). Las `.acciones-rapidas` (formularios Ejecutar/Eliminar y enlace Editar) quedan como HERMANAS del button, fuera de cualquier enlace. El `<div class="htmx-indicator" id="detalle-indicator">` se movió FUERA de `#detalle-content`, como hermano dentro de `.detalle-panel`. El script de toggle de `.selected` opera sobre el `.item-fuente` padre del botón clicado, usando `closest()`. CERO estilos inline.
+- `apps/panel/templates/panel/fragments/investigacion_detalle_content.html`: reemplazado `class="btn btn-secondary btn-sm mt-4"` por `class="btn btn-secondary btn-sm enlace-ficha"`. Eliminado `{% load markdown_tags %}` (no se usa en el fragmento).
+- `static/css/app.css`: añadidas reglas `.item-fuente-btn` (display:block, width:100%, text-align:left, background:transparent, border:none, padding:0, font:inherit, color:inherit, cursor:pointer) y `.enlace-ficha` (display:inline-block, margin-top: var(--space-md)). Ajustado `.item-fuente` para que padding y border-left vivan en el div contenedor.
+- `tests/test_panel.py`: añadida aserción `assert '<a class="item-fuente"' not in content` en `test_lista_investigaciones_muestra_tarjeta`; añadida aserción `assert 'item-fuente-btn' in content` y `assert 'detalle-indicator' in content`; añadida prueba `test_detalle_investigacion_fragment_htmx` (verifica status 200 con HX-Request, que NO contiene `<html` ni `sidebar`, e incluye "Hallazgo de prueba" y "Hallazgos recientes").
+- `docs/plan.md`: esta sección y eliminación de bloques duplicados de BIBLIOTECA-UX-01 y AUDIT-DESIGN-01.
+
+**Reglas respetadas:**
+
+- Máximo 4 archivos modificados (más docs/plan.md como documentación).
+- CERO estilos inline, CERO emojis, CERO bloques `<style>` en plantillas.
+- No se modificó views.py, models.py, urls.py, forms.py ni la lógica de negocio.
+- HTMX ya está cargado en base.html; no se añadieron scripts externos.
+- `.venv\Scripts\python.exe` línea por línea, sin `&&`.
+- No se ejecutó `git push`.
+- Commit: "SPLITPANE-FIX-01: Corregir HTML inválido, indicador de carga y clase inexistente".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- Select-String en `investigacion_lista.html` por `<a class="item-fuente"` → 0 coincidencias.
+- Select-String en `apps/panel/templates/` por `mt-4` → 0 coincidencias.
+- Select-String en `app.css` por `\.item-fuente-btn` y `\.enlace-ficha` → presente.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "investigacion" -q` → `23 passed`.
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (HTML/CSS). Retrocompatible: la URL `detalle_investigacion` y su comportamiento normal se mantienen intactos.
+
+
+## Paso SPLITPANE-RESTORE-01 - Reescribir lista de monitoreo con anidación válida y diseño vertical — COMPLETADO
+
+**Objetivo:** Reescribir `investigacion_lista.html` con anidación HTML válida (div contenedor → button con hx-get → acciones como hermanas), restaurar el diseño vertical del split pane, envolver la tabla de ejecuciones en `.tabla-scroll` para contener el desborde horizontal, y añadir una prueba de estructura con BeautifulSoup.
+
+**Archivos tocados (4):**
+
+- `apps/panel/templates/panel/investigacion_lista.html`: reescrito completamente. `.split-pane` con exactamente 2 hijos directos (`.lista-maestro` y `.detalle-panel`). Cada fuente es `<div class="item-fuente">` con `<button type="button" class="item-fuente-btn">` dentro (contiene SOLO nombre y badges, con `hx-get`, `hx-target`, `hx-swap`, `hx-indicator="#detalle-indicator"`). Las `.acciones-rapidas` (formularios Ejecutar/Eliminar y enlace Editar) quedan como HERMANAS del button, fuera de cualquier enlace. El `<div class="htmx-indicator" id="detalle-indicator">` está FUERA de `#detalle-content`, como hermano dentro de `.detalle-panel`. El script de toggle de `.selected` opera sobre `btn.closest('.item-fuente')`. CERO `</a>` sueltos, CERO estilos inline, CERO emojis.
+- `apps/panel/templates/panel/fragments/investigacion_detalle_content.html`: la tabla `<table class="tabla">` de Historial de Ejecuciones está envuelta en `<div class="tabla-scroll">...</div>`.
+- `static/css/app.css`: añadidas reglas `.lista-maestro { display: flex; flex-direction: column; overflow-y: auto; border-right: 1px solid var(--border-primary); padding-right: var(--space-md); }`, `.item-fuente-btn { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-sm); background: transparent; border: none; padding: 0; font: inherit; color: inherit; cursor: pointer; }`, `.acciones-rapidas { display: flex; gap: var(--space-sm); align-items: center; opacity: 0; transition: opacity 0.15s; }` con hover/focus-within opacity 1 y `@media (hover: none)` opacity 1, `.tabla-scroll { overflow-x: auto; }`.
+- `tests/test_panel.py`: importación de `BeautifulSoup`; añadida prueba `test_estructura_split_pane_valida` que verifica que `.split-pane` tiene exactamente 2 hijos directos (`.lista-maestro` y `.detalle-panel`), que `.lista-maestro` tiene tantos hijos directos `.item-fuente` como fuentes, que ningún `<button>` contiene un `<form>`, y que cada `.item-fuente` tiene `.acciones-rapidas` como hijo directo.
+
+**Reglas respetadas:**
+
+- Máximo 4 archivos modificados (más docs/plan.md como documentación).
+- El template se reescribió completo con la herramienta de escritura, no con edits parciales.
+- CERO estilos inline, CERO emojis, CERO bloques `<style>` en plantillas. CERO `</a>` sueltos.
+- No se modificó views.py, models.py, urls.py, forms.py ni la lógica de negocio.
+- `.venv\Scripts\python.exe` línea por línea, sin `&&`.
+- No se ejecutó `git push`.
+- Commit: "SPLITPANE-RESTORE-01: Reescribir lista de monitoreo con anidación válida y diseño vertical".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- Select-String en `investigacion_lista.html` por `</a>` dentro del bloque de lista → 0 coincidencias sueltas (las únicas 2 son el botón "Nueva Fuente" en el header y el enlace "Editar" como hermano del button).
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "investigacion or split" -q` → `24 passed`.
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (HTML/CSS). Retrocompatible: la URL `detalle_investigacion` y su comportamiento normal se mantienen intactos.

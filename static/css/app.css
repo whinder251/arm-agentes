@@ -1333,6 +1333,8 @@ td input[type="checkbox"] {
 }
 
 .lista-maestro {
+  display: flex;
+  flex-direction: column;
   overflow-y: auto;
   border-right: 1px solid var(--border-primary);
   padding-right: var(--space-md);
@@ -1403,4 +1405,26 @@ td input[type="checkbox"] {
     padding-left: 0;
     padding-top: var(--space-md);
   }
+}
+
+.item-fuente-btn {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+  background: transparent;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.enlace-ficha {
+  display: inline-block;
+  margin-top: var(--space-md);
+}
+
+.tabla-scroll {
+  overflow-x: auto;
 }
