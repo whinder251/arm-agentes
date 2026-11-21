@@ -1,0 +1,1208 @@
+{
+  "version": 1,
+  "generado": "2026-11-21",
+  "iconos": [
+    {
+      "slug": "anthropic",
+      "nombre": "Anthropic",
+      "categoria": "Proveedores de IA",
+      "tipo": "llm",
+      "color": "#191919",
+      "archivo": "marca/anthropic.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "googlegemini",
+      "nombre": "Google Gemini",
+      "categoria": "Proveedores de IA",
+      "tipo": "llm",
+      "color": "#8E75B2",
+      "archivo": "marca/googlegemini.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "mistralai",
+      "nombre": "Mistral AI",
+      "categoria": "Proveedores de IA",
+      "tipo": "llm",
+      "color": "#FA520F",
+      "archivo": "marca/mistralai.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "perplexity",
+      "nombre": "Perplexity",
+      "categoria": "Proveedores de IA",
+      "tipo": "llm",
+      "color": "#1FB8CD",
+      "archivo": "marca/perplexity.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "huggingface",
+      "nombre": "Hugging Face",
+      "categoria": "Proveedores de IA",
+      "tipo": "llm",
+      "color": "#FFD21E",
+      "archivo": "marca/huggingface.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "ollama",
+      "nombre": "Ollama",
+      "categoria": "Proveedores de IA",
+      "tipo": "llm",
+      "color": "#000000",
+      "archivo": "marca/ollama.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "deepseek",
+      "nombre": "DeepSeek",
+      "categoria": "Proveedores de IA",
+      "tipo": "llm",
+      "color": "#5786FE",
+      "archivo": "marca/deepseek.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "openrouter",
+      "nombre": "OpenRouter",
+      "categoria": "Proveedores de IA",
+      "tipo": "llm",
+      "color": "#94A3B8",
+      "archivo": "marca/openrouter.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "openai",
+      "nombre": "OpenAI",
+      "categoria": "Proveedores de IA",
+      "tipo": "llm",
+      "color": null,
+      "archivo": "generico/openai.svg",
+      "logotipo_oficial": false,
+      "origen": "icono genérico, no es el logotipo (lucide, ISC)"
+    },
+    {
+      "slug": "googlesheets",
+      "nombre": "Google Sheets",
+      "categoria": "Hojas, documentos y archivos",
+      "tipo": "integracion",
+      "color": "#34A853",
+      "archivo": "marca/googlesheets.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "googledrive",
+      "nombre": "Google Drive",
+      "categoria": "Hojas, documentos y archivos",
+      "tipo": "integracion",
+      "color": "#4285F4",
+      "archivo": "marca/googledrive.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "googledocs",
+      "nombre": "Google Docs",
+      "categoria": "Hojas, documentos y archivos",
+      "tipo": "integracion",
+      "color": "#4285F4",
+      "archivo": "marca/googledocs.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "googleslides",
+      "nombre": "Google Slides",
+      "categoria": "Hojas, documentos y archivos",
+      "tipo": "integracion",
+      "color": "#FBBC04",
+      "archivo": "marca/googleslides.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "googleforms",
+      "nombre": "Google Forms",
+      "categoria": "Hojas, documentos y archivos",
+      "tipo": "integracion",
+      "color": "#7248B9",
+      "archivo": "marca/googleforms.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "notion",
+      "nombre": "Notion",
+      "categoria": "Hojas, documentos y archivos",
+      "tipo": "integracion",
+      "color": "#000000",
+      "archivo": "marca/notion.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "airtable",
+      "nombre": "Airtable",
+      "categoria": "Hojas, documentos y archivos",
+      "tipo": "integracion",
+      "color": "#18BFFF",
+      "archivo": "marca/airtable.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "dropbox",
+      "nombre": "Dropbox",
+      "categoria": "Hojas, documentos y archivos",
+      "tipo": "integracion",
+      "color": "#0061FF",
+      "archivo": "marca/dropbox.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "box",
+      "nombre": "Box",
+      "categoria": "Hojas, documentos y archivos",
+      "tipo": "integracion",
+      "color": "#0061D5",
+      "archivo": "marca/box.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "evernote",
+      "nombre": "Evernote",
+      "categoria": "Hojas, documentos y archivos",
+      "tipo": "integracion",
+      "color": "#00A82D",
+      "archivo": "marca/evernote.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "obsidian",
+      "nombre": "Obsidian",
+      "categoria": "Hojas, documentos y archivos",
+      "tipo": "integracion",
+      "color": "#7C3AED",
+      "archivo": "marca/obsidian.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "microsoftexcel",
+      "nombre": "Microsoft Excel",
+      "categoria": "Hojas, documentos y archivos",
+      "tipo": "integracion",
+      "color": null,
+      "archivo": "generico/microsoftexcel.svg",
+      "logotipo_oficial": false,
+      "origen": "icono genérico, no es el logotipo (lucide, ISC)"
+    },
+    {
+      "slug": "microsoftword",
+      "nombre": "Microsoft Word",
+      "categoria": "Hojas, documentos y archivos",
+      "tipo": "integracion",
+      "color": null,
+      "archivo": "generico/microsoftword.svg",
+      "logotipo_oficial": false,
+      "origen": "icono genérico, no es el logotipo (lucide, ISC)"
+    },
+    {
+      "slug": "microsoftonedrive",
+      "nombre": "Microsoft OneDrive",
+      "categoria": "Hojas, documentos y archivos",
+      "tipo": "integracion",
+      "color": null,
+      "archivo": "generico/microsoftonedrive.svg",
+      "logotipo_oficial": false,
+      "origen": "icono genérico, no es el logotipo (lucide, ISC)"
+    },
+    {
+      "slug": "microsoftsharepoint",
+      "nombre": "Microsoft SharePoint",
+      "categoria": "Hojas, documentos y archivos",
+      "tipo": "integracion",
+      "color": null,
+      "archivo": "generico/microsoftsharepoint.svg",
+      "logotipo_oficial": false,
+      "origen": "icono genérico, no es el logotipo (lucide, ISC)"
+    },
+    {
+      "slug": "gmail",
+      "nombre": "Gmail",
+      "categoria": "Correo, calendario y formularios",
+      "tipo": "integracion",
+      "color": "#EA4335",
+      "archivo": "marca/gmail.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "googlecalendar",
+      "nombre": "Google Calendar",
+      "categoria": "Correo, calendario y formularios",
+      "tipo": "integracion",
+      "color": "#4285F4",
+      "archivo": "marca/googlecalendar.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "googlemeet",
+      "nombre": "Google Meet",
+      "categoria": "Correo, calendario y formularios",
+      "tipo": "integracion",
+      "color": "#00897B",
+      "archivo": "marca/googlemeet.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "calendly",
+      "nombre": "Calendly",
+      "categoria": "Correo, calendario y formularios",
+      "tipo": "integracion",
+      "color": "#006BFF",
+      "archivo": "marca/calendly.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "typeform",
+      "nombre": "Typeform",
+      "categoria": "Correo, calendario y formularios",
+      "tipo": "integracion",
+      "color": "#262627",
+      "archivo": "marca/typeform.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "mailchimp",
+      "nombre": "Mailchimp",
+      "categoria": "Correo, calendario y formularios",
+      "tipo": "integracion",
+      "color": "#FFE01B",
+      "archivo": "marca/mailchimp.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "brevo",
+      "nombre": "Brevo",
+      "categoria": "Correo, calendario y formularios",
+      "tipo": "integracion",
+      "color": "#0B996E",
+      "archivo": "marca/brevo.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "zoom",
+      "nombre": "Zoom",
+      "categoria": "Correo, calendario y formularios",
+      "tipo": "integracion",
+      "color": "#0B5CFF",
+      "archivo": "marca/zoom.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "microsoftoutlook",
+      "nombre": "Microsoft Outlook",
+      "categoria": "Correo, calendario y formularios",
+      "tipo": "integracion",
+      "color": null,
+      "archivo": "generico/microsoftoutlook.svg",
+      "logotipo_oficial": false,
+      "origen": "icono genérico, no es el logotipo (lucide, ISC)"
+    },
+    {
+      "slug": "sendgrid",
+      "nombre": "SendGrid",
+      "categoria": "Correo, calendario y formularios",
+      "tipo": "integracion",
+      "color": null,
+      "archivo": "generico/sendgrid.svg",
+      "logotipo_oficial": false,
+      "origen": "icono genérico, no es el logotipo (lucide, ISC)"
+    },
+    {
+      "slug": "telegram",
+      "nombre": "Telegram",
+      "categoria": "Mensajería",
+      "tipo": "integracion",
+      "color": "#26A5E4",
+      "archivo": "marca/telegram.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "whatsapp",
+      "nombre": "WhatsApp",
+      "categoria": "Mensajería",
+      "tipo": "integracion",
+      "color": "#25D366",
+      "archivo": "marca/whatsapp.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "discord",
+      "nombre": "Discord",
+      "categoria": "Mensajería",
+      "tipo": "integracion",
+      "color": "#5865F2",
+      "archivo": "marca/discord.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "slack",
+      "nombre": "Slack",
+      "categoria": "Mensajería",
+      "tipo": "integracion",
+      "color": null,
+      "archivo": "generico/slack.svg",
+      "logotipo_oficial": false,
+      "origen": "icono genérico, no es el logotipo (lucide, ISC)"
+    },
+    {
+      "slug": "microsoftteams",
+      "nombre": "Microsoft Teams",
+      "categoria": "Mensajería",
+      "tipo": "integracion",
+      "color": null,
+      "archivo": "generico/microsoftteams.svg",
+      "logotipo_oficial": false,
+      "origen": "icono genérico, no es el logotipo (lucide, ISC)"
+    },
+    {
+      "slug": "twilio",
+      "nombre": "Twilio",
+      "categoria": "Mensajería",
+      "tipo": "integracion",
+      "color": null,
+      "archivo": "generico/twilio.svg",
+      "logotipo_oficial": false,
+      "origen": "icono genérico, no es el logotipo (lucide, ISC)"
+    },
+    {
+      "slug": "wordpress",
+      "nombre": "WordPress",
+      "categoria": "Publicación y comercio electrónico",
+      "tipo": "integracion",
+      "color": "#21759B",
+      "archivo": "marca/wordpress.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "woocommerce",
+      "nombre": "WooCommerce",
+      "categoria": "Publicación y comercio electrónico",
+      "tipo": "integracion",
+      "color": "#96588A",
+      "archivo": "marca/woocommerce.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "shopify",
+      "nombre": "Shopify",
+      "categoria": "Publicación y comercio electrónico",
+      "tipo": "integracion",
+      "color": "#7AB55C",
+      "archivo": "marca/shopify.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "ghost",
+      "nombre": "Ghost",
+      "categoria": "Publicación y comercio electrónico",
+      "tipo": "integracion",
+      "color": "#15171A",
+      "archivo": "marca/ghost.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "medium",
+      "nombre": "Medium",
+      "categoria": "Publicación y comercio electrónico",
+      "tipo": "integracion",
+      "color": "#000000",
+      "archivo": "marca/medium.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "substack",
+      "nombre": "Substack",
+      "categoria": "Publicación y comercio electrónico",
+      "tipo": "integracion",
+      "color": "#FF6719",
+      "archivo": "marca/substack.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "webflow",
+      "nombre": "Webflow",
+      "categoria": "Publicación y comercio electrónico",
+      "tipo": "integracion",
+      "color": "#146EF5",
+      "archivo": "marca/webflow.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "wix",
+      "nombre": "Wix",
+      "categoria": "Publicación y comercio electrónico",
+      "tipo": "integracion",
+      "color": "#0C6EFC",
+      "archivo": "marca/wix.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "squarespace",
+      "nombre": "Squarespace",
+      "categoria": "Publicación y comercio electrónico",
+      "tipo": "integracion",
+      "color": "#000000",
+      "archivo": "marca/squarespace.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "prestashop",
+      "nombre": "PrestaShop",
+      "categoria": "Publicación y comercio electrónico",
+      "tipo": "integracion",
+      "color": "#DF0067",
+      "archivo": "marca/prestashop.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "etsy",
+      "nombre": "Etsy",
+      "categoria": "Publicación y comercio electrónico",
+      "tipo": "integracion",
+      "color": "#F16521",
+      "archivo": "marca/etsy.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "ebay",
+      "nombre": "eBay",
+      "categoria": "Publicación y comercio electrónico",
+      "tipo": "integracion",
+      "color": "#E53238",
+      "archivo": "marca/ebay.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "magento",
+      "nombre": "Magento",
+      "categoria": "Publicación y comercio electrónico",
+      "tipo": "integracion",
+      "color": null,
+      "archivo": "generico/magento.svg",
+      "logotipo_oficial": false,
+      "origen": "icono genérico, no es el logotipo (lucide, ISC)"
+    },
+    {
+      "slug": "x",
+      "nombre": "X",
+      "categoria": "Redes sociales y vídeo",
+      "tipo": "integracion",
+      "color": "#000000",
+      "archivo": "marca/x.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "facebook",
+      "nombre": "Facebook",
+      "categoria": "Redes sociales y vídeo",
+      "tipo": "integracion",
+      "color": "#0866FF",
+      "archivo": "marca/facebook.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "instagram",
+      "nombre": "Instagram",
+      "categoria": "Redes sociales y vídeo",
+      "tipo": "integracion",
+      "color": "#FF0069",
+      "archivo": "marca/instagram.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "tiktok",
+      "nombre": "TikTok",
+      "categoria": "Redes sociales y vídeo",
+      "tipo": "integracion",
+      "color": "#000000",
+      "archivo": "marca/tiktok.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "youtube",
+      "nombre": "YouTube",
+      "categoria": "Redes sociales y vídeo",
+      "tipo": "integracion",
+      "color": "#FF0000",
+      "archivo": "marca/youtube.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "pinterest",
+      "nombre": "Pinterest",
+      "categoria": "Redes sociales y vídeo",
+      "tipo": "integracion",
+      "color": "#BD081C",
+      "archivo": "marca/pinterest.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "reddit",
+      "nombre": "Reddit",
+      "categoria": "Redes sociales y vídeo",
+      "tipo": "integracion",
+      "color": "#FF4500",
+      "archivo": "marca/reddit.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "threads",
+      "nombre": "Threads",
+      "categoria": "Redes sociales y vídeo",
+      "tipo": "integracion",
+      "color": "#000000",
+      "archivo": "marca/threads.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "bluesky",
+      "nombre": "Bluesky",
+      "categoria": "Redes sociales y vídeo",
+      "tipo": "integracion",
+      "color": "#1185FE",
+      "archivo": "marca/bluesky.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "mastodon",
+      "nombre": "Mastodon",
+      "categoria": "Redes sociales y vídeo",
+      "tipo": "integracion",
+      "color": "#6364FF",
+      "archivo": "marca/mastodon.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "linkedin",
+      "nombre": "LinkedIn",
+      "categoria": "Redes sociales y vídeo",
+      "tipo": "integracion",
+      "color": null,
+      "archivo": "generico/linkedin.svg",
+      "logotipo_oficial": false,
+      "origen": "icono genérico, no es el logotipo (lucide, ISC)"
+    },
+    {
+      "slug": "github",
+      "nombre": "GitHub",
+      "categoria": "Proyectos y desarrollo",
+      "tipo": "integracion",
+      "color": "#181717",
+      "archivo": "marca/github.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "gitlab",
+      "nombre": "GitLab",
+      "categoria": "Proyectos y desarrollo",
+      "tipo": "integracion",
+      "color": "#FC6D26",
+      "archivo": "marca/gitlab.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "bitbucket",
+      "nombre": "Bitbucket",
+      "categoria": "Proyectos y desarrollo",
+      "tipo": "integracion",
+      "color": "#0052CC",
+      "archivo": "marca/bitbucket.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "jira",
+      "nombre": "Jira",
+      "categoria": "Proyectos y desarrollo",
+      "tipo": "integracion",
+      "color": "#0052CC",
+      "archivo": "marca/jira.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "linear",
+      "nombre": "Linear",
+      "categoria": "Proyectos y desarrollo",
+      "tipo": "integracion",
+      "color": "#5E6AD2",
+      "archivo": "marca/linear.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "asana",
+      "nombre": "Asana",
+      "categoria": "Proyectos y desarrollo",
+      "tipo": "integracion",
+      "color": "#F06A6A",
+      "archivo": "marca/asana.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "clickup",
+      "nombre": "ClickUp",
+      "categoria": "Proyectos y desarrollo",
+      "tipo": "integracion",
+      "color": "#7B68EE",
+      "archivo": "marca/clickup.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "trello",
+      "nombre": "Trello",
+      "categoria": "Proyectos y desarrollo",
+      "tipo": "integracion",
+      "color": "#0052CC",
+      "archivo": "marca/trello.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "todoist",
+      "nombre": "Todoist",
+      "categoria": "Proyectos y desarrollo",
+      "tipo": "integracion",
+      "color": "#E44332",
+      "archivo": "marca/todoist.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "figma",
+      "nombre": "Figma",
+      "categoria": "Proyectos y desarrollo",
+      "tipo": "integracion",
+      "color": "#F24E1E",
+      "archivo": "marca/figma.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "vercel",
+      "nombre": "Vercel",
+      "categoria": "Proyectos y desarrollo",
+      "tipo": "integracion",
+      "color": "#000000",
+      "archivo": "marca/vercel.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "netlify",
+      "nombre": "Netlify",
+      "categoria": "Proyectos y desarrollo",
+      "tipo": "integracion",
+      "color": "#00C7B7",
+      "archivo": "marca/netlify.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "cloudflare",
+      "nombre": "Cloudflare",
+      "categoria": "Proyectos y desarrollo",
+      "tipo": "integracion",
+      "color": "#F38020",
+      "archivo": "marca/cloudflare.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "docker",
+      "nombre": "Docker",
+      "categoria": "Proyectos y desarrollo",
+      "tipo": "integracion",
+      "color": "#2496ED",
+      "archivo": "marca/docker.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "mondaydotcom",
+      "nombre": "monday.com",
+      "categoria": "Proyectos y desarrollo",
+      "tipo": "integracion",
+      "color": null,
+      "archivo": "generico/mondaydotcom.svg",
+      "logotipo_oficial": false,
+      "origen": "icono genérico, no es el logotipo (lucide, ISC)"
+    },
+    {
+      "slug": "canva",
+      "nombre": "Canva",
+      "categoria": "Proyectos y desarrollo",
+      "tipo": "integracion",
+      "color": null,
+      "archivo": "generico/canva.svg",
+      "logotipo_oficial": false,
+      "origen": "icono genérico, no es el logotipo (lucide, ISC)"
+    },
+    {
+      "slug": "supabase",
+      "nombre": "Supabase",
+      "categoria": "Bases de datos",
+      "tipo": "integracion",
+      "color": "#3FCF8E",
+      "archivo": "marca/supabase.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "postgresql",
+      "nombre": "PostgreSQL",
+      "categoria": "Bases de datos",
+      "tipo": "integracion",
+      "color": "#4169E1",
+      "archivo": "marca/postgresql.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "mysql",
+      "nombre": "MySQL",
+      "categoria": "Bases de datos",
+      "tipo": "integracion",
+      "color": "#4479A1",
+      "archivo": "marca/mysql.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "mongodb",
+      "nombre": "MongoDB",
+      "categoria": "Bases de datos",
+      "tipo": "integracion",
+      "color": "#47A248",
+      "archivo": "marca/mongodb.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "redis",
+      "nombre": "Redis",
+      "categoria": "Bases de datos",
+      "tipo": "integracion",
+      "color": "#FF4438",
+      "archivo": "marca/redis.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "sqlite",
+      "nombre": "SQLite",
+      "categoria": "Bases de datos",
+      "tipo": "integracion",
+      "color": "#003B57",
+      "archivo": "marca/sqlite.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "firebase",
+      "nombre": "Firebase",
+      "categoria": "Bases de datos",
+      "tipo": "integracion",
+      "color": "#DD2C00",
+      "archivo": "marca/firebase.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "googleanalytics",
+      "nombre": "Google Analytics",
+      "categoria": "Analítica, SEO y búsqueda",
+      "tipo": "integracion",
+      "color": "#E37400",
+      "archivo": "marca/googleanalytics.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "googlesearchconsole",
+      "nombre": "Google Search Console",
+      "categoria": "Analítica, SEO y búsqueda",
+      "tipo": "integracion",
+      "color": "#458CF5",
+      "archivo": "marca/googlesearchconsole.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "googletagmanager",
+      "nombre": "Google Tag Manager",
+      "categoria": "Analítica, SEO y búsqueda",
+      "tipo": "integracion",
+      "color": "#246FDB",
+      "archivo": "marca/googletagmanager.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "googleads",
+      "nombre": "Google Ads",
+      "categoria": "Analítica, SEO y búsqueda",
+      "tipo": "integracion",
+      "color": "#4285F4",
+      "archivo": "marca/googleads.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "googlemaps",
+      "nombre": "Google Maps",
+      "categoria": "Analítica, SEO y búsqueda",
+      "tipo": "integracion",
+      "color": "#4285F4",
+      "archivo": "marca/googlemaps.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "googlecloud",
+      "nombre": "Google Cloud",
+      "categoria": "Analítica, SEO y búsqueda",
+      "tipo": "integracion",
+      "color": "#4285F4",
+      "archivo": "marca/googlecloud.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "semrush",
+      "nombre": "Semrush",
+      "categoria": "Analítica, SEO y búsqueda",
+      "tipo": "integracion",
+      "color": "#FF642D",
+      "archivo": "marca/semrush.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "duckduckgo",
+      "nombre": "DuckDuckGo",
+      "categoria": "Analítica, SEO y búsqueda",
+      "tipo": "integracion",
+      "color": "#DE5833",
+      "archivo": "marca/duckduckgo.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "ahrefs",
+      "nombre": "Ahrefs",
+      "categoria": "Analítica, SEO y búsqueda",
+      "tipo": "integracion",
+      "color": null,
+      "archivo": "generico/ahrefs.svg",
+      "logotipo_oficial": false,
+      "origen": "icono genérico, no es el logotipo (lucide, ISC)"
+    },
+    {
+      "slug": "moz",
+      "nombre": "Moz",
+      "categoria": "Analítica, SEO y búsqueda",
+      "tipo": "integracion",
+      "color": null,
+      "archivo": "generico/moz.svg",
+      "logotipo_oficial": false,
+      "origen": "icono genérico, no es el logotipo (lucide, ISC)"
+    },
+    {
+      "slug": "stripe",
+      "nombre": "Stripe",
+      "categoria": "Negocio, CRM y pagos",
+      "tipo": "integracion",
+      "color": "#635BFF",
+      "archivo": "marca/stripe.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "paypal",
+      "nombre": "PayPal",
+      "categoria": "Negocio, CRM y pagos",
+      "tipo": "integracion",
+      "color": "#002991",
+      "archivo": "marca/paypal.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "hubspot",
+      "nombre": "HubSpot",
+      "categoria": "Negocio, CRM y pagos",
+      "tipo": "integracion",
+      "color": "#FF7A59",
+      "archivo": "marca/hubspot.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "zoho",
+      "nombre": "Zoho",
+      "categoria": "Negocio, CRM y pagos",
+      "tipo": "integracion",
+      "color": "#E42527",
+      "archivo": "marca/zoho.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "zendesk",
+      "nombre": "Zendesk",
+      "categoria": "Negocio, CRM y pagos",
+      "tipo": "integracion",
+      "color": "#03363D",
+      "archivo": "marca/zendesk.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "intercom",
+      "nombre": "Intercom",
+      "categoria": "Negocio, CRM y pagos",
+      "tipo": "integracion",
+      "color": "#6AFDEF",
+      "archivo": "marca/intercom.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "quickbooks",
+      "nombre": "QuickBooks",
+      "categoria": "Negocio, CRM y pagos",
+      "tipo": "integracion",
+      "color": "#2CA01C",
+      "archivo": "marca/quickbooks.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "xero",
+      "nombre": "Xero",
+      "categoria": "Negocio, CRM y pagos",
+      "tipo": "integracion",
+      "color": "#13B5EA",
+      "archivo": "marca/xero.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "wise",
+      "nombre": "Wise",
+      "categoria": "Negocio, CRM y pagos",
+      "tipo": "integracion",
+      "color": "#9FE870",
+      "archivo": "marca/wise.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "salesforce",
+      "nombre": "Salesforce",
+      "categoria": "Negocio, CRM y pagos",
+      "tipo": "integracion",
+      "color": null,
+      "archivo": "generico/salesforce.svg",
+      "logotipo_oficial": false,
+      "origen": "icono genérico, no es el logotipo (lucide, ISC)"
+    },
+    {
+      "slug": "pipedrive",
+      "nombre": "Pipedrive",
+      "categoria": "Negocio, CRM y pagos",
+      "tipo": "integracion",
+      "color": null,
+      "archivo": "generico/pipedrive.svg",
+      "logotipo_oficial": false,
+      "origen": "icono genérico, no es el logotipo (lucide, ISC)"
+    },
+    {
+      "slug": "freshdesk",
+      "nombre": "Freshdesk",
+      "categoria": "Negocio, CRM y pagos",
+      "tipo": "integracion",
+      "color": null,
+      "archivo": "generico/freshdesk.svg",
+      "logotipo_oficial": false,
+      "origen": "icono genérico, no es el logotipo (lucide, ISC)"
+    },
+    {
+      "slug": "n8n",
+      "nombre": "n8n",
+      "categoria": "Automatización",
+      "tipo": "integracion",
+      "color": "#FF91AC",
+      "archivo": "marca/n8n.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "zapier",
+      "nombre": "Zapier",
+      "categoria": "Automatización",
+      "tipo": "integracion",
+      "color": "#FF4F00",
+      "archivo": "marca/zapier.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "make",
+      "nombre": "Make",
+      "categoria": "Automatización",
+      "tipo": "integracion",
+      "color": "#6D00CC",
+      "archivo": "marca/make.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    },
+    {
+      "slug": "ifttt",
+      "nombre": "IFTTT",
+      "categoria": "Automatización",
+      "tipo": "integracion",
+      "color": "#000000",
+      "archivo": "marca/ifttt.svg",
+      "logotipo_oficial": true,
+      "origen": "simple-icons (CC0-1.0)"
+    }
+  ],
+  "navegacion": [
+    {
+      "slug": "chat",
+      "nombre": "Conversación",
+      "archivo": "navegacion/chat.svg"
+    },
+    {
+      "slug": "tareas",
+      "nombre": "Tareas",
+      "archivo": "navegacion/tareas.svg"
+    },
+    {
+      "slug": "programacion",
+      "nombre": "Programaciones",
+      "archivo": "navegacion/programacion.svg"
+    },
+    {
+      "slug": "uso",
+      "nombre": "Uso y costes",
+      "archivo": "navegacion/uso.svg"
+    },
+    {
+      "slug": "confianza",
+      "nombre": "Confianza y aprobaciones",
+      "archivo": "navegacion/confianza.svg"
+    },
+    {
+      "slug": "boveda",
+      "nombre": "Bóveda de credenciales",
+      "archivo": "navegacion/boveda.svg"
+    },
+    {
+      "slug": "memoria",
+      "nombre": "Memoria",
+      "archivo": "navegacion/memoria.svg"
+    },
+    {
+      "slug": "conexiones",
+      "nombre": "Conexiones",
+      "archivo": "navegacion/conexiones.svg"
+    },
+    {
+      "slug": "agentes",
+      "nombre": "Agentes",
+      "archivo": "navegacion/agentes.svg"
+    },
+    {
+      "slug": "workflows",
+      "nombre": "Workflows",
+      "archivo": "navegacion/workflows.svg"
+    },
+    {
+      "slug": "herramientas",
+      "nombre": "Herramientas",
+      "archivo": "navegacion/herramientas.svg"
+    },
+    {
+      "slug": "registro",
+      "nombre": "Registro de acciones",
+      "archivo": "navegacion/registro.svg"
+    },
+    {
+      "slug": "monitoreo",
+      "nombre": "Monitoreo",
+      "archivo": "navegacion/monitoreo.svg"
+    },
+    {
+      "slug": "biblioteca",
+      "nombre": "Biblioteca",
+      "archivo": "navegacion/biblioteca.svg"
+    }
+  ]
+}
