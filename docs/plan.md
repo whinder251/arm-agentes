@@ -5405,4 +5405,32 @@ tle, radius md, padding md, margin-bottom lg) y `.icono-agente` (color accent-so
 - Select-String en `investigacion_lista.html` por `</a>` dentro del bloque de lista → 0 coincidencias sueltas (las únicas 2 son el botón "Nueva Fuente" en el header y el enlace "Editar" como hermano del button).
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "investigacion or split" -q` → `24 passed`.
 
-**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (HTML/CSS). Retrocompatible: la URL `detalle_investigacion` y su comportamiento normal se mantienen intactos.
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (HTML/CSS). Retrocompatible: la URL `detalle_investigacion` y su comportamiento normal se mantienen intactos.
+
+
+## Paso SPLITPANE-CLICK-01 - Área clicable completa en filas del split pane — COMPLETADO
+
+**Objetivo:** Hacer que clic en cualquier parte de una fila del split pane (fuera de las acciones rápidas) dispare el HTMX del detalle y el toggle de selección, no solo el botón del nombre.
+
+**Archivo tocado (1):**
+
+- `apps/panel/templates/panel/investigacion_lista.html`: reemplazado el script final del button por un listener en cada `<div class="item-fuente">`. Si el clic viene de `.acciones-rapidas` o de cualquier elemento dentro, hace `return` (no dispara nada). Si el clic viene del propio `.item-fuente-btn`, hace `return` (el button ya tiene su `hx-get` y el toggle). En cualquier otro caso (espacio gris, badges, nombre), llama a `item.querySelector('.item-fuente-btn').click()` para disparar HTMX y el toggle por la misma vía que el teclado. No se movieron los atributos `hx-get`, no se añadió `hx-get` al div contenedor, no se tocó el fragmento ni el CSS (ya tiene `cursor: pointer`).
+
+**Reglas respetadas:**
+
+- Máximo 1 archivo modificado (más docs/plan.md como documentación).
+- CERO estilos inline, CERO emojis, CERO bloques `<style>` en plantillas.
+- No se modificó views.py, models.py, urls.py, forms.py ni la lógica de negocio.
+- No se tocó el HTML (no se movieron atributos hx-get, no se añadieron atributos).
+- No se tocó el CSS (ya tiene cursor: pointer).
+- `.venv\Scripts\python.exe` línea por línea, sin `&&`.
+- No se ejecutó `git push`.
+- Commit: "SPLITPANE-CLICK-01: Área clicable completa en filas del split pane".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "investigacion or split" -q` → `24 passed`.
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo JavaScript de interacción. Retrocompatible: el comportamiento de las acciones rápidas y el teclado se mantiene intacto.

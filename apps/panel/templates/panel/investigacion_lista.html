@@ -52,16 +52,22 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    var btns = document.querySelectorAll('.item-fuente-btn');
-    btns.forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            var item = btn.closest('.item-fuente');
-            document.querySelectorAll('.item-fuente').forEach(function(i) {
-                i.classList.remove('selected');
-                i.removeAttribute('aria-current');
-            });
-            item.classList.add('selected');
-            item.setAttribute('aria-current', 'true');
+    var items = document.querySelectorAll('.item-fuente');
+    items.forEach(function(item) {
+        item.addEventListener('click', function(e) {
+            // Ignorar clics en acciones rápidas
+            if (e.target.closest('.acciones-rapidas')) {
+                return;
+            }
+            // Ignorar clics directos en el button (ya tiene hx-get)
+            if (e.target.closest('.item-fuente-btn')) {
+                return;
+            }
+            // Disparar el button programáticamente
+            var btn = item.querySelector('.item-fuente-btn');
+            if (btn) {
+                btn.click();
+            }
         });
     });
 });
