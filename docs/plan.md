@@ -1406,7 +1406,7 @@ Vista dedicada de proveedores con modelos anidados; `configuracion.html` sin cam
 
 - Solo se modificó `integraciones.html` y `tests/test_panel.py` (máximo 4 archivos).
 
-- Cero estilos inline, cero bloques `<style>`. El JS usa `classList` con `.form-oculto`, respetando `diseno-ui.md`.
+- Cero estilos inline, cero bloques `<style>`. El JS usa `classList` con `.form-oculto`, respetando `.opencode/skills/design-linear-nod/SKILL.md`.
 
 - No se modificó `forms.py` (el enmascaramiento `****{credenciales[-4:]}` y `readonly` ya estaban implementados en `DestinoPublicacionForm.__init__`).
 

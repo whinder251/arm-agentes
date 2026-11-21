@@ -20,7 +20,7 @@ Revisa los cambios contra:
 - `docs/plan.md`
 - `docs/estandares/codigo.md`
 - `docs/estandares/seguridad.md`
-- `docs/estandares/diseno-ui.md` si hay cambios de interfaz
+- `.opencode/skills/design-linear-nod/SKILL.md` si hay cambios de interfaz
 - `docs/estandares/pruebas.md`
 
 No modifiques archivos. No ejecutes `git push`.

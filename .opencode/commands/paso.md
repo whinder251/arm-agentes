@@ -6,7 +6,7 @@ Paso solicitado: $ARGUMENTS
 
 Fase 1 — análisis, sin escribir código:
 1. Lee `AGENTS.md` y la sección correspondiente de `docs/plan.md`.
-2. Identifica qué estándares aplican y lee `docs/estandares/codigo.md`, `seguridad.md`, `diseno-ui.md` y/o `pruebas.md` según el alcance.
+2. Identifica qué estándares aplican y lee `docs/estandares/codigo.md`, `seguridad.md`, `.opencode/skills/design-linear-nod/SKILL.md` y/o `pruebas.md` según el alcance.
 3. Inspecciona solo los archivos relacionados y sus pruebas; busca implementaciones reutilizables.
 4. Responde en menos de 10 líneas: objetivo, archivos previstos (máximo 4 salvo autorización), estándares aplicables, riesgos y criterio de aceptación.
 5. Señala explícitamente si el cambio afecta contratos, datos persistidos, credenciales, permisos, tareas en cola o compatibilidad.
