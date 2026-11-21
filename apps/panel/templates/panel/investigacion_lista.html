@@ -11,32 +11,63 @@
     <p>No hay fuentes de monitoreo todavía. Crea la primera para empezar a monitorear fuentes de competencia.</p>
 </div>
 {% else %}
-<div class="grid-monitoreo">
-    {% for inv in investigaciones %}
-    <div class="card">
-        <div class="fuente-encabezado">
+<div class="split-pane">
+    <div class="lista-maestro">
+        {% for inv in investigaciones %}
+        <a href="{% url 'detalle_investigacion' inv.pk %}"
+           hx-get="{% url 'detalle_investigacion' inv.pk %}"
+           hx-target="#detalle-content"
+           hx-swap="innerHTML"
+           hx-indicator
+           class="item-fuente{% if forloop.first %} selected{% endif %}"
+           {% if forloop.first %}aria-current="true"{% endif %}
+           tabindex="0">
             <strong>{{ inv.nombre }}</strong>
             <span class="badge badge-neutral">{{ inv.get_frecuencia_display }}</span>
             {% if inv.activa %}
             <span class="badge badge-success">Activa</span>
             {% else %}
-            <span class="badge badge-danger">Inactiva</span>
+            <span class="badge badge-error">Inactiva</span>
             {% endif %}
-        </div>
-        <div class="acciones-compactas tabla-acciones">
-            <form method="post" action="{% url 'ejecutar_investigacion_ahora' inv.pk %}" class="form-ejecutar">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-secondary btn-sm">Ejecutar ahora</button>
-            </form>
-            <a href="{% url 'detalle_investigacion' inv.pk %}" class="btn btn-primary btn-sm">Ver hallazgos</a>
-            <a href="{% url 'editar_investigacion' inv.pk %}" class="enlace-editar">Editar</a>
-            <form method="post" action="{% url 'eliminar_investigacion' inv.pk %}" class="form-eliminar" onsubmit="return confirm('¿Estás seguro de que quieres eliminar esta fuente de monitoreo y todos sus hallazgos?');">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-danger btn-sm btn-danger-sm">Eliminar</button>
-            </form>
+            <div class="acciones-rapidas">
+                <form method="post" action="{% url 'ejecutar_investigacion_ahora' inv.pk %}" class="form-ejecutar">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-secondary btn-sm">Ejecutar ahora</button>
+                </form>
+                <a href="{% url 'editar_investigacion' inv.pk %}" class="enlace-editar">Editar</a>
+                <form method="post" action="{% url 'eliminar_investigacion' inv.pk %}" class="form-eliminar" onsubmit="return confirm('¿Estás seguro de que quieres eliminar esta fuente de monitoreo y todos sus hallazgos?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger-sm btn-danger-sm">Eliminar</button>
+                </form>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+
+    <div class="detalle-panel">
+        <div id="detalle-content">
+            <div class="htmx-indicator">Cargando...</div>
+            {% with primera=investigaciones.first %}
+            {% include "panel/fragments/investigacion_detalle_content.html" with investigacion=primera hallazgos=primera.hallazgos.all|slice:":10" %}
+            {% endwith %}
         </div>
     </div>
-    {% endfor %}
 </div>
 {% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var items = document.querySelectorAll('.item-fuente');
+    items.forEach(function(item) {
+        item.addEventListener('click', function() {
+            items.forEach(function(i) {
+                i.classList.remove('selected');
+                i.removeAttribute('aria-current');
+            });
+            item.classList.add('selected');
+            item.setAttribute('aria-current', 'true');
+        });
+    });
+});
+</script>
 {% endblock %}

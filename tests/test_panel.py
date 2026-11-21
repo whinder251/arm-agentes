@@ -1400,7 +1400,8 @@ class TestPanel(TestCase):
         assert 'Monitoreo Test' in content
         assert 'Diaria' in content
         assert 'Activa' in content
-        assert 'class="card"' in content
+        assert 'split-pane' in content
+        assert 'item-fuente' in content
 
     def test_lista_investigaciones_muestra_acciones_editar_eliminar(self):
         """Cada tarjeta expone enlaces de edición y eliminación."""
@@ -1418,7 +1419,7 @@ class TestPanel(TestCase):
         assert 'enlace-editar' in content
         assert 'form-eliminar' in content
         assert 'btn-danger-sm' in content
-        assert 'tabla-acciones' in content
+        assert 'acciones-rapidas' in content
 
     def test_editar_investigacion_formulario_precargado(self):
         """El formulario de edición carga los datos actuales y cambia sus textos."""
@@ -1827,6 +1828,32 @@ class TestPanel(TestCase):
         self.client.login(username='testuser', password='testpass123')
         form = InvestigacionForm(initial={"modo_busqueda": "busqueda"})
         assert form.fields["herramientas_busqueda"].initial == ["ddg_text"]
+
+    def test_detalle_investigacion_fragment_htmx(self):
+        """GET con HX-Request devuelve solo el fragmento de detalle sin layout base."""
+        investigacion = InvestigacionProgramada.objects.create(
+            nombre="Monitoreo HTMX",
+            urls_objetivo="https://ejemplo.com/sitemap.xml",
+            frecuencia="semanal",
+            activa=True,
+        )
+        Hallazgo.objects.create(
+            investigacion=investigacion,
+            url_fuente="https://ejemplo.com/sitemap.xml",
+            tipo_fuente="sitemap",
+            titulo="Hallazgo de prueba",
+            url_articulo="https://ejemplo.com/articulo",
+            fecha_publicacion="2024-01-01",
+        )
+        self.client.login(username="testuser", password="testpass123")
+        url = reverse("detalle_investigacion", args=[investigacion.pk])
+        response = self.client.get(url, HTTP_HX_REQUEST="true")
+        assert response.status_code == 200
+        content = response.content.decode("utf-8")
+        assert "<html" not in content
+        assert "sidebar" not in content
+        assert "Hallazgo de prueba" in content
+        assert "Hallazgos recientes" in content
 
     def test_biblioteca_renderiza_y_filtra(self):
         """La biblioteca lista hallazgos, filtra por búsqueda y requiere login."""

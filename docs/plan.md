@@ -5118,6 +5118,44 @@ tle, radius md, padding md, margin-bottom lg) y `.icono-agente` (color accent-so
 **Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (CSS). Retrocompatible: las clases mantienen su semántica; solo se corrigen valores de variables rotas y contraste de texto.
 
 
+## Paso MONITOR-SPLITPANE-01 - Layout Master-Detail con HTMX en vista Monitoreo — COMPLETADO
+
+**Objetivo:** Transformar la vista Monitoreo (`investigacion_lista.html`) en un layout split pane de dos columnas (estilo Linear/Gmail): lista de fuentes a la izquierda (350px) y detalle de hallazgos a la derecha (1fr), usando HTMX para actualizar el detalle sin recargar la página.
+
+**Archivos tocados (5):**
+
+- `apps/panel/views.py`: modificado `detalle_investigacion` para que, cuando `request.headers.get("HX-Request") == "true"`, renderice `panel/fragments/investigacion_detalle_content.html` sin el layout base; si no, comportamiento actual intacto. No se crearon vistas nuevas ni se tocó `urls.py`.
+- `apps/panel/templates/panel/investigacion_lista.html`: reescrito como `<div class="split-pane">` con `.lista-maestro` (izquierda, scrollable) y `.detalle-panel` (derecha). Cada fuente es un `<a class="item-fuente">` con `hx-get`, `hx-target="#detalle-content"`, `hx-swap="innerHTML"`, `hx-indicator`, tabindex y `aria-current`. Acciones rápidas (Ejecutar ahora, Editar, Eliminar) dentro de `.acciones-rapidas`, visibles al hover y `:focus-within`, y siempre en táctiles (`@media (hover: none)`). Estado inicial renderiza el fragmento de la primera fuente server-side mediante `{% include %}`. Script mínimo al pie gestiona toggle de `.selected` y `aria-current="true"`. CERO estilos inline.
+- `apps/panel/templates/panel/fragments/investigacion_detalle_content.html` (nuevo): template parcial sin `{% extends %}` ni `{% block %}`. Incluye sección "Hallazgos recientes" (últimos 10 con título, fecha, badge, enlace externo, botón "Escribir con Agente") y sección "Historial de Ejecuciones" (tabla densa con fecha, hora de fin, estado, nuevos, filtrados, errores). Al final, enlace "Ver ficha completa" a `detalle_investigacion`.
+- `static/css/app.css`: añadidas reglas `.split-pane` (grid 350px 1fr, gap, height), `.lista-maestro` (overflow-y, border-right, padding), `.item-fuente` (padding, border-left transparente, cursor, transition), `.item-fuente:hover`, `.item-fuente.selected` (border-left accent-solid, bg-secondary), `.item-fuente .acciones-rapidas` (opacity 0, hover/focus-within opacity 1, @media hover: none opacity 1), `.detalle-panel` (overflow-y, padding-left), `.htmx-indicator` (opacity 0, request opacity 1), media query 768px (1 columna, lista-maestro sin borde derecho, detalle-panel sin padding izquierdo).
+- `tests/test_panel.py`: actualizado `test_lista_investigaciones_muestra_tarjeta` (verifica `split-pane` y `item-fuente`), actualizado `test_lista_investigaciones_muestra_acciones_editar_eliminar` (verifica `acciones-rapidas`), añadida `test_detalle_investigacion_fragment_htmx` (verifica status 200 con HX-Request, que NO contiene `<html` ni `sidebar`, y que incluye "Hallazgo de prueba" y "Hallazgos recientes").
+
+**Reglas respetadas:**
+
+- Máximo 5 archivos modificados (excepción aprobada).
+- CERO estilos inline, CERO emojis, CERO bloques `<style>` en plantillas.
+- No se modificó `models.py`, `forms.py`, `urls.py` ni la lógica de negocio.
+- HTMX ya está cargado en `base.html`; no se añadieron scripts externos.
+- Cada item de `.lista-maestro` es un `<a>` enfocable por teclado (tabindex="0"), no un `<div>` con clic.
+- Los items tienen `aria-current="true"` y clase `.selected` gestionada por script mínimo.
+- El estado inicial renderiza el fragmento de la primera fuente server-side.
+- En pantallas <=768px, el layout colapsa a una columna.
+- `.venv\Scripts\python.exe` línea por línea, sin `&&`.
+- No se ejecutó `git push`.
+- Commit: "MONITOR-SPLITPANE-01: Layout Master-Detail con HTMX en vista Monitoreo".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- Select-String en `investigacion_lista.html` por `split-pane|lista-maestro|detalle-panel` → presente.
+- Select-String en `investigacion_lista.html` por `style="` → 0 coincidencias.
+- Select-String en `app.css` por `\.split-pane` y `\.item-fuente\.selected` → presente.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "investigacion" -q` → `23 passed`.
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (HTML/CSS) + nueva vista fragmentada para HTMX. Retrocompatible: la URL `detalle_investigacion` y su comportamiento normal se mantienen intactos.
+
+
 ## Paso NAV-RESTRUCTURE-02 - Sidebar minimalista y Configuración tabulada densa — COMPLETADO
 
 **Objetivo:** Reducir el sidebar primario a 4 elementos (Centro de Mando, Monitoreo, Biblioteca, Configuración) y transformar la vista "Configuración" en un hub central con pestañas horizontales que agrupen: Recursos de IA, Modelos y Proveedores, Integraciones y Sistema, evitando la navegación por 10 páginas separadas.

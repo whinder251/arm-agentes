@@ -1863,6 +1863,13 @@ def detalle_investigacion(request, pk):
 
     contexto["tiene_reporte_previo"] = tiene_reporte_previo
 
+    if request.headers.get("HX-Request") == "true":
+        return render(
+            request,
+            "panel/fragments/investigacion_detalle_content.html",
+            contexto,
+        )
+
     return render(
         request,
         "panel/investigacion_detalle.html",
