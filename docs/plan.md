@@ -4929,6 +4929,36 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 **Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación de plantillas (filtros `|date` de Django). Retrocompatible.
 
 
+## Paso PHASE1-STEP1 - Fundación de contratos Pydantic y Tool Gateway independiente — COMPLETADO
+
+**Objetivo:** Crear el núcleo independiente de Django (`arm/`) con los contratos de herramientas y un Gateway básico, sin modificar ni romper la funcionalidad actual de la app Django.
+
+**Archivos tocados (4, nuevos):**
+
+- `pyproject.toml` (nuevo): paquete `name = "arm"`, versión `0.1.0`, dependencia mínima `pydantic>=2.0`, configurado para instalación en modo editable con setuptools.
+- `arm/core/contracts.py` (nuevo): clases Pydantic v2 `ToolSpec` (slug, nombre, descripcion, input_schema, output_schema, requiere_credencial, efecto_externo), `ToolExecutionRequest` (slug, params) y `ToolExecutionResult` (success, data, error).
+- `arm/tools/gateway.py` (nuevo): clase `ToolGateway` con registro en memoria `_registry: dict[str, ToolSpec]`, método `register(spec)` y método `execute(slug, params) -> ToolExecutionResult` que valida `params` contra `spec.input_schema` con Pydantic v2 (`create_model` + `strict=True`); retorna mock de éxito o `ToolExecutionResult(success=False, error=str(e))`. CERO imports de Django.
+- `tests/test_arm_core.py` (nuevo): pruebas puras de Python, sin `django.setup()`, sin imports de `apps/` ni Django. Cubre registro de herramienta ficticia, ejecución con input válido (éxito), ejecución con input inválido (error de validación) y herramienta no registrada.
+
+**Reglas respetadas:**
+
+- Máximo 4 archivos nuevos. CERO modificaciones a archivos existentes de `apps/` ni `tests/test_panel.py`.
+- CERO dependencias de Django en la carpeta `arm/`.
+- Pydantic v2 (`from pydantic import BaseModel, Field, ValidationError`).
+- `pyproject.toml` define `name = "arm"` y permite instalación editable.
+- NO se ejecutó `pip install` ni `manage.py migrate` (el usuario lo hará manualmente).
+- NO se ejecutó `git push`.
+- CERO estilos inline, CERO emojis en código/comentarios.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+
+- `.venv\Scripts\python.exe -m pytest tests/test_arm_core.py -q` → `3 passed in 0.95s`.
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+
+**Impacto en contratos/datos:** NO contratos de API, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO compatibilidad con la app existente. Es un paquete paralelo e independiente que aún no está instalado (pendiente `pip install -e .` por parte del usuario).
+
+
+
 ## Paso DESIGN-MIGRATE-01 - Migrar app.css a tokens Linear-Nod con sidebar oscuro y contenido claro — COMPLETADO
 
 **Objetivo:** Alinear el CSS real de `static/css/app.css` con los tokens de la skill `design-linear-nod`, reemplazando el diseño ARM Flow antiguo (sidebar oscuro con acento índigo #6366F1, contenido con fondo #F5F5F7, tipografía Apple) por el sistema Linear-Nod: contenido claro #fafafa con texto #171717, sidebar oscuro #1a1d23 con texto claro, acento #0070C0 para botones/enlaces, y item activo del sidebar en #4DA3FF (accesible sobre fondo oscuro).
@@ -5496,4 +5526,36 @@ tle, radius md, padding md, margin-bottom lg) y `.icono-agente` (color accent-so
 
 **Impacto en contratos/datos:** ninguno. Solo presentación del fragmento HTMX. Retrocompatible.
 
-**Nota de vigencia:** el markup de la lista izquierda descrito en MONITOR-SPLITPANE-01 fue superado por SPLITPANE-RESTORE-01, SPLITPANE-CLICK-01 y MONITOR-CARD-01. Este paso no toca la lista izquierda. 
+**Nota de vigencia:** el markup de la lista izquierda descrito en MONITOR-SPLITPANE-01 fue superado por SPLITPANE-RESTORE-01, SPLITPANE-CLICK-01 y MONITOR-CARD-01. Este paso no toca la lista izquierda.
+
+
+## Paso PROVEEDORES-ICONOS-01 - Logos de marca en el listado de Proveedores con fallback honesto — COMPLETADO
+
+**Objetivo:** Mostrar el logo de marca junto al nombre de cada Proveedor en `lista_proveedores`, reusando el cargador cacheado de `catalogo.json` (`_cargar_catalogo_iconos` / `_icono_archivo_marca`) introducido en ICONOS-INTEGRACIONES-01. Fallback honesto: sin icono si no hay entrada, nunca logo inventado.
+
+**Archivos tocados (4):**
+
+- `apps/panel/views.py`: añadido mapa de alias `_PROVEEDOR_A_CATALOGO` (nombre normalizado → slug llm del catálogo), funciones `_normalizar_nombre_proveedor`, `_leer_svg_generico` y `_icono_proveedor(nombre)` que devuelve `(icono_archivo, icono_inline)` (marca/<slug>.svg si `logotipo_oficial=true`; contenido inline de generico/<slug>.svg si false; `(None, None)` si no hay entrada). `lista_proveedores` asigna `icono_archivo` e `icono_inline` a cada proveedor del contexto.
+- `apps/panel/templates/panel/lista_proveedores.html`: añadido `{% load static %}`; en la celda del nombre, antepone `<img class="icono-fila" ...>` si hay archivo o `<span class="icono-fila icono-fila--mono">` con SVG inline si hay `icono_inline`, antes de `{{ proveedor.nombre }}`. `alt=""` porque el nombre va al lado. No se tocó el resto de la tabla ni las acciones.
+- `static/css/app.css`: añadidas reglas `.icono-fila` (20x20, vertical-align middle, margin-right var(--space-sm)) y `.icono-fila--mono` (svg 20x20, color var(--text-secondary)) al final del archivo. No se tocaron reglas previas.
+- `tests/test_panel.py`: nueva prueba `test_lista_proveedores_iconos_marca_con_fallback` que crea proveedores OpenRouter, OpenAI y uno personalizado; verifica que aparece `marca/openrouter.svg`, que NO aparece `marca/openai.svg`, que el proveedor personalizado no renderiza `img`, y que hay cero `style="` en la respuesta.
+
+**Auditoría ligera v2 (antes de implementar):** catálogo LLM con logotipo oficial: anthropic, googlegemini, mistralai, perplexity, huggingface, ollama, deepseek, openrouter (`marca/openrouter.svg`). Sin logo oficial (trazo genérico): openai (`generico/openai.svg`). Cualquier otro nombre de proveedor (incl. `gemini` del `setUp` y proveedores propios) queda **SIN icono**.
+
+**Reglas respetadas:**
+
+- Máximo 4 archivos modificados. Los assets de `static/iconos-integraciones` NO se modificaron.
+- CERO estilos inline nuevos, CERO emojis. No se tocó `base.html` ni el hub de Integraciones.
+- No se modificó `models.py`, `urls.py` ni `forms.py`.
+- Fallback silencioso: catálogo o archivo ausente => sin icono, respuesta 200.
+- Comandos PowerShell línea por línea, sin `&&`.
+- No se ejecutó `git push`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "proveedores" -q` → `2 passed`.
+- Select-String en `lista_proveedores.html` por `icono-fila` → presente (líneas 30 y 32). La prueba de respuesta HTTP valida cero `style="` → pasa.
+
+**Impacto en contratos/datos:** NO contratos de API, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (iconos junto al nombre en el listado de proveedores). Retrocompatible: proveedores sin entrada del catálogo se renderizan igual que antes (solo nombre).
