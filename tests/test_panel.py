@@ -163,7 +163,7 @@ class TestPanel(TestCase):
         content = response.content.decode('utf-8')
         assert 'Panel de Control' in content
         assert 'Accesos Rápidos' in content
-        assert 'Nuevo Monitoreo' in content
+        assert 'Nueva Fuente de Monitoreo' in content
         assert 'Ver Ejecuciones' in content
         assert 'Gestionar Agentes' in content
         ctx = response.context
@@ -1212,7 +1212,7 @@ class TestPanel(TestCase):
         content = response.content.decode('utf-8')
         assert 'Fuentes de Monitoreo' in content
         assert 'No hay fuentes de monitoreo todavía' in content
-        assert 'Nuevo Monitoreo' in content
+        assert 'Nueva Fuente de Monitoreo' in content
         assert reverse('crear_investigacion') in content
 
     def test_crear_investigacion_requiere_login(self):
