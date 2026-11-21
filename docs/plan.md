@@ -4964,6 +4964,40 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 **Pendiente:** El usuario debe ejecutar `pip install -e .` si aún no lo hizo (pendiente de PHASE1-STEP1) para importar `arm` como paquete instalado.
 
 
+## Paso PHASE1-STEP3 - Crear Orchestrator independiente y wrapper Django (sin modificar tareas Huey existentes) — COMPLETADO
+
+**Objetivo:** Crear el módulo `arm.engine` y su conexión con Django (`arm_django`), probando que funcionan en aislamiento y en integración, sin modificar ni tocar `apps/engine/tasks.py` ni ninguna tarea de Huey existente.
+
+**Archivos tocados (6: 4 principales + 2 __init__.py de paquete):**
+
+- `arm/engine/__init__.py` (nuevo, vacío): marca a `arm.engine` como paquete Python.
+- `arm/engine/orchestrator.py` (nuevo): clase `Orchestrator` que recibe `TaskRepository`, `ExecutionRepository` y `ToolGateway`. Método `execute_step(task_id, tool_slug, params)` que obtiene la tarea, registra una ejecución, llama al gateway y actualiza el estado. CERO imports de Django.
+- `arm_django/engine_wrapper.py` (nuevo): función `ejecutar_paso_orquestado(task_id, tool_slug, params, gateway=None)` que instancia el `Orchestrator` con `DjangoTaskRepository`, `DjangoExecutionRepository` y el `ToolGateway` proporcionado (o uno vacío).
+- `tests/test_arm_orchestrator.py` (nuevo): 3 pruebas aisladas con `MockTaskRepository`, `MockExecutionRepository` y `ToolGateway` con herramienta mock. Verifica éxito (estado 'ok'), fallo de validación (estado 'error') y tarea inexistente. Sin `django.setup()`, sin imports de `apps/`. Ejecuta en < 1 segundo.
+- `tests/test_django_engine_wrapper.py` (nuevo): 2 pruebas de integración con `@pytest.mark.django_db`: cambiar estado y registrar ejecución con tarea real en BD, y tarea inexistente retorna error. Limpieza de datos con `delete()`.
+
+**Reglas respetadas:**
+
+- Máximo 4 archivos principales (más 1 `__init__.py` necesario para que Python reconozca el paquete `arm.engine`).
+- PROHIBIDO modificar `apps/engine/tasks.py` o cualquier otro archivo en `apps/` (no se tocó).
+- `arm/engine/orchestrator.py` es completamente independiente de Django (verificado: sin imports de `django` ni `apps.`).
+- Las pruebas aisladas se ejecutan en < 1 segundo sin cargar Django.
+- NO se ejecutó `manage.py migrate` (no hay nuevos modelos).
+- NO se ejecutó `git push`.
+- CERO estilos inline, CERO emojis en código/comentarios.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+
+- `.venv\Scripts\python.exe -m pytest tests/test_arm_orchestrator.py -q` → `3 passed in 0.68s`.
+- `.venv\Scripts\python.exe -m pytest tests/test_django_engine_wrapper.py -q` → `2 passed in 4.05s`.
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+
+**Impacto en contratos/datos:** NO contratos de API, NO datos persistidos (solo lectura/escritura en pruebas de integración con limpieza), NO credenciales, NO permisos, NO tareas en cola (no se tocó `apps/engine/tasks.py` ni Huey), NO migraciones, NO compatibilidad rota. Es un paquete paralelo que añade el orquestador y su wrapper Django sin modificar la app existente.
+
+**Pendiente:** El usuario debe ejecutar `pip install -e .` si aún no lo hizo (pendiente de PHASE1-STEP1) para importar `arm` como paquete instalado.
+
+
+
 
 ## Paso PHASE1-STEP1 - Fundación de contratos Pydantic y Tool Gateway independiente — COMPLETADO
 
