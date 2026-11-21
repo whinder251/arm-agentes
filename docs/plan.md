@@ -4993,6 +4993,36 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 **Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (HTML/CSS). Retrocompatible: las clases sobrescritas mantienen su semántica; las vistas existentes siguen funcionando.
 
 
+## Paso BIBLIOTECA-UX-01 - Corregir alineación, redundancia y etiquetas en vista Biblioteca — COMPLETADO
+
+**Objetivo:** Corregir los problemas visuales de biblioteca.html: alinear el formulario de búsqueda en una sola fila, eliminar la redundancia de la URL cuando no hay título, y condicionar la etiqueta de fecha para que no muestre texto vacío.
+
+**Archivos tocados (3):**
+
+- `apps/panel/templates/panel/biblioteca.html`: título condicional (`{% if hallazgo.titulo %}...{% else %}Sin título{% endif %}`), URL mostrada una sola vez en `<p class="help-text">`, fecha condicional (`{% if hallazgo.fecha_publicacion %}` con "Sin fecha" en el else), formulario de búsqueda dentro de `.form-buscar`. CERO estilos inline, CERO emojis.
+- `static/css/app.css`: añadidas reglas `.form-buscar` (flex, gap, align-items, margin-bottom) y `.grid-biblioteca` (grid, repeat auto-fill minmax 300px, gap). No se tocó ninguna regla existente.
+- `tests/test_panel.py`: añadida prueba `test_biblioteca_sin_titulo_muestra_sin_titulo` que verifica que un hallazgo sin título muestra "Sin título" y no duplica la URL como título.
+
+**Reglas respetadas:**
+
+- Máximo 3 archivos modificados (más docs/plan.md como documentación).
+- CERO estilos inline, CERO emojis, CERO bloques `<style>` en plantillas.
+- No se modificó views.py, models.py, urls.py ni forms.py.
+- Usó exclusivamente clases de app.css (`.card`, `.badge`, `.help-text`, `.form-buscar`, `.grid-biblioteca`).
+- `.venv\Scripts\python.exe` línea por línea, sin `&&`.
+- No se ejecutó `git push`.
+- Commit: "BIBLIOTECA-UX-01: Corregir alineación, redundancia y etiquetas en vista Biblioteca".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- Select-String en biblioteca.html por 'style="' → 0 coincidencias.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "biblioteca" -q` → `2 passed`.
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (HTML/CSS). Retrocompatible: la vista y la URL se mantienen; solo cambia el renderizado de título, URL y fecha en el template.
+
+
 ## Paso NAV-RESTRUCTURE-02 - Sidebar minimalista y Configuración tabulada densa — COMPLETADO
 
 **Objetivo:** Reducir el sidebar primario a 4 elementos (Centro de Mando, Monitoreo, Biblioteca, Configuración) y transformar la vista "Configuración" en un hub central con pestañas horizontales que agrupen: Recursos de IA, Modelos y Proveedores, Integraciones y Sistema, evitando la navegación por 10 páginas separadas.
@@ -5057,4 +5087,66 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 - Select-String en integraciones.html por 'grid-integraciones' → presente.
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "integraciones or sidebar" -q` → `6 passed`.
 
-**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (HTML/CSS) + estado de conexión en contexto de vista. Retrocompatible: la URL `integraciones` se mantiene; las vistas CRUD originales (herramientas, credenciales, destinos) siguen accesibles por sus URLs independientes.
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (HTML/CSS) + estado de conexión en contexto de vista. Retrocompatible: la URL `integraciones` se mantiene; las vistas CRUD originales (herramientas, credenciales, destinos) siguen accesibles por sus URLs independientes.
+
+
+## Paso AUDIT-UI-02 - Estandarizar espaciado, alineación y relleno en formularios clave — COMPLETADO
+
+**Objetivo:** Eliminar desalineaciones, márgenes inconsistentes y relleno irregular en los formularios de creación/edición más usados, forzando el uso estricto de las clases de ARM Flow 2.0 y las reglas de la skill form-ux (múltiplos de 4px, `.card`, `.form-group`, `.label`, `.input`, `.acciones-formulario`).
+
+**Archivos tocados (1 + documentación):**
+
+- `apps/panel/templates/panel/herramienta_form.html`: cambiado `<aside class="sidebar-ayuda tarjeta">` por `<aside class="sidebar-ayuda card">` para usar exclusivamente la clase `.card` de ARM Flow 2.0.
+- `apps/panel/templates/panel/investigacion_form.html`: verificado que ya usa `.card`, `.form-group`, `.label`, `.input`, `.acciones-formulario` con botón alineado a la derecha; sin cambios necesarios.
+- `apps/panel/templates/panel/agente_form.html`: verificado que ya usa `.card`, `.form-group`, `.label`, `.input`, `.acciones-formulario` y tarjetas `.modelo-card`/`.habilidad-card` definidas en app.css; sin cambios necesarios.
+- `static/css/app.css`: verificado que `.form-group` tiene `margin-bottom: var(--space-md)` (16px) y `.acciones-formulario` tiene `margin-top: var(--space-lg)`, `display:flex`, `justify-content:flex-end`, `gap: var(--space-md)`; sin cambios necesarios.
+- `docs/plan.md`: esta sección.
+
+**Reglas respetadas:**
+
+- Máximo 4 archivos modificados (1 modificado + documentación).
+- CERO estilos inline nuevos, CERO emojis, CERO bloques `<style>` en plantillas.
+- No se modificó `views.py`, `models.py`, `urls.py` ni `forms.py`.
+- Usó exclusivamente variables de espaciado de la skill (`--space-md`, `--space-lg`).
+- `.venv\Scripts\python.exe` línea por línea, sin `&&`.
+- No se ejecutó `git push`.
+- Commit: "AUDIT-UI-02: Estandarizar espaciado, alineación y relleno en formularios clave".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- Búsqueda de `style="` en los 3 templates → 0 coincidencias en cada uno.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "investigacion or agente or herramienta" -q` → `26 passed`.
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (HTML/CSS). Retrocompatible: las clases sobrescritas mantienen su semántica; las vistas existentes siguen funcionando.
+
+
+## Paso BIBLIOTECA-UX-01 - Corregir alineación, redundancia y etiquetas en vista Biblioteca — COMPLETADO
+
+**Objetivo:** Corregir los problemas visuales de biblioteca.html: alinear el formulario de búsqueda en una sola fila, eliminar la redundancia de la URL cuando no hay título, y condicionar la etiqueta de fecha para que no muestre texto vacío.
+
+**Archivos tocados (3):**
+
+- `apps/panel/templates/panel/biblioteca.html`: título condicional (`{% if hallazgo.titulo %}...{% else %}Sin título{% endif %}`), URL mostrada una sola vez en `<p class="help-text">`, fecha condicional (`{% if hallazgo.fecha_publicacion %}` con "Sin fecha" en el else), formulario de búsqueda dentro de `.form-buscar`. CERO estilos inline, CERO emojis.
+- `static/css/app.css`: añadidas reglas `.form-buscar` (flex, gap, align-items, margin-bottom) y `.grid-biblioteca` (grid, repeat auto-fill minmax 300px, gap). No se tocó ninguna regla existente.
+- `tests/test_panel.py`: añadida prueba `test_biblioteca_sin_titulo_muestra_sin_titulo` que verifica que un hallazgo sin título muestra "Sin título" y no duplica la URL como título.
+
+**Reglas respetadas:**
+
+- Máximo 3 archivos modificados (más docs/plan.md como documentación).
+- CERO estilos inline, CERO emojis, CERO bloques `<style>` en plantillas.
+- No se modificó views.py, models.py, urls.py ni forms.py.
+- Usó exclusivamente clases de app.css (`.card`, `.badge`, `.help-text`, `.form-buscar`, `.grid-biblioteca`).
+- `.venv\Scripts\python.exe` línea por línea, sin `&&`.
+- No se ejecutó `git push`.
+- Commit: "BIBLIOTECA-UX-01: Corregir alineación, redundancia y etiquetas en vista Biblioteca".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- Select-String en biblioteca.html por 'style="' → 0 coincidencias.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "biblioteca" -q` → `2 passed`.
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (HTML/CSS). Retrocompatible: la vista y la URL se mantienen; solo cambia el renderizado de título, URL y fecha en el template.

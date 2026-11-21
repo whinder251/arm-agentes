@@ -1294,3 +1294,16 @@ td input[type="checkbox"] {
   gap: var(--space-md);
   margin-top: var(--space-lg);
 }
+
+.form-buscar {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: flex-end;
+  margin-bottom: var(--space-lg);
+}
+
+.grid-biblioteca {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-md);
+}

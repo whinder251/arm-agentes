@@ -1871,3 +1871,28 @@ class TestPanel(TestCase):
         content = response.content.decode("utf-8")
         assert "Noticia sobre python" in content
         assert "Noticia sobre java" not in content
+
+    def test_biblioteca_sin_titulo_muestra_sin_titulo(self):
+        """Cuando un hallazgo no tiene título, se muestra 'Sin título' y no la URL duplicada."""
+        investigacion = InvestigacionProgramada.objects.create(
+            nombre="Monitoreo Test 2",
+            urls_objetivo="https://ejemplo.com/sitemap2.xml",
+            frecuencia="semanal",
+        )
+        Hallazgo.objects.create(
+            investigacion=investigacion,
+            url_fuente="https://ejemplo.com/sitemap2.xml",
+            tipo_fuente="sitemap",
+            titulo="",
+            url_articulo="https://ejemplo.com/sin-titulo",
+            fecha_publicacion="2024-01-01",
+        )
+        self.client.login(username="testuser", password="testpass123")
+        url = reverse("biblioteca")
+        response = self.client.get(url)
+        assert response.status_code == 200
+        content = response.content.decode("utf-8")
+        assert "Sin título" in content
+        assert "https://ejemplo.com/sin-titulo" in content
+        # La URL no debe aparecer como título (h3), solo como texto de ayuda
+        assert "<h3>Sin título</h3>" in content

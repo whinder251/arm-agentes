@@ -25,9 +25,13 @@
 <div class="grid-biblioteca">
     {% for hallazgo in hallazgos %}
     <div class="card">
-        <h3>{{ hallazgo.titulo|default:hallazgo.url_articulo|truncatechars:"100" }}</h3>
-        <p class="subtexto">{{ hallazgo.url_articulo }}</p>
-        <p class="subtexto">Fecha de publicación: {{ hallazgo.fecha_publicacion|date:"d/m/Y" }}</p>
+        <h3>{% if hallazgo.titulo %}{{ hallazgo.titulo|truncatechars:100 }}{% else %}Sin título{% endif %}</h3>
+        <p class="help-text">{{ hallazgo.url_articulo }}</p>
+        {% if hallazgo.fecha_publicacion %}
+        <p class="help-text">Fecha: {{ hallazgo.fecha_publicacion|date:"d/m/Y" }}</p>
+        {% else %}
+        <span class="help-text">Sin fecha</span>
+        {% endif %}
         <span class="badge badge-neutral">{{ hallazgo.get_tipo_fuente_display }}</span>
     </div>
     {% endfor %}
