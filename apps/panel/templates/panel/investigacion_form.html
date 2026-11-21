@@ -89,7 +89,7 @@
                 {% endif %}
             </div>
 
-            <div id="bloque-ayuda">
+            <div id="bloque-ayuda" class="form-group">
                 <p id="ayuda-sitio" class="help-text">
                     Entra a las URLs que indiques y saca los enlaces de artículos o posts. Úsalo cuando ya sabes qué sitio quieres vigilar: un blog de la competencia, una categoría, un feed RSS o un sitemap. El sistema ignora el menú y el pie de página y se queda con el contenido.
                 </p>
@@ -141,7 +141,10 @@
                 {% endif %}
             </div>
 
-            <button type="submit" class="btn btn-primary">{% if form.instance.pk %}Guardar cambios{% else %}Activar monitoreo{% endif %}</button>
+            <div class="acciones-formulario">
+                <button type="submit" class="btn btn-primary">{% if form.instance.pk %}Guardar cambios{% else %}Activar monitoreo{% endif %}</button>
+                <a href="{% url 'lista_investigaciones' %}" class="btn-secondary">Cancelar</a>
+            </div>
         </form>
     </div>
 </div>

@@ -4959,4 +4959,35 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 - Select-String en app.css por los 8 hex viejos → 0 coincidencias.
 - Select-String en app.css por --sidebar-bg|--accent-solid|--accent-on-dark → presente (3 coincidencias en `:root` y varias en reglas).
 
-**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (CSS) + verificación de clases en 2 templates + prueba. Retrocompatible: las clases sobrescritas mantienen su semántica; las vistas existentes siguen funcionando.
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (CSS) + verificación de clases en 2 templates + prueba. Retrocompatible: las clases sobrescritas mantienen su semántica; las vistas existentes siguen funcionando.
+
+
+## Paso AUDIT-UI-02 - Estandarización de espaciado, alineación y relleno en formularios clave — COMPLETADO
+
+**Objetivo:** Eliminar desalineaciones, márgenes inconsistentes y relleno irregular en los formularios de creación/edición más usados, forzando el uso estricto de las clases de ARM Flow 2.0 y las reglas de la skill form-ux (múltiplos de 4px, `.card`, `.form-group`, `.label`, `.input`, `.acciones-formulario`).
+
+**Archivos tocados (4):**
+
+- `apps/panel/templates/panel/investigacion_form.html`: envolvió el bloque de ayuda (`<div id="bloque-ayuda">`) en `.form-group` para espaciado consistente; movió el botón submit dentro de `<div class="acciones-formulario">` con un enlace `.btn-secondary` "Cancelar" alineado a la derecha.
+- `apps/panel/templates/panel/agente_form.html`: verificado que ya usa `.form-group`, `.label`, `.input`, `.acciones-formulario` y sin `style="` estático; sin cambios necesarios.
+- `apps/panel/templates/panel/herramienta_form.html`: cambió `<div class="tarjeta">` por `<div class="card">`; reemplazó `.ayuda` por `.help-text` en los mensajes de ayuda de campos (5 ocurrencias).
+- `static/css/app.css`: ajustó `.acciones-formulario` a `gap: var(--space-md)` (16px) y `margin-top: var(--space-lg)` (24px), usando exclusivamente tokens de espaciado definidos en la skill design-linear-nod.
+
+**Reglas respetadas:**
+
+- Máximo 4 archivos modificados (más `docs/plan.md` como documentación exigida).
+- CERO estilos inline nuevos, CERO emojis, CERO bloques `<style>` en plantillas.
+- No se modificó `views.py`, `models.py`, `urls.py` ni `forms.py`.
+- Usó exclusivamente variables de espaciado de la skill (`--space-md`, `--space-lg`).
+- `.venv\Scripts\python.exe` línea por línea, sin `&&`.
+- No se ejecutó `git push`.
+- Commit: "AUDIT-UI-02: Estandarizar espaciado, alineación y relleno en formularios clave".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- Búsqueda de `style="` en los 3 templates → 0 coincidencias en cada uno.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "investigacion or agente or herramienta" -q` → `26 passed`.
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (HTML/CSS). Retrocompatible: las clases sobrescritas mantienen su semántica; las vistas existentes siguen funcionando.

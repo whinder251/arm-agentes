@@ -22,7 +22,7 @@
 <div class="layout-herramienta">
     <!-- Columna principal: Formulario -->
     <div class="formulario-principal">
-        <div class="tarjeta">
+        <div class="card">
             <form method="post" class="form-edicion" id="herramienta-form">
                 {% csrf_token %}
                 <input type="hidden" name="tool_type" value="{{ tool_type }}" id="id_tool_type">
@@ -36,7 +36,7 @@
                         {% for error in form.credencial.errors %}<li>{{ error }}</li>{% endfor %}
                     </ul>
                     {% endif %}
-                    {% if form.credencial.help_text %}<p class="ayuda">{{ form.credencial.help_text }}</p>{% endif %}
+                    {% if form.credencial.help_text %}<p class="help-text">{{ form.credencial.help_text }}</p>{% endif %}
                 </div>
 
                 <!-- Campos ocultos del modelo (nombre, slug, tipo, descripcion, es_sistema) -->
@@ -68,7 +68,7 @@
                             <input type="text" name="{{ campo.name }}" id="id_{{ campo.name }}" class="input" value="{{ valor|default:'' }}" placeholder="{{ campo.placeholder|default:'' }}">
                         {% endif %}
                         {% endwith %}
-                        {% if campo.help_text %}<p class="ayuda">{{ campo.help_text }}</p>{% endif %}
+                        {% if campo.help_text %}<p class="help-text">{{ campo.help_text }}</p>{% endif %}
                     </div>
                     {% empty %}
                     <p class="nota-vacia">Este tipo no tiene campos estructurados. Usa el modo avanzado para editar el JSON directamente.</p>
@@ -102,7 +102,7 @@
                             {% for error in form.configuracion.errors %}<li>{{ error }}</li>{% endfor %}
                         </ul>
                         {% endif %}
-                        {% if form.configuracion.help_text %}<p class="ayuda">{{ form.configuracion.help_text }}</p>{% endif %}
+                        {% if form.configuracion.help_text %}<p class="help-text">{{ form.configuracion.help_text }}</p>{% endif %}
                     </div>
                 </div>
 
@@ -110,7 +110,7 @@
                 <div class="form-group form-check">
                     <input type="checkbox" name="advanced_mode" id="id_advanced_mode" class="input-checkbox" {% if advanced_mode %}checked{% endif %}>
                     <label for="id_advanced_mode" class="form-check-label">Modo avanzado (editar JSON directamente)</label>
-                    <p class="ayuda">Al activar, los campos estructurados se serializan al JSON. Al desactivar, se intenta parsear el JSON para poblar los campos. Claves no mapeadas se conservan.</p>
+                    <p class="help-text">Al activar, los campos estructurados se serializan al JSON. Al desactivar, se intenta parsear el JSON para poblar los campos. Claves no mapeadas se conservan.</p>
                 </div>
 
                 <div id="json-error" class="alerta-error oculto"></div>
@@ -132,7 +132,7 @@
             <h3>{{ tipo_def.nombre }}</h3>
         </div>
         <div class="sidebar-contenido">
-            <p class="ayuda">{{ tipo_def.ayuda_sidebar }}</p>
+            <p class="help-text">{{ tipo_def.ayuda_sidebar }}</p>
         </div>
         {% if tipo_def.campos %}
         <div class="sidebar-campos">
