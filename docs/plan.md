@@ -4929,6 +4929,42 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 **Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación de plantillas (filtros `|date` de Django). Retrocompatible.
 
 
+## Paso PHASE1-STEP2 - Adaptadores de persistencia para desacoplar el Engine de Django — COMPLETADO
+
+**Objetivo:** Desacoplar el futuro Engine de Django mediante el patrón Puertos y Adaptadores. Definir interfaces de repositorio en `arm/` (sin Django) e implementarlas con los modelos Django existentes en `arm_django/`.
+
+**Archivos tocados (6: 4 principales + 2 __init__.py de paquete):**
+
+- `arm/adapters/__init__.py` (nuevo, vacío): marca a `arm.adapters` como paquete Python.
+- `arm/adapters/persistence.py` (nuevo): interfaces `TaskRepository` y `ExecutionRepository` definidas con `typing.Protocol` (`@runtime_checkable`). Métodos: `create_task`, `get_task`, `update_task_status`, `create_execution`, `get_executions_by_task`. Clase `TaskData` como contrato de transferencia. CERO imports de Django, `apps.` o base de datos. Usa tipos nativos de Python.
+- `arm_django/__init__.py` (nuevo, vacío): marca a `arm_django` como paquete Python.
+- `arm_django/adapters.py` (nuevo): `DjangoTaskRepository` y `DjangoExecutionRepository` implementando los puertos sobre `Tarea` y `Ejecucion` de `apps.core.models`. Mapea de/ hacia `TaskData`. `error=None` se convierte en `""` para respetar la restricción NOT NULL de `Ejecucion.error`.
+- `tests/test_arm_engine_isolated.py` (nuevo): `MockTaskRepository` en memoria que implementa `TaskRepository`. 5 pruebas: crear asigna id, obtener existente, obtener inexistente devuelve None, actualizar estado, actualizar inexistente devuelve None. Sin `django.setup()`, sin imports de `apps/`. Ejecuta en < 1 segundo.
+- `tests/test_persistence_adapters.py` (nuevo): 4 pruebas de integración con `@pytest.mark.django_db`: crear tarea en BD y actualizar estado, obtener inexistente devuelve None, actualizar inexistente devuelve None, crear y recuperar ejecuciones por tarea. Limpieza de datos de prueba con `delete()`.
+
+**Reglas respetadas:**
+
+- Máximo 4 archivos principales (más 2 `__init__.py` necesarios para que Python reconozca los paquetes).
+- CERO modificaciones a archivos existentes de `apps/` ni `tests/test_panel.py`.
+- `arm/adapters/persistence.py` tiene CERO imports de Django.
+- Las pruebas aisladas NO requieren `django.setup()`.
+- NO se modificó `apps/engine/tasks.py` (queda para un paso posterior).
+- NO se ejecutó `manage.py migrate` (no hay nuevos modelos).
+- NO se ejecutó `git push`.
+- CERO estilos inline, CERO emojis en código/comentarios.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+
+- `.venv\Scripts\python.exe -m pytest tests/test_arm_engine_isolated.py -q` → `5 passed in 0.35s`.
+- `.venv\Scripts\python.exe -m pytest tests/test_persistence_adapters.py -q` → `4 passed`.
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+
+**Impacto en contratos/datos:** NO contratos de API, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones, NO compatibilidad rota. Es un paquete paralelo que añade puertos y adaptadores sin tocar la app Django existente.
+
+**Pendiente:** El usuario debe ejecutar `pip install -e .` si aún no lo hizo (pendiente de PHASE1-STEP1) para importar `arm` como paquete instalado.
+
+
+
 ## Paso PHASE1-STEP1 - Fundación de contratos Pydantic y Tool Gateway independiente — COMPLETADO
 
 **Objetivo:** Crear el núcleo independiente de Django (`arm/`) con los contratos de herramientas y un Gateway básico, sin modificar ni romper la funcionalidad actual de la app Django.
