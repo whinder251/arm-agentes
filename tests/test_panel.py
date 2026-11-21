@@ -1160,6 +1160,21 @@ class TestPanel(TestCase):
         assert 'icono-agente' in content
         assert 'feed-timeline' in content
         assert 'composer' in content
+        assert 'feed-stats' in content
+        assert 'stat-tile' in content
+        assert 'lote-compacto' in content
+        assert 'barra-lote' not in content
+        # El composer debe ir antes que el feed en el HTML
+        assert content.index('composer') < content.index('feed-timeline')
+        # Estructura sin forms anidados y checkboxes vinculados al form de lote
+        soup = BeautifulSoup(content, 'html.parser')
+        forms = soup.find_all('form')
+        for form in forms:
+            assert form.find('form') is None, "Un form contiene otro form"
+        checkboxes = soup.select('input[name="task_ids"]')
+        for cb in checkboxes:
+            assert cb.get('form') == 'form-lote', f"Checkbox sin form=form-lote: {cb}"
+        assert content.count('feed-agente') == 1, "feed-agente debe aparecer una sola vez"
 
     def test_tarea_revision_renderiza_card_aprobacion(self):
         """Una tarea en estado revision renderiza su tarjeta de aprobación con URLs funcionales."""

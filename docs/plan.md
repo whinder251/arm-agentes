@@ -5494,4 +5494,35 @@ tle, radius md, padding md, margin-bottom lg) y `.icono-agente` (color accent-so
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "tarea or feed" -q` → `31 passed`.
 - Select-String en `tareas.html` por `style="` → 0 coincidencias.
 
-**Impacto en contratos/datos:** NO contratos de API, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones, NO modelos/urls/forms. Solo presentación + `initial` en GET de `crear_tarea`. Retrocompatible.
+**Impacto en contratos/datos:** NO contratos de API, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones, NO modelos/urls/forms. Solo presentación + `initial` en GET de `crear_tarea`. Retrocompatible.
+
+
+## Paso CMD-CHAT-02 - Composer arriba, lote compacto en filtros, estadísticas en baldosas y forms sin anidar — COMPLETADO
+
+**Objetivo:** Reordenar la rama de listado del Centro de Mando: composer arriba (acción primaria), sección informativa con 5 baldosas de dato, lote compacto integrado en la fila de filtros, y forms sin anidar (checkboxes del feed con `form="form-lote"`).
+
+**Archivos tocados (4):**
+
+- `apps/panel/views.py`: en `lista_tareas`, añadidos dos conteos al contexto: `fuentes_activas` (`InvestigacionProgramada.objects.filter(activa=True).count()`) y `ejecuciones_hoy` (`RegistroEjecucionMonitoreo.objects.filter(inicio__date=hoy).count()`). Nada más.
+- `apps/panel/templates/panel/tareas.html`: rama de listado reescrita completa en este orden: page-header, sección informativa (`.feed-agente` con icono, mensaje narrativo y `.feed-stats` con 5 `.stat-tile`: descubrimientos hoy, pendientes (warning), archivados, fuentes activas, ejecuciones hoy), composer (`<form method="get" class="composer">` con label visible, input descripcion, botón Encargar), `fila-filtros` (`.chips-filtro` a la izquierda + `form#form-lote.lote-compacto` a la derecha con select-all, select `action`, botón Aplicar), `<ol class="feed-timeline">` con checkboxes `form="form-lote"`, paginación fuera de cualquier form. Eliminados `.estado-chips` y `.barra-lote`. Rama de detalle intacta.
+- `static/css/app.css`: eliminadas reglas `.form-lote` (ya sin uso); añadidas `.feed-stats`, `.stat-tile`, `.stat-numero`, `.stat-etiqueta`, `.stat-tile--warning .stat-numero`, `.fila-filtros`, `.lote-compacto`, `.lote-compacto select.lote-select`, `.lote-check`, `.sr-only`. Sin tocar reglas existentes.
+- `tests/test_panel.py`: extendido `test_lista_tareas_feed_conversacional` con aserciones `feed-stats`, `stat-tile`, `lote-compacto`, ausencia de `barra-lote`, orden composer < feed-timeline, y 3 aserciones estructurales con BeautifulSoup (ningún form anida otro, todos los checkboxes `task_ids` tienen `form="form-lote"`, `feed-agente` aparece 1 vez).
+
+**Reglas respetadas:**
+
+- Máximo 4 archivos modificados (más docs/plan.md como documentación).
+- CERO estilos inline, CERO emojis, CERO bloques `<style>` en plantillas.
+- No se tocó `models.py`, `urls.py` ni `forms.py`. La rama `{% if tarea %}` de `tareas.html` queda intacta.
+- `.venv\Scripts\python.exe` línea por línea, sin `&&`.
+- No se ejecutó `git push`.
+- Commit: "CMD-CHAT-02: Composer arriba, lote compacto en filtros, estadísticas en baldosas y forms sin anidar".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "tarea or feed" -q` → `31 passed`.
+- Select-String en `tareas.html` por `style="` → 0 coincidencias.
+- Select-String en `tareas.html` por `barra-lote` → 0 coincidencias.
+
+**Impacto en contratos/datos:** NO contratos de API, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones, NO modelos/urls/forms. Solo presentación + 2 conteos en contexto de vista. Retrocompatible.

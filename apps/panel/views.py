@@ -222,6 +222,10 @@ def lista_tareas(request):
         detectado_en__date=hoy,
         investigacion__modo_resultado='archivar',
     ).count()
+    fuentes_activas = InvestigacionProgramada.objects.filter(activa=True).count()
+    ejecuciones_hoy = RegistroEjecucionMonitoreo.objects.filter(
+        inicio__date=hoy
+    ).count()
     estado_filtro = request.GET.get('estado')
     tareas_qs = Tarea.objects.all().order_by('-id')
     if estado_filtro:
@@ -235,6 +239,8 @@ def lista_tareas(request):
         'total_hallazgos_hoy': total_hallazgos_hoy,
         'pendientes_aprobacion': pendientes_aprobacion,
         'archivados_hoy': archivados_hoy,
+        'fuentes_activas': fuentes_activas,
+        'ejecuciones_hoy': ejecuciones_hoy,
     })
 
 @login_required
