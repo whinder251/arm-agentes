@@ -84,29 +84,31 @@
 
     <div class="feed-agente">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icono-agente"><path d="M12 3l1.9 5.8L20 10l-5.8 1.9L12 18l-1.9-5.8L4 10l5.8-1.9L12 3z"/><path d="M19 15l.9 2.6L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.4L19 15z"/></svg>
-        He sincronizado tus fuentes. Hoy hay <strong>{{ total_hallazgos_hoy }}</strong> descubrimientos.
-        <strong>{{ pendientes_aprobacion }}</strong> requieren tu aprobación y
-        <strong>{{ archivados_hoy }}</strong> fueron archivados.
-        <div class="feed-stats">
-            <div class="stat-tile">
-                <span class="stat-numero">{{ total_hallazgos_hoy }}</span>
-                <span class="stat-etiqueta">Descubrimientos hoy</span>
-            </div>
-            <div class="stat-tile stat-tile--warning">
-                <span class="stat-numero">{{ pendientes_aprobacion }}</span>
-                <span class="stat-etiqueta">Pendientes</span>
-            </div>
-            <div class="stat-tile">
-                <span class="stat-numero">{{ archivados_hoy }}</span>
-                <span class="stat-etiqueta">Archivados</span>
-            </div>
-            <div class="stat-tile">
-                <span class="stat-numero">{{ fuentes_activas }}</span>
-                <span class="stat-etiqueta">Fuentes activas</span>
-            </div>
-            <div class="stat-tile">
-                <span class="stat-numero">{{ ejecuciones_hoy }}</span>
-                <span class="stat-etiqueta">Ejecuciones hoy</span>
+        <div class="feed-cuerpo">
+            <p class="feed-mensaje">He sincronizado tus fuentes. Hoy hay <strong>{{ total_hallazgos_hoy }}</strong> descubrimientos.
+            <strong>{{ pendientes_aprobacion }}</strong> requieren tu aprobación y
+            <strong>{{ archivados_hoy }}</strong> fueron archivados.</p>
+            <div class="feed-stats">
+                <div class="stat-tile">
+                    <span class="stat-numero">{{ total_hallazgos_hoy }}</span>
+                    <span class="stat-etiqueta">Descubrimientos hoy</span>
+                </div>
+                <div class="stat-tile stat-tile--warning">
+                    <span class="stat-numero">{{ pendientes_aprobacion }}</span>
+                    <span class="stat-etiqueta">Pendientes</span>
+                </div>
+                <div class="stat-tile">
+                    <span class="stat-numero">{{ archivados_hoy }}</span>
+                    <span class="stat-etiqueta">Archivados</span>
+                </div>
+                <div class="stat-tile">
+                    <span class="stat-numero">{{ fuentes_activas }}</span>
+                    <span class="stat-etiqueta">Fuentes activas</span>
+                </div>
+                <div class="stat-tile">
+                    <span class="stat-numero">{{ ejecuciones_hoy }}</span>
+                    <span class="stat-etiqueta">Ejecuciones hoy</span>
+                </div>
             </div>
         </div>
     </div>

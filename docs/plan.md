@@ -5525,4 +5525,35 @@ tle, radius md, padding md, margin-bottom lg) y `.icono-agente` (color accent-so
 - Select-String en `tareas.html` por `style="` → 0 coincidencias.
 - Select-String en `tareas.html` por `barra-lote` → 0 coincidencias.
 
-**Impacto en contratos/datos:** NO contratos de API, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones, NO modelos/urls/forms. Solo presentación + 2 conteos en contexto de vista. Retrocompatible.
+**Impacto en contratos/datos:** NO contratos de API, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones, NO modelos/urls/forms. Solo presentación + 2 conteos en contexto de vista. Retrocompatible.
+
+
+## Paso CMD-CHAT-03 - Mensaje del agente como párrafo único y .form-lote restaurado para Ejecuciones — COMPLETADO
+
+**Objetivo:** Corregir la fragmentación flex del mensaje del agente dentro de `.feed-agente` (texto suelto renderizado en columnas) y restaurar `.form-lote` en app.css porque `lista_ejecuciones.html` sigue usándolo.
+
+**Archivos tocados (3):**
+
+- `apps/panel/templates/panel/tareas.html`: dentro de `.feed-agente`, el svg `.icono-agente` queda como primer hijo; todo lo demás se envuelve en `<div class="feed-cuerpo">` con `<p class="feed-mensaje">` (texto narrativo completo con sus tres `<strong>`) y `<div class="feed-stats">` (cinco baldosas sin cambios internos). No se tocaron composer, fila-filtros, feed ni paginación.
+- `static/css/app.css`: `.feed-agente` ya tiene `align-items: flex-start`; añadido `.feed-cuerpo { flex: 1; min-width: 0; }` y `.feed-mensaje { margin: 0; }`; restauradas reglas `.form-lote` (display flex, gap, align-items center, margin-bottom, padding, background surface, border primary, radius md) y `.form-lote select` (min-width 200px).
+- `tests/test_panel.py`: en `test_lista_tareas_feed_conversacional` añado aserciones `feed-cuerpo` y `feed-mensaje`; con BeautifulSoup verifico que `.feed-agente` tiene exactamente 2 hijos elemento (svg + div) y que `.feed-stats` está dentro de `.feed-cuerpo`.
+- `docs/plan.md`: esta sección.
+
+**Reglas respetadas:**
+
+- Máximo 3 archivos modificados (más docs/plan.md como documentación).
+- CERO estilos inline, CERO emojis, CERO bloques `<style>` en plantillas.
+- No se tocó `views.py`, `models.py`, `urls.py`, `forms.py` ni `lista_ejecuciones.html`.
+- `.venv\Scripts\python.exe` línea por línea, sin `&&`.
+- No se ejecutó `git push`.
+- Commit: "CMD-CHAT-03: Mensaje del agente como párrafo único y .form-lote restaurado para Ejecuciones".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "tarea or feed" -q` → `31 passed`.
+- Select-String en `app.css` por `.form-lote {` → presente (línea 1585).
+- Select-String en `tareas.html` por `style="` → 0 coincidencias.
+
+**Impacto en contratos/datos:** NO contratos de API, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones, NO modelos/urls/forms. Solo presentación HTML/CSS. Retrocompatible.

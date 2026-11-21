@@ -1175,6 +1175,17 @@ class TestPanel(TestCase):
         for cb in checkboxes:
             assert cb.get('form') == 'form-lote', f"Checkbox sin form=form-lote: {cb}"
         assert content.count('feed-agente') == 1, "feed-agente debe aparecer una sola vez"
+        assert 'feed-cuerpo' in content
+        assert 'feed-mensaje' in content
+        # Estructura de feed-agente: svg + div.feed-cuerpo como únicos hijos elemento
+        feed = soup.select_one('.feed-agente')
+        assert feed is not None, "feed-agente no encontrado"
+        hijos_elemento = [c for c in feed.children if getattr(c, 'name', None)]
+        assert len(hijos_elemento) == 2, f"feed-agente debe tener exactamente 2 hijos elemento, tiene {len(hijos_elemento)}"
+        # feed-stats debe estar dentro de feed-cuerpo
+        feed_stats = soup.select_one('.feed-stats')
+        assert feed_stats is not None, "feed-stats no encontrado"
+        assert feed_stats.parent.get('class') and 'feed-cuerpo' in feed_stats.parent.get('class'), "feed-stats debe estar dentro de feed-cuerpo"
 
     def test_tarea_revision_renderiza_card_aprobacion(self):
         """Una tarea en estado revision renderiza su tarjeta de aprobación con URLs funcionales."""

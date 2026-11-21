@@ -1299,6 +1299,9 @@ td input[type="checkbox"] {
   margin-top: 2px;
 }
 
+.feed-cuerpo { flex: 1; min-width: 0; }
+.feed-mensaje { margin: 0; }
+
 .form-buscar {
   display: flex;
   gap: var(--space-sm);
@@ -1578,3 +1581,18 @@ td input[type="checkbox"] {
 .composer { display: flex; gap: var(--space-sm); margin-top: var(--space-lg); align-items: flex-end; flex-wrap: wrap; }
 .composer label { display: block; margin-bottom: var(--space-xs); font-size: var(--text-sm); font-weight: var(--font-weight-medium); color: var(--text-primary); }
 .composer .input { flex: 1; min-width: 0; }
+
+.form-lote {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+  margin-bottom: var(--space-md);
+  padding: var(--space-sm);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+}
+
+.form-lote select {
+  min-width: 200px;
+}
