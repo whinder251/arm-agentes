@@ -1,70 +1,195 @@
 {% extends "panel/base.html" %}
 
 {% block content %}
+<div class="pagina-crear">
+    <h2>Configuración del Sistema</h2>
+    <p class="help-text">Centro de mando para gestionar recursos, modelos, integraciones y el sistema operativo de ARM.</p>
 
-<h2>Configuraci&oacute;n</h2>
+    <div class="segmented" id="tabs-configuracion">
+        <button type="button" class="active" data-tab="ia">Recursos de IA</button>
+        <button type="button" data-tab="modelos">Modelos y Proveedores</button>
+        <button type="button" data-tab="integraciones">Integraciones</button>
+        <button type="button" data-tab="sistema">Sistema</button>
+    </div>
 
-<div class="barra-acciones">
-    <a class="btn-primary enlace-accion"
-       href="{% url 'crear_habilidad' %}">A&ntilde;adir Habilidad</a>
-    <a class="btn-primary enlace-accion"
-       href="{% url 'crear_agente' %}">A&ntilde;adir Agente</a>
-    <a class="btn-primary enlace-accion"
-       href="{% url 'crear_proveedor' %}">A&ntilde;adir Proveedor</a>
-    <a class="btn-primary enlace-accion"
-       href="{% url 'crear_modelo' %}">A&ntilde;adir Modelo</a>
+    <!-- Recursos de IA -->
+    <section id="tab-ia" class="card tab-panel">
+        <div class="barra-acciones">
+            <a class="btn btn-primary btn-sm" href="{% url 'crear_agente' %}">Crear Agente</a>
+            <a class="btn btn-primary btn-sm" href="{% url 'crear_habilidad' %}">Crear Habilidad</a>
+        </div>
+        <table class="tabla">
+            <thead>
+                <tr>
+                    <th>Recurso</th>
+                    <th>Descripción</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Agentes</strong></td>
+                    <td>Identidad y configuración del ejecutor.</td>
+                    <td>
+                        <a class="enlace-editar" href="{% url 'lista_agentes' %}">Listar</a>
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>Habilidades</strong></td>
+                    <td>Capacidades e instrucciones especializadas.</td>
+                    <td>
+                        <a class="enlace-editar" href="{% url 'lista_habilidades' %}">Listar</a>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- Modelos y Proveedores -->
+    <section id="tab-modelos" class="card tab-panel oculto">
+        <div class="barra-acciones">
+            <a class="btn btn-primary btn-sm" href="{% url 'crear_modelo' %}">Crear Modelo</a>
+            <a class="btn btn-primary btn-sm" href="{% url 'crear_proveedor' %}">Crear Proveedor</a>
+        </div>
+        <table class="tabla">
+            <thead>
+                <tr>
+                    <th>Recurso</th>
+                    <th>Descripción</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Modelos LLM</strong></td>
+                    <td>Conexión y características del servicio de IA.</td>
+                    <td>
+                        <a class="enlace-editar" href="{% url 'lista_modelos' %}">Listar</a>
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>Proveedores</strong></td>
+                    <td>Configuración de proveedores de IA.</td>
+                    <td>
+                        <a class="enlace-editar" href="{% url 'lista_proveedores' %}">Listar</a>
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>Formatos de salida</strong></td>
+                    <td>Esquemas y versiones de formato estructurado.</td>
+                    <td>
+                        <a class="enlace-editar" href="{% url 'lista_formatos' %}">Listar</a>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- Integraciones -->
+    <section id="tab-integraciones" class="card tab-panel oculto">
+        <div class="barra-acciones">
+            <a class="btn btn-primary btn-sm" href="{% url 'crear_herramienta' %}">Crear Herramienta</a>
+            <a class="btn btn-primary btn-sm" href="{% url 'crear_credencial' %}">Crear Credencial</a>
+            <a class="btn btn-primary btn-sm" href="{% url 'integraciones' %}">API y Webhooks</a>
+        </div>
+        <table class="tabla">
+            <thead>
+                <tr>
+                    <th>Recurso</th>
+                    <th>Descripción</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Herramientas</strong></td>
+                    <td>Acciones externas con permisos y validación.</td>
+                    <td>
+                        <a class="enlace-editar" href="{% url 'lista_herramientas' %}">Listar</a>
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>Credenciales</strong></td>
+                    <td>Secretos cifrados vinculados a herramientas.</td>
+                    <td>
+                        <a class="enlace-editar" href="{% url 'lista_credenciales' %}">Listar</a>
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>Destinos</strong></td>
+                    <td>Destinos de publicación (WordPress, API).</td>
+                    <td>
+                        <a class="enlace-editar" href="{% url 'integraciones' %}">Listar</a>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- Sistema -->
+    <section id="tab-sistema" class="card tab-panel oculto">
+        <div class="barra-acciones">
+            <a class="btn btn-primary btn-sm" href="{% url 'crear_workflow' %}">Crear Workflow</a>
+            <a class="btn btn-primary btn-sm" href="{% url 'crear_equipo' %}">Crear Equipo</a>
+        </div>
+        <table class="tabla">
+            <thead>
+                <tr>
+                    <th>Recurso</th>
+                    <th>Descripción</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Workflows</strong></td>
+                    <td>Definición ordenada de pasos de ejecución.</td>
+                    <td>
+                        <a class="enlace-editar" href="{% url 'lista_workflows' %}">Listar</a>
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>Equipos</strong></td>
+                    <td>Grupos de agentes asociados a workflows.</td>
+                    <td>
+                        <a class="enlace-editar" href="{% url 'lista_equipos' %}">Listar</a>
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>Ejecuciones</strong></td>
+                    <td>Evidencia persistida de ejecuciones de IA.</td>
+                    <td>
+                        <a class="enlace-editar" href="{% url 'lista_ejecuciones' %}">Listar</a>
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>Dashboard</strong></td>
+                    <td>Resumen de actividad y consumo del sistema.</td>
+                    <td>
+                        <a class="enlace-editar" href="{% url 'dashboard' %}">Ver</a>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
 </div>
-
-{% if mostrar_form_habilidad %}
-<div class="form-seccion">
-    <h4>Nueva habilidad</h4>
-    <form method="post" action="{% url 'crear_habilidad' %}">
-        {% csrf_token %}
-        {{ form_habilidad.as_p }}
-        <button type="submit" class="btn-primary">Guardar habilidad</button>
-        <a class="btn-secondary enlace-accion"
-           href="{% url 'configuracion' %}">Cancelar</a>
-    </form>
-</div>
-{% endif %}
-
-{% if mostrar_form_proveedor %}
-<div class="form-seccion">
-    <h4>Nuevo proveedor</h4>
-    <form method="post" action="{% url 'crear_proveedor' %}">
-        {% csrf_token %}
-        {{ form_proveedor.as_p }}
-        <button type="submit" class="btn-primary">Guardar proveedor</button>
-        <button type="button" class="btn-secondary"
-                onclick="toggleForm('form-proveedor')">Cancelar</button>
-    </form>
-</div>
-{% endif %}
-
-{% if mostrar_form_modelo %}
-<div class="form-seccion">
-    <h4>Nuevo modelo</h4>
-    <form method="post" action="{% url 'crear_modelo' %}">
-        {% csrf_token %}
-        {{ form_modelo.as_p }}
-        <button type="submit" class="btn-primary">Guardar modelo</button>
-        <button type="button" class="btn-secondary"
-                onclick="toggleForm('form-modelo')">Cancelar</button>
-    </form>
-</div>
-{% endif %}
 
 <script>
-    function toggleForm(id) {
-        var el = document.getElementById(id);
-        if (!el) return;
-        if (el.classList.contains('form-oculto')) {
-            el.classList.remove('form-oculto');
-            el.style.display = 'block';
-        } else {
-            el.classList.add('form-oculto');
-            el.style.display = 'none';
-        }
-    }
+document.addEventListener('DOMContentLoaded', function() {
+    var btns = document.querySelectorAll('#tabs-configuracion button');
+    var panels = document.querySelectorAll('.tab-panel');
+
+    btns.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var tab = btn.getAttribute('data-tab');
+
+            btns.forEach(function(b) { b.classList.remove('active'); });
+            panels.forEach(function(p) { p.classList.add('oculto'); });
+
+            btn.classList.add('active');
+            document.getElementById('tab-' + tab).classList.remove('oculto');
+        });
+    });
+});
 </script>
 {% endblock %}

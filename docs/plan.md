@@ -4990,4 +4990,36 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 - Búsqueda de `style="` en los 3 templates → 0 coincidencias en cada uno.
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "investigacion or agente or herramienta" -q` → `26 passed`.
 
-**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (HTML/CSS). Retrocompatible: las clases sobrescritas mantienen su semántica; las vistas existentes siguen funcionando.
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (HTML/CSS). Retrocompatible: las clases sobrescritas mantienen su semántica; las vistas existentes siguen funcionando.
+
+
+## Paso NAV-RESTRUCTURE-02 - Sidebar minimalista y Configuración tabulada densa — COMPLETADO
+
+**Objetivo:** Reducir el sidebar primario a 4 elementos (Centro de Mando, Monitoreo, Biblioteca, Configuración) y transformar la vista "Configuración" en un hub central con pestañas horizontales que agrupen: Recursos de IA, Modelos y Proveedores, Integraciones y Sistema, evitando la navegación por 10 páginas separadas.
+
+**Archivos tocados (4):**
+
+- `apps/panel/templates/panel/base.html`: eliminado el bloque `<details>` completo con sus 11 enlaces secundarios. Dejó exactamente 4 enlaces principales: Centro de Mando (lista_tareas), Monitoreo (lista_investigaciones), Biblioteca (biblioteca), Configuración (configuracion). Cada uno con icono SVG inline (20x20, stroke="currentColor") y clase `.activo` condicional.
+- `apps/panel/templates/panel/configuracion.html`: reescrito como hub con pestañas horizontales usando `.segmented` de app.css y `.oculto` para mostrar/ocultar contenido. 4 secciones: Recursos de IA (Agentes, Habilidades), Modelos y Proveedores (Modelos LLM, Proveedores, Formatos de salida), Integraciones (Herramientas, Credenciales, API y Webhooks), Sistema (Workflows, Equipos, Ejecuciones, Dashboard). Cada sección es una `.card` con tabla compacta (`.tabla`) y botones "Crear nuevo" (`.btn.btn-primary.btn-sm`) dentro de la misma sección. CERO estilos inline.
+- `apps/panel/urls.py`: sin cambios (la ruta `configuracion/` ya existía apuntando a `views.configuracion`).
+- `tests/test_panel.py`: actualizado `test_sidebar_enlaza_configuracion` para verificar solo los 4 enlaces principales y que NO existen enlaces secundarios (lista_workflows, lista_agentes, lista_proveedores, lista_modelos, etc.). Actualizado `test_sidebar_contiene_workflows_y_equipos` para verificar que Workflows y Equipos NO están en el sidebar. Actualizado `test_configuracion_form_oculto` para buscar `oculto` en vez de `form-oculto`. Añadida prueba `test_configuracion_render_secciones_agrupadas` que verifica las 4 pestañas, botones de crear y tablas compactas.
+
+**Reglas respetadas:**
+
+- Máximo 4 archivos modificados (más `docs/plan.md` como documentación exigida).
+- CERO estilos inline nuevos, CERO emojis, CERO bloques `<style>` en plantillas.
+- No se modificó `views.py`, `models.py`, `forms.py`.
+- Usó exclusivamente clases de `app.css` (`.segmented`, `.tabla`, `.card`, `.btn-primary`, `.btn-sm`, `.oculto`).
+- `.venv\Scripts\python.exe` línea por línea, sin `&&`.
+- No se ejecutó `git push`.
+- Commit: "NAV-RESTRUCTURE-02: Sidebar minimalista y Configuración tabulada densa".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- Select-String en base.html por 'lista_workflows|lista_agentes|lista_modelos' → 0 coincidencias.
+- Select-String en base.html y configuracion.html por 'style="' → 0 coincidencias.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "sidebar or configuracion" -q` → `6 passed`.
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (HTML/CSS). Retrocompatible: las vistas de listado/creación originales siguen accesibles por sus URLs independientes; el hub de Configuración es un punto de entrada visual adicional.

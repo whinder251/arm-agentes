@@ -149,13 +149,45 @@ class TestPanel(TestCase):
         assert 'Biblioteca' in content
         assert f'href="{reverse("biblioteca")}"' in content
         assert 'Configuración' in content
-        # Enlaces secundarios reubicados dentro del menú Configuración (details)
-        assert f'href="{reverse("lista_proveedores")}"' in content
-        assert f'href="{reverse("lista_modelos")}"' in content
-        assert f'href="{reverse("configuracion")}"' in content
-        assert 'Proveedores' in content
-        assert 'Modelos' in content
+        # El sidebar tiene exactamente 4 enlaces principales + Logout
+        assert content.count('<a href="') == 4
+        # Enlaces secundarios eliminados del sidebar (ahora en Configuración tabulada)
+        assert f'href="{reverse("lista_proveedores")}"' not in content
+        assert f'href="{reverse("lista_modelos")}"' not in content
+        assert f'href="{reverse("lista_workflows")}"' not in content
+        assert f'href="{reverse("lista_agentes")}"' not in content
+        assert f'href="{reverse("lista_ejecuciones")}"' not in content
+        assert f'href="{reverse("lista_habilidades")}"' not in content
+        assert f'href="{reverse("lista_credenciales")}"' not in content
+        assert 'Proveedores' not in content
+        assert 'Modelos' not in content
         assert 'Modelos y proveedores' not in content
+        assert 'Workflows' not in content
+        assert 'Agentes' not in content
+
+    def test_configuracion_render_secciones_agrupadas(self):
+        self.client.login(username='testuser', password='testpass123')
+        response = self.client.get(reverse('configuracion'))
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        # Pestañas horizontales (.segmented)
+        assert 'Recursos de IA' in content
+        assert 'Modelos y Proveedores' in content
+        assert 'Integraciones' in content
+        assert 'Sistema' in content
+        # Botones de crear dentro de cada sección
+        assert 'Crear Agente' in content
+        assert 'Crear Habilidad' in content
+        assert 'Crear Modelo' in content
+        assert 'Crear Proveedor' in content
+        assert 'Crear Herramienta' in content
+        assert 'Crear Credencial' in content
+        assert 'Crear Workflow' in content
+        assert 'Crear Equipo' in content
+        # Tablas compactas en cada sección
+        assert 'class="tabla"' in content
+        # 4 secciones renderizadas (1 visible + 3 ocultas con .oculto)
+        assert content.count('id="tab-') == 4
 
     def test_sidebar_activo_y_tokens_linear_nod(self):
         self.client.login(username='testuser', password='testpass123')
@@ -734,11 +766,11 @@ class TestPanel(TestCase):
         self.client.login(username='testuser', password='testpass123')
         response = self.client.get(reverse('lista_tareas'))
         content = response.content.decode('utf-8')
-        # Workflows y Equipos se reubicaron al menú secundario (details)
-        assert f'href="{reverse("lista_workflows")}"' in content
-        assert f'href="{reverse("lista_equipos")}"' in content
-        assert 'Workflows' in content
-        assert 'Equipos' in content
+        # Workflows y Equipos se movieron a la sección Sistema de Configuración
+        assert f'href="{reverse("lista_workflows")}"' not in content
+        assert f'href="{reverse("lista_equipos")}"' not in content
+        assert 'Workflows' not in content
+        assert 'Equipos' not in content
         # Los 4 items principales del navbar Centro de Mando siguen presentes
         assert 'Centro de Mando' in content
         assert 'Monitoreo' in content
@@ -791,7 +823,7 @@ class TestPanel(TestCase):
         response = self.client.get(reverse('configuracion'))
         assert response.status_code == 200
         content = response.content.decode('utf-8')
-        assert 'form-oculto' in content
+        assert 'oculto' in content
 
     def test_lista_proveedores_render(self):
         self.client.login(username='testuser', password='testpass123')

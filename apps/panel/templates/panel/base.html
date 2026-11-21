@@ -18,21 +18,7 @@
                 <a href="{% url 'lista_tareas' %}" {% if request.resolver_match.url_name == 'lista_tareas' %}class="activo"{% endif %}><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="20" y2="20"/><path d="M20 4H16a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4"/></svg> Centro de Mando</a>
                 <a href="{% url 'lista_investigaciones' %}" {% if request.resolver_match.url_name in 'lista_investigaciones,crear_investigacion,ejecutar_investigacion_ahora,detalle_investigacion,editar_investigacion,eliminar_investigacion' %}class="activo"{% endif %}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4"/><path d="M12 16V8"/></svg> Monitoreo</a>
                 <a href="{% url 'biblioteca' %}" {% if request.resolver_match.url_name == 'biblioteca' %}class="activo"{% endif %}><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/></svg> Biblioteca</a>
-                <details>
-                    <summary class="seccion">Configuración</summary>
-                    <a href="{% url 'configuracion' %}" {% if request.resolver_match.url_name == 'configuracion' %}class="activo"{% endif %}>Configuración</a>
-                    <a href="{% url 'dashboard' %}" {% if request.resolver_match.url_name == 'dashboard' %}class="activo"{% endif %}>Dashboard</a>
-                    <a href="{% url 'lista_workflows' %}" {% if request.resolver_match.url_name == 'lista_workflows' %}class="activo"{% endif %}>Workflows</a>
-                    <a href="{% url 'lista_equipos' %}" {% if request.resolver_match.url_name == 'lista_equipos' %}class="activo"{% endif %}>Equipos</a>
-                    <a href="{% url 'lista_ejecuciones' %}" {% if request.resolver_match.url_name == 'lista_ejecuciones' %}class="activo"{% endif %}>Ejecuciones</a>
-                    <a href="{% url 'lista_agentes' %}" {% if request.resolver_match.url_name == 'lista_agentes' %}class="activo"{% endif %}>Agentes</a>
-                    <a href="{% url 'lista_habilidades' %}" {% if request.resolver_match.url_name == 'lista_habilidades' %}class="activo"{% endif %}>Habilidades</a>
-                    <a href="{% url 'lista_proveedores' %}" {% if request.resolver_match.url_name == 'lista_proveedores' %}class="activo"{% endif %}>Proveedores</a>
-                    <a href="{% url 'lista_modelos' %}" {% if request.resolver_match.url_name == 'lista_modelos' %}class="activo"{% endif %}>Modelos</a>
-                    <a href="{% url 'lista_formatos' %}" {% if request.resolver_match.url_name == 'lista_formatos' %}class="activo"{% endif %}>Formatos</a>
-                    <a href="{% url 'lista_herramientas' %}" {% if request.resolver_match.url_name == 'lista_herramientas' %}class="activo"{% endif %}>Herramientas</a>
-                    <a href="{% url 'lista_credenciales' %}" {% if request.resolver_match.url_name == 'lista_credenciales' %}class="activo"{% endif %}>Credenciales y API</a>
-                </details>
+                <a href="{% url 'configuracion' %}" {% if request.resolver_match.url_name == 'configuracion' %}class="activo"{% endif %}><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/></svg> Configuración</a>
             </nav>
         </div>
         <div>
