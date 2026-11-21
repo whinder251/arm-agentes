@@ -5023,6 +5023,32 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 **Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (HTML/CSS). Retrocompatible: la vista y la URL se mantienen; solo cambia el renderizado de título, URL y fecha en el template.
 
 
+## Paso INTEGRATIONS-ICONS-01 - Actualizar paths SVG a iconos oficiales de marca — COMPLETADO
+
+**Objetivo:** Reemplazar los paths SVG genéricos en el diccionario `tools_status` de la vista `integraciones` por los paths oficiales y simplificados de cada marca (estilo Simple Icons, viewBox="0 0 24 24"), usando `fill="currentColor"` o `stroke="currentColor"` para mantener la coherencia visual con el sistema.
+
+**Archivos tocados (1):**
+
+- `apps/panel/views.py`: actualizada la clave "icono" en cada diccionario de `tools_status` con paths SVG limpios para Tavily, DuckDuckGo, Google News, WordPress, Webhooks y API del Sistema. Los atributos `stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"` se mantienen en el `<svg>` padre del template; solo se reemplazó el contenido del `<path>`.
+
+**Reglas respetadas:**
+
+- Máximo 1 archivo modificado (más docs/plan.md como documentación).
+- No se modificó HTML, CSS, tests ni la lógica de negocio. Solo el diccionario de datos en views.py.
+- CERO estilos inline, CERO emojis.
+- `.venv\Scripts\python.exe` línea por línea, sin `&&`.
+- No se ejecutó `git push`.
+- Commit: "INTEGRATIONS-ICONS-01: Actualizar paths SVG a iconos oficiales de marca".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "integraciones" -q` → `3 passed`.
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (SVG en contexto de vista). Retrocompatible: la URL y la vista se mantienen; solo cambian los iconos renderizados.
+
+
 ## Paso NAV-RESTRUCTURE-02 - Sidebar minimalista y Configuración tabulada densa — COMPLETADO
 
 **Objetivo:** Reducir el sidebar primario a 4 elementos (Centro de Mando, Monitoreo, Biblioteca, Configuración) y transformar la vista "Configuración" en un hub central con pestañas horizontales que agrupen: Recursos de IA, Modelos y Proveedores, Integraciones y Sistema, evitando la navegación por 10 páginas separadas.
@@ -5149,4 +5175,30 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 - Select-String en biblioteca.html por 'style="' → 0 coincidencias.
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "biblioteca" -q` → `2 passed`.
 
-**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (HTML/CSS). Retrocompatible: la vista y la URL se mantienen; solo cambia el renderizado de título, URL y fecha en el template.
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (HTML/CSS). Retrocompatible: la vista y la URL se mantienen; solo cambia el renderizado de título, URL y fecha en el template.
+
+
+## Paso INTEGRATIONS-ICONS-01 - Actualizar paths SVG a iconos oficiales de marca — COMPLETADO
+
+**Objetivo:** Reemplazar los paths SVG genéricos en el diccionario `tools_status` de la vista `integraciones` por los paths oficiales y simplificados de cada marca (estilo Simple Icons, viewBox="0 0 24 24"), usando `fill="currentColor"` o `stroke="currentColor"` para mantener la coherencia visual con el sistema.
+
+**Archivos tocados (1):**
+
+- `apps/panel/views.py`: actualizada la clave "icono" en cada diccionario de `tools_status` con paths SVG limpios para Tavily, DuckDuckGo, Google News, WordPress, Webhooks y API del Sistema. Los atributos `stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"` se mantienen en el `<svg>` padre del template; solo se reemplazó el contenido del `<path>`.
+
+**Reglas respetadas:**
+
+- Máximo 1 archivo modificado (más docs/plan.md como documentación).
+- No se modificó HTML, CSS, tests ni la lógica de negocio. Solo el diccionario de datos en views.py.
+- CERO estilos inline, CERO emojis.
+- `.venv\Scripts\python.exe` línea por línea, sin `&&`.
+- No se ejecutó `git push`.
+- Commit: "INTEGRATIONS-ICONS-01: Actualizar paths SVG a iconos oficiales de marca".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "integraciones" -q` → `3 passed`.
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (SVG en contexto de vista). Retrocompatible: la URL y la vista se mantienen; solo cambian los iconos renderizados.

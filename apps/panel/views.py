@@ -1415,7 +1415,7 @@ def integraciones(request):
             "nombre": "Tavily",
             "slug": "tavily-search",
             "descripcion": "Búsqueda web avanzada con IA para descubrir contenido de la competencia.",
-            "icono": '<path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>',
+            "icono": '<path d="M21 21l-4.35-4.35M19 11a8 8 0 1 1-16 0 8 8 0 0 1 16 0z"/>',
             "url": "lista_herramientas",
             "estado": (
                 "conectado"
@@ -1428,7 +1428,7 @@ def integraciones(request):
             "nombre": "DuckDuckGo",
             "slug": "duckduckgo-search",
             "descripcion": "Búsqueda web privada y gratuita para rastrear fuentes de información.",
-            "icono": '<path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>',
+            "icono": '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
             "url": "lista_herramientas",
             "estado": (
                 "conectado"
@@ -1441,7 +1441,7 @@ def integraciones(request):
             "nombre": "Google News",
             "slug": "google-news",
             "descripcion": "Rastreo de actualidad mediante feeds de Google News RSS.",
-            "icono": '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>',
+            "icono": '<path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h8M8 16h5"/>',
             "url": "lista_herramientas",
             "estado": (
                 "conectado"
@@ -1454,7 +1454,7 @@ def integraciones(request):
             "nombre": "WordPress",
             "slug": "wordpress",
             "descripcion": "Publicación de artefactos en sitios WordPress mediante REST API.",
-            "icono": '<path d="M11 2H4v20h16V2H11z"/>',
+            "icono": '<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1.5 14.5L7 8h2.5l2 6 2-6H16l-3.5 8.5h-2z" fill="currentColor"/>',
             "url": "integraciones",
             "estado": "conectado" if wordpress_activo else "pendiente",
         },
@@ -1462,7 +1462,7 @@ def integraciones(request):
             "nombre": "Webhooks",
             "slug": "webhooks",
             "descripcion": "Endpoints HTTP para recibir eventos de servicios externos.",
-            "icono": '<path d="M4 8V4m0 0h4M4 4l4 4m4-4-4 4M4 12h4m4 4h4m-4-4v4m0 0l4-4m-4 4-4-4"/>',
+            "icono": '<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>',
             "url": "integraciones",
             "estado": "conectado" if webhook_activo else "pendiente",
         },
@@ -1470,7 +1470,7 @@ def integraciones(request):
             "nombre": "API del Sistema",
             "slug": "arm-api",
             "descripcion": "Clave de autenticación para consumir la API REST de ARM desde sistemas externos.",
-            "icono": '<path d="M9 12l2 2 4-4 M6 2a9 9 0 1118 18a9 9 0 01-18-18"/>',
+            "icono": '<path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>',
             "url": "integraciones",
             "estado": "conectado" if api_activa else "pendiente",
         },
