@@ -1287,3 +1287,10 @@ td input[type="checkbox"] {
   height: auto;
   padding: var(--space-md) var(--space-lg);
 }
+
+.grid-integraciones {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-md);
+  margin-top: var(--space-lg);
+}

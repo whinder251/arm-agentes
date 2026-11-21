@@ -3,7 +3,7 @@
 {% block content %}
 <div class="page-header">
     <h1>Integraciones del Sistema</h1>
-    <p class="subtitulo">Credenciales de conexión con servicios externos.</p>
+    <p class="subtexto">Conecta ARM con servicios externos para buscar, publicar y monitorear contenido.</p>
 </div>
 
 {% if nueva_clave_arm %}
@@ -16,189 +16,28 @@
 </div>
 {% endif %}
 
-<div class="tarjeta">
-    <h3>Integraciones configuradas</h3>
-    {% if integraciones %}
-    <table class="tabla">
-        <thead>
-            <tr>
-                <th>Nombre</th>
-                <th>Tipo</th>
-                <th>Estado</th>
-                <th>Actualizado</th>
-                <th class="acciones">Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for integracion in integraciones %}
-            <tr>
-                <td>{{ integracion.nombre }}</td>
-                <td>{{ integracion.get_tipo_display }}</td>
-                <td>
-                    {% if integracion.activa %}
-                        <span class="badge badge-success">Activa</span>
-                    {% else %}
-                        <span class="badge badge-error">Inactiva</span>
-                    {% endif %}
-                </td>
-                <td class="fecha">{{ integracion.actualizado_en|date:"d/m/Y H:i" }}</td>
-                <td class="acciones">
-                    {% if integracion.tipo == 'arm_api' %}
-                    <form method="post" action="{% url 'integraciones' %}" class="form-eliminar">
-                        {% csrf_token %}
-                        <button type="submit" name="rotar_arm_api" value="1" class="btn-danger">Rotar Clave API</button>
-                    </form>
-                    {% else %}
-                        —
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <p class="vacio">No hay integraciones configuradas.</p>
-    {% endif %}
-</div>
-
-<div class="tarjeta">
-    <h3>Conexiones de Publicación</h3>
-    <p class="subtexto">Destinos donde se pueden publicar los artefactos (WordPress u otras APIs). Independiente de los proveedores de IA.</p>
-
-    {% if destinos %}
-    <table class="tabla">
-        <thead>
-            <tr>
-                <th>Nombre</th>
-                <th>Tipo</th>
-                <th>URL</th>
-                <th>Estado</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for destino in destinos %}
-            <tr>
-                <td>{{ destino.nombre }}</td>
-                <td>{{ destino.get_tipo_display }}</td>
-                <td class="fecha">{{ destino.url }}</td>
-                <td>
-                    {% if destino.activa %}
-                        <span class="badge badge-success">Activa</span>
-                    {% else %}
-                        <span class="badge badge-error">Inactiva</span>
-                    {% endif %}
-                </td>
-                <td class="acciones">
-                    <a href="{% url 'editar_destino' destino.pk %}" class="enlace-editar">Editar</a>
-                    <form method="post" action="{% url 'eliminar_destino' destino.pk %}" class="form-eliminar" onsubmit="return confirm('¿Estás seguro de que quieres eliminar este destino?');">
-                        {% csrf_token %}
-                        <button type="submit" class="btn-danger-sm">Eliminar</button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <p class="vacio">No hay destinos de publicación configurados.</p>
-    {% endif %}
-
-    <div class="barra-acciones">
-        <button type="button" class="btn-primary" id="btn-anadir-destino" onclick="toggleFormDestino()">Añadir Conexión</button>
-    </div>
-
-    <div class="form-seccion form-oculto" id="form-anadir-destino">
-        <form method="post" action="{% url 'integraciones' %}">
-            {% csrf_token %}
-            <input type="hidden" name="crear_destino" value="1">
-            <div class="form-group">
-                {{ form_destino.nombre.label_tag }} {{ form_destino.nombre }}
-            </div>
-            <div class="form-group">
-                {{ form_destino.tipo.label_tag }} {{ form_destino.tipo }}
-            </div>
-            <div class="form-group">
-                {{ form_destino.url.label_tag }} {{ form_destino.url }}
-            </div>
-            <div class="form-group">
-                {{ form_destino.usuario.label_tag }} {{ form_destino.usuario }}
-            </div>
-            <div class="form-group">
-                {{ form_destino.credenciales.label_tag }} {{ form_destino.credenciales }}
-            </div>
-            <div class="form-group">
-                {{ form_destino.activa.label_tag }} {{ form_destino.activa }}
-            </div>
-            {% if form_destino.errors %}
-            <div class="alerta-error">
-                {{ form_destino.errors }}
-            </div>
+<div class="grid-integraciones">
+    {% for tool in tools_status %}
+    <div class="card">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            {{ tool.icono|safe }}
+        </svg>
+        <h3>{{ tool.nombre }}</h3>
+        <p class="help-text">{{ tool.descripcion }}</p>
+        <div>
+            {% if tool.estado == 'conectado' %}
+                <span class="badge badge-success">Conectado</span>
+            {% else %}
+                <span class="badge badge-neutral">Pendiente</span>
             {% endif %}
-            <div class="acciones-formulario">
-                <button type="submit" class="btn-primary">Guardar destino</button>
-                <button type="button" class="btn-secondary" onclick="toggleFormDestino()">Cancelar</button>
-            </div>
-        </form>
+            <a href="{% url tool.url %}" class="btn btn-secondary btn-sm">Configurar</a>
+        </div>
     </div>
-
-    {% if destino_editar %}
-    <div class="tarjeta">
-        <h3>Editar destino: {{ destino_editar.nombre }}</h3>
-        <form method="post">
-            {% csrf_token %}
-            <div class="form-group">
-                {{ form_destino.nombre.label_tag }} {{ form_destino.nombre }}
-            </div>
-            <div class="form-group">
-                {{ form_destino.tipo.label_tag }} {{ form_destino.tipo }}
-            </div>
-            <div class="form-group">
-                {{ form_destino.url.label_tag }} {{ form_destino.url }}
-            </div>
-            <div class="form-group">
-                {{ form_destino.usuario.label_tag }} {{ form_destino.usuario }}
-            </div>
-            <div class="form-group">
-                {{ form_destino.activa.label_tag }} {{ form_destino.activa }}
-            </div>
-            <div class="form-group">
-                {{ form_destino.credenciales.label_tag }} {{ form_destino.credenciales }}
-                <p class="ayuda">Las credenciales están enmascaradas por seguridad. Marca "Cambiar credenciales" para ingresar unas nuevas.</p>
-            </div>
-            <div class="form-group">
-                <label>
-                    <input type="checkbox" name="cambiar_credenciales" id="id_cambiar_credenciales">
-                    Cambiar credenciales
-                </label>
-            </div>
-            <div class="form-group form-oculto" id="nueva_credenciales_group">
-                <label for="id_nueva_credenciales">Nueva credencial</label>
-                <textarea id="id_nueva_credenciales" name="nueva_credenciales" class="input" rows="3"></textarea>
-            </div>
-            <div class="acciones-formulario">
-                <button type="submit" class="btn-primary">Guardar cambios</button>
-                <a href="{% url 'integraciones' %}" class="btn-secondary">Cancelar</a>
-            </div>
-        </form>
+    {% empty %}
+    <div class="card">
+        <p class="vacio">No se pudieron cargar las integraciones.</p>
     </div>
-
-    <script>
-    (function() {
-        var checkbox = document.getElementById('id_cambiar_credenciales');
-        var group = document.getElementById('nueva_credenciales_group');
-        if (!checkbox || !group) return;
-        function actualizar() {
-            if (checkbox.checked) {
-                group.classList.remove('form-oculto');
-            } else {
-                group.classList.add('form-oculto');
-            }
-        }
-        checkbox.addEventListener('change', actualizar);
-        actualizar();
-    })();
-    </script>
-    {% endif %}
+    {% endfor %}
 </div>
 
 <script>
@@ -209,19 +48,6 @@ function copiarClave(btn) {
         btn.textContent = "Copiado";
         setTimeout(function() { btn.textContent = textoOriginal; }, 1500);
     });
-}
-
-function toggleFormDestino() {
-    var el = document.getElementById('form-anadir-destino');
-    var btn = document.getElementById('btn-anadir-destino');
-    if (!el) return;
-    if (el.classList.contains('form-oculto')) {
-        el.classList.remove('form-oculto');
-        btn.textContent = "Ocultar formulario";
-    } else {
-        el.classList.add('form-oculto');
-        btn.textContent = "Añadir Conexión";
-    }
 }
 </script>
 {% endblock %}

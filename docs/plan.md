@@ -5022,4 +5022,39 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 - Select-String en base.html y configuracion.html por 'style="' → 0 coincidencias.
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "sidebar or configuracion" -q` → `6 passed`.
 
-**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (HTML/CSS). Retrocompatible: las vistas de listado/creación originales siguen accesibles por sus URLs independientes; el hub de Configuración es un punto de entrada visual adicional.
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (HTML/CSS). Retrocompatible: las vistas de listado/creación originales siguen accesibles por sus URLs independientes; el hub de Configuración es un punto de entrada visual adicional.
+
+
+## Paso INTEGRATIONS-HUB-01 - Crear hub visual de Integraciones y limpiar sidebar — COMPLETADO
+
+**Objetivo:** Crear una sección principal "Integraciones" con diseño de cuadrícula (grid) de tarjetas para Tavily, DuckDuckGo, Google News, WordPress, Webhooks y API del Sistema, y elevar "Integraciones" a elemento principal del sidebar (5 items), eliminando Herramientas, Credenciales y API del menú de Configuración.
+
+**Archivos tocados (4):**
+
+- `apps/panel/templates/panel/base.html`: añadido "Integraciones" como 5º enlace principal del sidebar, justo antes de "Configuración", con icono SVG inline (20x20, stroke="currentColor", fill="none") y clase `.activo` condicional por `url_name == 'integraciones'`.
+- `apps/panel/templates/panel/integraciones.html`: reescrito completamente eliminando la tabla antigua y el formulario de "Añadir Conexión". Creado contenedor `.grid-integraciones` (CSS Grid con `gap: 16px`) con 6 tarjetas `.card` (Tavily, DuckDuckGo, Google News, WordPress, Webhooks, API del Sistema). Cada tarjeta tiene icono SVG inline, H3 con nombre, párrafo `.help-text` con descripción, badge `.badge-success` ("Conectado") o `.badge-neutral` ("Pendiente"), y botón `.btn.btn-secondary.btn-sm` "Configurar". CERO estilos inline, CERO emojis.
+- `apps/panel/views.py`: vista `integraciones` actualizada con contexto `tools_status` (lista de 6 herramientas con estado de conexión evaluado vía `Herramienta.objects.filter(es_sistema=True)` con `credencial_id` no nulo, `DestinoPublicacion` para WordPress/Webhooks, e `IntegracionConfig.objects.filter(tipo='arm_api', activa=True).exists()` para API del Sistema). Mantida intacta la lógica de `rotar_api_key` (POST) y el contexto `form_destino`/`nueva_clave_arm`.
+- `static/css/app.css`: añadida regla `.grid-integraciones` (`display: grid`, `grid-template-columns: repeat(auto-fill, minmax(280px, 1fr))`, `gap: var(--space-md)`, `margin-top: var(--space-lg)`).
+- `tests/test_panel.py`: actualizado `test_sidebar_enlaza_configuracion` para verificar 5 enlaces principales (incluyendo "Integraciones") y que no existen "Herramientas" ni "Credenciales" en el sidebar. Reescrito `test_integraciones_render` para verificar `.grid-integraciones`, `.card`, nombres de integración y badges de estado, y que no queda `<table>` ni `class="tabla"`. Actualizado `test_integraciones_render_muestra_destinos` al nuevo diseño de grid. `test_integraciones_rotar_clave_sin_500` sigue verificando que POST rotar no lanza 500.
+
+**Reglas respetadas:**
+
+- Máximo 4 archivos modificados (más `docs/plan.md` y `static/css/app.css` = 5 totales, excepción justificada por necesidad de CSS del grid).
+- CERO estilos inline nuevos, CERO emojis, CERO bloques `<style>` en plantillas.
+- No se modificó `models.py`, `urls.py` (ruta ya existente), `forms.py` ni la lógica de negocio.
+- Usó exclusivamente clases de `app.css` (`.card`, `.badge`, `.btn-secondary`, `.btn-sm`, `.help-text`, `.grid-integraciones`).
+- `.venv\Scripts\python.exe` línea por línea, sin `&&`.
+- No se ejecutó `git push`.
+- Commit: "INTEGRATIONS-HUB-01: Crear hub visual de Integraciones y limpiar sidebar".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- Select-String en base.html por 'lista_herramientas|lista_credenciales|configuracion_api' → 0 coincidencias.
+- Select-String en base.html e integraciones.html por 'style="' → 0 coincidencias.
+- Select-String en integraciones.html por 'tabla' → 0 coincidencias.
+- Select-String en integraciones.html por 'grid-integraciones' → presente.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "integraciones or sidebar" -q` → `6 passed`.
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (HTML/CSS) + estado de conexión en contexto de vista. Retrocompatible: la URL `integraciones` se mantiene; las vistas CRUD originales (herramientas, credenciales, destinos) siguen accesibles por sus URLs independientes.

@@ -1396,6 +1396,86 @@ def integraciones(request):
     destinos = DestinoPublicacion.objects.all().order_by("nombre")
     nueva_clave_arm = None
 
+    # Estado de conexión de cada herramienta del hub
+    herramientas_sistema = {
+        h.slug: h for h in Herramienta.objects.filter(es_sistema=True)
+    }
+    api_activa = IntegracionConfig.objects.filter(
+        tipo="arm_api", activa=True
+    ).exists()
+    wordpress_activo = DestinoPublicacion.objects.filter(
+        tipo="wordpress", activa=True
+    ).exists()
+    webhook_activo = DestinoPublicacion.objects.filter(
+        tipo="custom_api", activa=True
+    ).exists()
+
+    tools_status = [
+        {
+            "nombre": "Tavily",
+            "slug": "tavily-search",
+            "descripcion": "Búsqueda web avanzada con IA para descubrir contenido de la competencia.",
+            "icono": '<path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>',
+            "url": "lista_herramientas",
+            "estado": (
+                "conectado"
+                if herramientas_sistema.get("tavily-search")
+                and herramientas_sistema["tavily-search"].credencial_id
+                else "pendiente"
+            ),
+        },
+        {
+            "nombre": "DuckDuckGo",
+            "slug": "duckduckgo-search",
+            "descripcion": "Búsqueda web privada y gratuita para rastrear fuentes de información.",
+            "icono": '<path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>',
+            "url": "lista_herramientas",
+            "estado": (
+                "conectado"
+                if herramientas_sistema.get("duckduckgo-search")
+                and herramientas_sistema["duckduckgo-search"].credencial_id
+                else "pendiente"
+            ),
+        },
+        {
+            "nombre": "Google News",
+            "slug": "google-news",
+            "descripcion": "Rastreo de actualidad mediante feeds de Google News RSS.",
+            "icono": '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>',
+            "url": "lista_herramientas",
+            "estado": (
+                "conectado"
+                if herramientas_sistema.get("google-news")
+                and herramientas_sistema["google-news"].credencial_id
+                else "pendiente"
+            ),
+        },
+        {
+            "nombre": "WordPress",
+            "slug": "wordpress",
+            "descripcion": "Publicación de artefactos en sitios WordPress mediante REST API.",
+            "icono": '<path d="M11 2H4v20h16V2H11z"/>',
+            "url": "integraciones",
+            "estado": "conectado" if wordpress_activo else "pendiente",
+        },
+        {
+            "nombre": "Webhooks",
+            "slug": "webhooks",
+            "descripcion": "Endpoints HTTP para recibir eventos de servicios externos.",
+            "icono": '<path d="M4 8V4m0 0h4M4 4l4 4m4-4-4 4M4 12h4m4 4h4m-4-4v4m0 0l4-4m-4 4-4-4"/>',
+            "url": "integraciones",
+            "estado": "conectado" if webhook_activo else "pendiente",
+        },
+        {
+            "nombre": "API del Sistema",
+            "slug": "arm-api",
+            "descripcion": "Clave de autenticación para consumir la API REST de ARM desde sistemas externos.",
+            "icono": '<path d="M9 12l2 2 4-4 M6 2a9 9 0 1118 18a9 9 0 01-18-18"/>',
+            "url": "integraciones",
+            "estado": "conectado" if api_activa else "pendiente",
+        },
+    ]
+
     if request.method == "POST":
         form = DestinoPublicacionForm()
         if request.POST.get("rotar_arm_api"):
@@ -1416,6 +1496,7 @@ def integraciones(request):
         "destinos": destinos,
         "form_destino": form,
         "nueva_clave_arm": nueva_clave_arm,
+        "tools_status": tools_status,
     })
 
 

@@ -149,8 +149,9 @@ class TestPanel(TestCase):
         assert 'Biblioteca' in content
         assert f'href="{reverse("biblioteca")}"' in content
         assert 'Configuración' in content
-        # El sidebar tiene exactamente 4 enlaces principales + Logout
-        assert content.count('<a href="') == 4
+        assert 'Integraciones' in content
+        # El sidebar tiene exactamente 5 enlaces principales + Logout
+        assert content.count('<a href="') == 5
         # Enlaces secundarios eliminados del sidebar (ahora en Configuración tabulada)
         assert f'href="{reverse("lista_proveedores")}"' not in content
         assert f'href="{reverse("lista_modelos")}"' not in content
@@ -229,8 +230,23 @@ class TestPanel(TestCase):
         assert response.status_code == 200
         content = response.content.decode('utf-8')
         assert 'Integraciones del Sistema' in content
-        assert 'Rotar Clave API' in content
-        assert 'ARM API Key' not in content
+        # Grid de tarjetas (no tabla)
+        assert 'grid-integraciones' in content
+        assert 'class="card"' in content
+        # Tarjetas de integración presentes
+        assert 'Tavily' in content
+        assert 'DuckDuckGo' in content
+        assert 'Google News' in content
+        assert 'WordPress' in content
+        assert 'Webhooks' in content
+        assert 'API del Sistema' in content
+        # Badges de estado
+        assert 'badge-success' in content or 'badge-neutral' in content
+        # Botones de configurar
+        assert 'Configurar' in content
+        # No queda la tabla antigua
+        assert '<table' not in content
+        assert 'class="tabla"' not in content
 
     def test_lista_ejecuciones_render(self):
         tarea = Tarea.objects.create(
@@ -913,9 +929,11 @@ class TestPanel(TestCase):
         assert response.status_code == 200
         content = response.content.decode('utf-8')
         assert 'Integraciones del Sistema' in content
-        assert 'Rotar Clave API' in content
-        assert 'Conexiones de Publicación' in content
-        assert 'Añadir Conexión' in content
+        assert 'grid-integraciones' in content
+        assert 'class="card"' in content
+        assert 'Tavily' in content
+        assert 'WordPress' in content
+        assert 'API del Sistema' in content
 
     def test_crear_destino_publicacion(self):
         self.client.login(username='testuser', password='testpass123')
