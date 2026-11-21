@@ -1295,6 +1295,23 @@ td input[type="checkbox"] {
   margin-top: var(--space-lg);
 }
 
+.feed-agente {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.icono-agente {
+  color: var(--accent-solid);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
 .form-buscar {
   display: flex;
   gap: var(--space-sm);

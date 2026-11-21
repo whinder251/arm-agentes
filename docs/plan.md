@@ -5049,6 +5049,38 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 **Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (SVG en contexto de vista). Retrocompatible: la URL y la vista se mantienen; solo cambian los iconos renderizados.
 
 
+## Paso FEED-UX-01 - Reemplazar alerta-warning por feed-agente con icono del agente — COMPLETADO
+
+**Objetivo:** Reemplazar `.alerta-warning` (fondo amarillo de advertencia, semánticamente incorrecto para un reporte del agente) por `.feed-agente` (fondo neutro con borde sutil) y añadir un icono SVG inline del agente (sparkle, 20x20, stroke currentColor) en el feed conversacional del Centro de Mando en `tareas.html`.
+
+**Archivos tocados (3):**
+
+- `apps/panel/templates/panel/tareas.html`: cambió `<div class="alerta-warning">` por `<div class="feed-agente">` e insertó `<svg class="icono-agente">` con path de sparkle justo antes del texto narrativo. Los tres contadores `{{ total_hallazgos_hoy }}`, `{{ pendientes_aprobacion }}`, `{{ archivados_hoy }}` y el texto narrativo se mantienen intactos. CERO estilos inline, CERO emojis.
+- `static/css/app.css`: añadidas reglas `.feed-agente` (flex, bg-secondary, borde sub
+tle, radius md, padding md, margin-bottom lg) y `.icono-agente` (color accent-solid, flex-shrink 0, margin-top 2px). No se tocó `.alerta-warning` (se usa en otros sitios para advertencias reales).
+- `tests/test_panel.py`: añadidas aserciones `assert 'feed-agente' in content` y `assert 'icono-agente' in content` a `test_lista_tareas_feed_conversacional`. Todas las aserciones existentes de texto y contexto se mantienen intactas.
+
+**Reglas respetadas:**
+
+- Máximo 3 archivos modificados (más docs/plan.md como documentación).
+- CERO estilos inline, CERO emojis, CERO bloques `<style>` en plantillas.
+- No se modificó views.py, models.py, urls.py ni forms.py. Los contadores del contexto quedan igual.
+- Usó exclusivamente clases de app.css (`.feed-agente`, `.icono-agente`) y tokens ARM Flow 2.0 (`--bg-secondary`, `--border-primary`, `--radius-md`, `--space-md`, `--space-lg`, `--space-sm`, `--accent-solid`).
+- `.venv\Scripts\python.exe` línea por línea, sin `&&`.
+- No se ejecutó `git push`.
+- Commit: "FEED-UX-01: Reemplazar alerta-warning por feed-agente con icono del agente".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- Select-String en tareas.html por `alerta-warning` → 0 coincidencias en el bloque del feed.
+- Select-String en app.css por `feed-agente` → presente.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "feed" -q` → `1 passed`.
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (HTML/CSS). Retrocompatible: la lógica de views.py y los contadores del contexto permanecen inalterados.
+
+
 ## Paso NAV-RESTRUCTURE-02 - Sidebar minimalista y Configuración tabulada densa — COMPLETADO
 
 **Objetivo:** Reducir el sidebar primario a 4 elementos (Centro de Mando, Monitoreo, Biblioteca, Configuración) y transformar la vista "Configuración" en un hub central con pestañas horizontales que agrupen: Recursos de IA, Modelos y Proveedores, Integraciones y Sistema, evitando la navegación por 10 páginas separadas.
@@ -5201,4 +5233,36 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 - `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "integraciones" -q` → `3 passed`.
 
-**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (SVG en contexto de vista). Retrocompatible: la URL y la vista se mantienen; solo cambian los iconos renderizados.
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (SVG en contexto de vista). Retrocompatible: la URL y la vista se mantienen; solo cambian los iconos renderizados.
+
+
+## Paso FEED-UX-01 - Reemplazar alerta-warning por feed-agente con icono del agente — COMPLETADO
+
+**Objetivo:** Reemplazar `.alerta-warning` (fondo amarillo de advertencia, semánticamente incorrecto para un reporte del agente) por `.feed-agente` (fondo neutro con borde sutil) y añadir un icono SVG inline del agente (sparkle, 20x20, stroke currentColor) en el feed conversacional del Centro de Mando en `tareas.html`.
+
+**Archivos tocados (3):**
+
+- `apps/panel/templates/panel/tareas.html`: cambió `<div class="alerta-warning">` por `<div class="feed-agente">` e insertó `<svg class="icono-agente">` con path de sparkle justo antes del texto narrativo. Los tres contadores `{{ total_hallazgos_hoy }}`, `{{ pendientes_aprobacion }}`, `{{ archivados_hoy }}` y el texto narrativo se mantienen intactos. CERO estilos inline, CERO emojis.
+- `static/css/app.css`: añadidas reglas `.feed-agente` (flex, bg-secondary, borde sub
+tle, radius md, padding md, margin-bottom lg) y `.icono-agente` (color accent-solid, flex-shrink 0, margin-top 2px). No se tocó `.alerta-warning` (se usa en otros sitios para advertencias reales).
+- `tests/test_panel.py`: añadidas aserciones `assert 'feed-agente' in content` y `assert 'icono-agente' in content` a `test_lista_tareas_feed_conversacional`. Todas las aserciones existentes de texto y contexto se mantienen intactas.
+
+**Reglas respetadas:**
+
+- Máximo 3 archivos modificados (más docs/plan.md como documentación).
+- CERO estilos inline, CERO emojis, CERO bloques `<style>` en plantillas.
+- No se modificó views.py, models.py, urls.py ni forms.py. Los contadores del contexto quedan igual.
+- Usó exclusivamente clases de app.css (`.feed-agente`, `.icono-agente`) y tokens ARM Flow 2.0 (`--bg-secondary`, `--border-primary`, `--radius-md`, `--space-md`, `--space-lg`, `--space-sm`, `--accent-solid`).
+- `.venv\Scripts\python.exe` línea por línea, sin `&&`.
+- No se ejecutó `git push`.
+- Commit: "FEED-UX-01: Reemplazar alerta-warning por feed-agente con icono del agente".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- Select-String en tareas.html por `alerta-warning` → 0 coincidencias en el bloque del feed.
+- Select-String en app.css por `feed-agente` → presente.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "feed" -q` → `1 passed`.
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (HTML/CSS). Retrocompatible: la lógica de views.py y los contadores del contexto permanecen inalterados.

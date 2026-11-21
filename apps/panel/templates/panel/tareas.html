@@ -12,7 +12,7 @@
             <p><strong>Estado:</strong> <span class="badge {% if tarea.estado == 'ok' %}badge-success{% elif tarea.estado == 'fallo' %}badge-error{% elif tarea.estado == 'error' %}badge-error{% elif tarea.estado == 'revision' %}badge-warning{% else %}badge-info{% endif %}">{{ tarea.get_estado_display }}</span></p>
             <p><strong>Agente:</strong> {{ tarea.agente }}</p>
             <p><strong>Habilidad:</strong> {{ tarea.habilidad }}</p>
-            <p><strong>Actualizado en:</strong> {{ tarea.actualizado_en }}</p>
+            <p><strong>Actualizado en:</strong> {{ tarea.actualizado_en|date:"d/m/Y H:i" }}</p>
             <h2>Payload</h2>
             <pre>{{ tarea.payload }}</pre>
         </div>
@@ -92,7 +92,8 @@
     </nav>
 
     <div class="card">
-        <div class="alerta-warning">
+        <div class="feed-agente">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icono-agente"><path d="M12 3l1.9 5.8L20 10l-5.8 1.9L12 18l-1.9-5.8L4 10l5.8-1.9L12 3z"/><path d="M19 15l.9 2.6L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.4L19 15z"/></svg>
             He sincronizado tus fuentes. Hoy hay <strong>{{ total_hallazgos_hoy }}</strong> descubrimientos.
             <strong>{{ pendientes_aprobacion }}</strong> requieren tu aprobación y
             <strong>{{ archivados_hoy }}</strong> fueron archivados.

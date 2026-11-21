@@ -1155,6 +1155,8 @@ class TestPanel(TestCase):
         assert 'descubrimientos' in content
         assert 'requieren tu aprobación' in content
         assert 'fueron archivados' in content
+        assert 'feed-agente' in content
+        assert 'icono-agente' in content
 
     def test_acciones_lote_tareas_eliminar(self):
         """Acción por lote: eliminar varias tareas."""
