@@ -23,12 +23,21 @@
                 <strong>{{ inv.nombre }}</strong>
                 <span class="badge badge-neutral">{{ inv.get_frecuencia_display }}</span>
                 {% if inv.activa %}<span class="badge badge-success">Activa</span>{% else %}<span class="badge badge-error">Inactiva</span>{% endif %}
+                <span class="item-meta">
+                    <span class="estado-punto estado-punto--{{ inv.ultimo_estado_ejecucion|default:'sin' }}" title="{{ inv.ultimo_estado_ejecucion|title }}"></span>
+                    {% if inv.ultima_ejecucion_fecha %}últ. run {{ inv.ultima_ejecucion_fecha|date:"d/m H:i" }}{% else %}sin ejecuciones{% endif %}
+                    <span class="item-chip">{{ inv.total_hallazgos }} hallazgos</span>
+                    {% if inv.hallazgos_hoy %}<span class="item-chip item-chip--nuevo">+{{ inv.hallazgos_hoy }}</span>{% endif %}
+                </span>
             </button>
             <div class="acciones-rapidas">
                 <form method="post" action="{% url 'ejecutar_investigacion_ahora' inv.pk %}" class="form-ejecutar">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-secondary btn-sm">Ejecutar ahora</button>
                 </form>
+                <a href="{% url 'detalle_investigacion' inv.pk %}" class="enlace-informe" aria-label="Ver informe completo">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="9 22 15 16 21 9"/></svg>
+                </a>
                 <a href="{% url 'editar_investigacion' inv.pk %}" class="enlace-editar">Editar</a>
                 <form method="post" action="{% url 'eliminar_investigacion' inv.pk %}" class="form-eliminar" onsubmit="return confirm('¿Estás seguro?');">
                     {% csrf_token %}
@@ -52,18 +61,29 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    var items = document.querySelectorAll('.item-fuente');
-    items.forEach(function(item) {
+    function seleccionar(item) {
+        document.querySelectorAll('.item-fuente').forEach(function(i) {
+            i.classList.remove('selected');
+            i.removeAttribute('aria-current');
+        });
+        item.classList.add('selected');
+        item.setAttribute('aria-current', 'true');
+    }
+
+    document.querySelectorAll('.item-fuente-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            seleccionar(btn.closest('.item-fuente'));
+        });
+    });
+
+    document.querySelectorAll('.item-fuente').forEach(function(item) {
         item.addEventListener('click', function(e) {
-            // Ignorar clics en acciones rápidas
             if (e.target.closest('.acciones-rapidas')) {
                 return;
             }
-            // Ignorar clics directos en el button (ya tiene hx-get)
             if (e.target.closest('.item-fuente-btn')) {
                 return;
             }
-            // Disparar el button programáticamente
             var btn = item.querySelector('.item-fuente-btn');
             if (btn) {
                 btn.click();

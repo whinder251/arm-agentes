@@ -5433,4 +5433,35 @@ tle, radius md, padding md, margin-bottom lg) y `.icono-agente` (color accent-so
 - `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "investigacion or split" -q` → `24 passed`.
 
-**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo JavaScript de interacción. Retrocompatible: el comportamiento de las acciones rápidas y el teclado se mantiene intacto.
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo JavaScript de interacción. Retrocompatible: el comportamiento de las acciones rápidas y el teclado se mantiene intacto.
+
+
+## Paso MONITOR-CARD-01 - Corregir script de selección y rediseñar tarjetas de fuente con metadatos y acciones visibles — COMPLETADO
+
+**Objetivo:** Corregir el script de selección del split pane (balanzas desbalanceadas tras SPLITPANE-CLICK-01), añadir metadatos por fuente (último run con punto de estado y fecha, contador de hallazgos, chip de nuevos hoy), y dejar las acciones rápidas siempre visibles con peso visual bajo.
+
+**Archivos tocados (4):**
+
+- `apps/panel/views.py`: vista `lista_investigaciones` ahora annota el queryset con `total_hallazgos` (Count de hallazgos), `hallazgos_hoy` (Count filtrado por fecha de hoy), `ultima_ejecucion_fecha` (Max de inicio de ejecución) y `ultimo_estado_ejecucion` (Subquery del estado de la ejecución más reciente). Se importaron `Count`, `Max`, `Q`, `OuterRef`, `Subquery` y `RegistroEjecucionMonitoreo`.
+- `apps/panel/templates/panel/investigacion_lista.html`: dentro del `<button class="item-fuente-btn">` se añade `<span class="item-meta">` con punto de estado (`<span class="estado-punto estado-punto--{{ inv.ultimo_estado_ejecucion|default:'sin' }}">`), texto de último run (`últ. run {{ inv.ultima_ejecucion_fecha|date:"d/m H:i" }}` o "sin ejecuciones"), chip `{{ inv.total_hallazgos }} hallazgos` y chip `+{{ inv.hallazgos_hoy }}` solo si hay nuevos hoy. En `.acciones-rapidas`, entre Ejecutar y Editar, se añade un enlace `<a class="enlace-informe" aria-label="Ver informe completo">` con icono SVG file-text (16x16) a `detalle_investigacion`. El script final se reescribió completo y balanceado: `seleccionar(item)` que limpia y aplica `.selected`/`aria-current`, listener en `.item-fuente-btn` que llama `seleccionar(btn.closest('.item-fuente'))`, y listener en `.item-fuente` que ignora clics en `.acciones-rapidas` o `.item-fuente-btn` y llama `btn.click()` en otro caso. CERO estilos inline, CERO emojis, CERO `</a>` sueltos.
+- `static/css/app.css`: eliminadas las reglas de `opacity: 0`, `opacity: 1` (hover/focus-within) y `@media (hover: none)` sobre `.acciones-rapidas`; ahora `.acciones-rapidas` tiene `display:flex, gap var(--space-sm), align-items:center, margin-top var(--space-sm)` y siempre es visible. Añadidas reglas `.item-meta`, `.estado-punto` (8px, border-radius 50%) con variantes `--exitoso` (--accent-success), `--parcial` (--accent-warning), `--fallido` (--accent-danger), `--sin` (--text-tertiary), `.item-chip` y `.item-chip--nuevo` (fondo rgba(16,185,129,0.12), color var(--accent-success-text)).
+- `tests/test_panel.py`: importación de `timezone` y `RegistroEjecucionMonitoreo`; `test_estructura_split_pane_valida` extendida para crear una ejecución y dos hallazgos (uno de hoy) por fuente, y aserciones que verifican la presencia de `item-meta`, `estado-punto`, el texto `2 hallazgos` y el enlace con `aria-label="Ver informe completo"` apuntando a `detalle_investigacion`.
+
+**Reglas respetadas:**
+
+- Máximo 4 archivos modificados (más docs/plan.md como documentación).
+- CERO estilos inline, CERO emojis, CERO bloques `<style>` en plantillas. El punto de estado siempre acompañado de texto de fecha, nunca color solo.
+- No se modificó models.py, urls.py, forms.py ni el fragmento del detalle.
+- Activadas skills design-linear-nod y performance-database (annotate sin N+1).
+- `.venv\Scripts\python.exe` línea por línea, sin `&&`.
+- No se ejecutó `git push`.
+- Commit: "MONITOR-CARD-01: Script de selección corregido y tarjetas con metadatos y acciones visibles".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- Select-String en `app.css` por `opacity: 0` dentro del bloque `.acciones-rapidas` → 0 coincidencias.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "investigacion or split" -q` → `24 passed`.
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (HTML/CSS) y anotaciones de consulta en la vista. Retrocompatible: la URL y el comportamiento de `lista_investigaciones` se mantienen.

@@ -1360,19 +1360,10 @@ td input[type="checkbox"] {
 }
 
 .item-fuente .acciones-rapidas {
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-
-.item-fuente:hover .acciones-rapidas,
-.item-fuente:focus-within .acciones-rapidas {
-  opacity: 1;
-}
-
-@media (hover: none) {
-  .item-fuente .acciones-rapidas {
-    opacity: 1;
-  }
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+  margin-top: var(--space-sm);
 }
 
 .detalle-panel {
@@ -1427,4 +1418,49 @@ td input[type="checkbox"] {
 
 .tabla-scroll {
   overflow-x: auto;
+}
+
+.item-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  margin-top: var(--space-xs);
+}
+
+.estado-punto {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: var(--space-xs);
+}
+
+.estado-punto--exitoso {
+  background-color: var(--accent-success);
+}
+
+.estado-punto--parcial {
+  background-color: var(--accent-warning);
+}
+
+.estado-punto--fallido {
+  background-color: var(--accent-danger);
+}
+
+.estado-punto--sin {
+  background-color: var(--text-tertiary);
+}
+
+.item-chip {
+  display: inline-block;
+  font-size: var(--text-xs);
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+
+.item-chip--nuevo {
+  background-color: rgba(16,185,129,0.12);
+  color: var(--accent-success-text);
 }

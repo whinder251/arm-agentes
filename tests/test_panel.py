@@ -2,6 +2,7 @@ import os
 import pytest
 from unittest.mock import Mock, patch
 from django.conf import settings
+from django.utils import timezone
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.test import TestCase
@@ -10,7 +11,7 @@ from bs4 import BeautifulSoup
 from apps.core.models import (
     Proveedor, ModeloLLM, Habilidad, Agente, Equipo, Tarea, Artefacto, Ejecucion,
     Workflow, PasoWorkflow, DestinoPublicacion, IntegracionConfig,
-    InvestigacionProgramada, Hallazgo,
+    InvestigacionProgramada, Hallazgo, RegistroEjecucionMonitoreo,
 )
 from apps.engine.tasks import continuar_workflow
 from apps.panel.forms import InvestigacionForm
@@ -1865,6 +1866,30 @@ class TestPanel(TestCase):
                 frecuencia="semanal",
                 activa=True,
             )
+        fuente = InvestigacionProgramada.objects.first()
+        RegistroEjecucionMonitoreo.objects.create(
+            investigacion=fuente,
+            inicio=timezone.now(),
+            estado="exitoso",
+            hallazgos_nuevos=2,
+            filtrados=0,
+        )
+        Hallazgo.objects.create(
+            investigacion=fuente,
+            url_fuente="https://ejemplo.com/sitemap.xml",
+            tipo_fuente="sitemap",
+            titulo="Hallazgo A",
+            url_articulo="https://ejemplo.com/a",
+            fecha_publicacion="2024-01-01",
+        )
+        Hallazgo.objects.create(
+            investigacion=fuente,
+            url_fuente="https://ejemplo.com/sitemap.xml",
+            tipo_fuente="sitemap",
+            titulo="Hallazgo B",
+            url_articulo="https://ejemplo.com/b",
+            fecha_publicacion=timezone.localdate().isoformat(),
+        )
         self.client.login(username="testuser", password="testpass123")
         url = reverse("lista_investigaciones")
         response = self.client.get(url)
@@ -1891,6 +1916,14 @@ class TestPanel(TestCase):
             buttons = item.find_all("button")
             for btn in buttons:
                 assert btn.find("form") is None, "Ningún button debe contener un <form>"
+        assert "item-meta" in content
+        assert "estado-punto" in content
+        assert "2 hallazgos" in content
+        enlace_informe = soup.find("a", attrs={"aria-label": "Ver informe completo"})
+        assert enlace_informe is not None
+        assert enlace_informe.get("href") == reverse(
+            "detalle_investigacion", args=[fuente.pk]
+        )
         """El formulario preselecciona herramientas de búsqueda según el modo."""
         self.client.login(username='testuser', password='testpass123')
         form = InvestigacionForm(initial={"modo_busqueda": "busqueda"})

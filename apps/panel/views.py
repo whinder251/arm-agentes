@@ -9,7 +9,15 @@ from django import forms
 from django.conf import settings
 from django.db import models
 from apps.core import defaults
-from django.db.models import Sum, ProtectedError
+from django.db.models import (
+    Sum,
+    Max,
+    Count,
+    Q,
+    OuterRef,
+    Subquery,
+    ProtectedError,
+)
 from django.core.paginator import Paginator
 from django.forms import inlineformset_factory
 from django.http import JsonResponse
@@ -22,7 +30,7 @@ from apps.checks.analisis import generar_reporte_competencia
 from apps.core.models import (
     Tarea, Proveedor, ModeloLLM, Habilidad, FormatoSalida, Herramienta, Agente, Equipo,
     Workflow, PasoWorkflow, Ejecucion, IntegracionConfig, DestinoPublicacion, Credencial,
-    InvestigacionProgramada, Artefacto, Hallazgo,
+    InvestigacionProgramada, Artefacto, Hallazgo, RegistroEjecucionMonitoreo,
 )
 import json
 import requests
@@ -1696,8 +1704,26 @@ def eliminar_workflow(request, pk):
 @login_required
 def lista_investigaciones(request):
     """Lista las investigaciones programadas activas en tarjetas."""
+    hoy = timezone.localdate()
     investigaciones = (
-        InvestigacionProgramada.objects.all().order_by("-creado_en")
+        InvestigacionProgramada.objects.all()
+        .annotate(
+            total_hallazgos=Count("hallazgos", distinct=True),
+            hallazgos_hoy=Count(
+                "hallazgos",
+                filter=Q(hallazgos__detectado_en__date=hoy),
+                distinct=True,
+            ),
+            ultima_ejecucion_fecha=Max("ejecuciones_monitoreo__inicio"),
+            ultimo_estado_ejecucion=Subquery(
+                RegistroEjecucionMonitoreo.objects.filter(
+                    investigacion=OuterRef("pk")
+                )
+                .order_by("-inicio")
+                .values("estado")[:1]
+            ),
+        )
+        .order_by("-creado_en")
     )
     return render(request, "panel/investigacion_lista.html", {
         "investigaciones": investigaciones,
