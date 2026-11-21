@@ -5186,37 +5186,6 @@ tle, radius md, padding md, margin-bottom lg) y `.icono-agente` (color accent-so
 **Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (HTML/CSS) + estado de conexión en contexto de vista. Retrocompatible: la URL `integraciones` se mantiene; las vistas CRUD originales (herramientas, credenciales, destinos) siguen accesibles por sus URLs independientes.
 
 
-## Paso AUDIT-UI-02 - Estandarizar espaciado, alineación y relleno en formularios clave — COMPLETADO
-
-**Objetivo:** Eliminar desalineaciones, márgenes inconsistentes y relleno irregular en los formularios de creación/edición más usados, forzando el uso estricto de las clases de ARM Flow 2.0 y las reglas de la skill form-ux (múltiplos de 4px, `.card`, `.form-group`, `.label`, `.input`, `.acciones-formulario`).
-
-**Archivos tocados (1 + documentación):**
-
-- `apps/panel/templates/panel/herramienta_form.html`: cambiado `<aside class="sidebar-ayuda tarjeta">` por `<aside class="sidebar-ayuda card">` para usar exclusivamente la clase `.card` de ARM Flow 2.0.
-- `apps/panel/templates/panel/investigacion_form.html`: verificado que ya usa `.card`, `.form-group`, `.label`, `.input`, `.acciones-formulario` con botón alineado a la derecha; sin cambios necesarios.
-- `apps/panel/templates/panel/agente_form.html`: verificado que ya usa `.card`, `.form-group`, `.label`, `.input`, `.acciones-formulario` y tarjetas `.modelo-card`/`.habilidad-card` definidas en app.css; sin cambios necesarios.
-- `static/css/app.css`: verificado que `.form-group` tiene `margin-bottom: var(--space-md)` (16px) y `.acciones-formulario` tiene `margin-top: var(--space-lg)`, `display:flex`, `justify-content:flex-end`, `gap: var(--space-md)`; sin cambios necesarios.
-- `docs/plan.md`: esta sección.
-
-**Reglas respetadas:**
-
-- Máximo 4 archivos modificados (1 modificado + documentación).
-- CERO estilos inline nuevos, CERO emojis, CERO bloques `<style>` en plantillas.
-- No se modificó `views.py`, `models.py`, `urls.py` ni `forms.py`.
-- Usó exclusivamente variables de espaciado de la skill (`--space-md`, `--space-lg`).
-- `.venv\Scripts\python.exe` línea por línea, sin `&&`.
-- No se ejecutó `git push`.
-- Commit: "AUDIT-UI-02: Estandarizar espaciado, alineación y relleno en formularios clave".
-
-**Evidencia de aceptación (ejecutado en esta sesión):**
-
-- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
-- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
-- Búsqueda de `style="` en los 3 templates → 0 coincidencias en cada uno.
-- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "investigacion or agente or herramienta" -q` → `26 passed`.
-
-**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (HTML/CSS). Retrocompatible: las clases sobrescritas mantienen su semántica; las vistas existentes siguen funcionando.
-
 
 ## Paso AUDIT-DESIGN-01 - Reparar variables CSS rotas y contraste de texto — COMPLETADO
 
@@ -5508,3 +5477,23 @@ tle, radius md, padding md, margin-bottom lg) y `.icono-agente` (color accent-so
 - Suite completa `pytest -q` no ejecutada: cuelgue de entorno preexistente documentado en C.2/C.3a/C.4/C.9b/UX-3/UX-4, ajeno a este cambio.
 
 **Impacto en contratos/datos:** NO contratos de API, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo consultas (JOIN en lugar de N+1), presentación y pruebas. Retrocompatible.
+
+
+## Paso DETAIL-PANEL-01 - Panel derecho con cabecera pegajosa y filas de hallazgos alineadas — COMPLETADO
+
+**Objetivo:** Dar jerarquía visual al panel derecho del split pane de Monitoreo: cabecera pegajosa con el nombre de la fuente y chips de metadata, filas de hallazgos alineadas en una sola línea y columna de duración en el historial de ejecuciones.
+
+**Archivos tocados (2):**
+
+- `apps/panel/templates/panel/fragments/investigacion_detalle_content.html`: cabecera `.detalle-cabecera` con `.detalle-titulo` y `.detalle-chips` (frecuencia, estado con punto y fecha del último run, total de hallazgos); botón "Ver ficha completa" movido a la cabecera; sección `.detalle-seccion` con `.lista-hallazgos` y filas `.fila-hallazgo` en grid de cinco columnas (título truncado, badge de tipo, fecha, icono externo SVG y botón "Escribir con Agente"); tabla de ejecuciones con columna Duración.
+- `static/css/app.css`: reglas `.detalle-cabecera` (position sticky, top 0, z-index 10), `.detalle-titulo`, `.detalle-chips`, `.chip-detalle`, `.detalle-seccion`, `.fila-hallazgo` (grid 1fr auto auto auto auto), `.titulo-hallazgo`, `.fecha-hallazgo` y `.enlace-externo`.
+
+**Hash del commit:** `8ebb9fb`
+
+**Reglas respetadas:** máximo 2 archivos; cero estilos inline, cero emojis, cero bloques `<style>`; sin cambios en `views.py`, `models.py`, `urls.py` ni `forms.py`; la cabecera es pegajosa dentro de `.detalle-panel`, que ya tiene `overflow-y: auto`.
+
+**Evidencia de aceptación (re-ejecutada en esta sesión):** `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "investigacion" -q` → 23 passed, 72 deselected. `.venv\Scripts\python.exe manage.py check` → sin errores.
+
+**Impacto en contratos/datos:** ninguno. Solo presentación del fragmento HTMX. Retrocompatible.
+
+**Nota de vigencia:** el markup de la lista izquierda descrito en MONITOR-SPLITPANE-01 fue superado por SPLITPANE-RESTORE-01, SPLITPANE-CLICK-01 y MONITOR-CARD-01. Este paso no toca la lista izquierda. 
