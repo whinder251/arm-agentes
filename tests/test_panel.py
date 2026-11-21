@@ -145,6 +145,7 @@ class TestPanel(TestCase):
         assert 'Centro de Mando' in content
         assert 'Monitoreo' in content
         assert 'Biblioteca' in content
+        assert f'href="{reverse("biblioteca")}"' in content
         assert 'Configuración' in content
         # Enlaces secundarios reubicados dentro del menú Configuración (details)
         assert f'href="{reverse("lista_proveedores")}"' in content

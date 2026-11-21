@@ -4872,6 +4872,31 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 **Reglas respetadas:**
 - Máximo 4 archivos (exento `docs/plan.md`).
 - NO modelos, NO migraciones, NO datos persistidos, NO credenciales, NO permisos nuevos (solo `@login_required`), NO tareas en cola, NO contratos de API. Retrocompatible.
+
+
+## Paso UI-NOD-04 - Conectar el enlace "Biblioteca" del navbar a la vista real — COMPLETADO
+
+**Objetivo:** Reemplazar el href placeholder de "Biblioteca" en el navbar (apuntaba a `lista_investigaciones`) por la URL real `biblioteca` (vista creada en NOD-03, `name='biblioteca'` en `urls.py`), y ajustar la condición de clase `activo` para que se resalte en `/panel/biblioteca/`.
+
+**Archivos tocados (3):**
+- `apps/panel/templates/panel/base.html`: enlace "Biblioteca" del navbar principal cambia `href="{% url 'lista_investigaciones' %}"` por `href="{% url 'biblioteca' %}"` y la condición de `class="activo"` pasa de `url_name == 'lista_investigaciones'` a `url_name == 'biblioteca'`. Verificado que no hay enlace "Biblioteca" duplicado en el menú secundario `<details>`.
+- `tests/test_panel.py`: `test_sidebar_enlaza_configuracion` añade aserción `f'href="{reverse("biblioteca")}"' in content` para verificar que el navbar apunte a la URL real.
+- `docs/plan.md`: esta sección.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "sidebar" -q` → passed.
+
+**Reglas respetadas:**
+- Máximo 3 archivos (dentro del límite).
+- Solo templates y tests. NO se tocaron `views.py`, `models.py`, `urls.py` ni `forms.py`.
+- CERO estilos inline, CERO emojis.
+- Comandos PowerShell línea por línea, sin `&&`.
+- NO se ejecutó `git push`.
+- Commit: "UI-NOD-04: Conectar enlace Biblioteca del navbar a la vista real".
+
+**Impacto en contratos/datos:** NO contratos de API, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo plantilla y test. Retrocompatible.
 - CERO estilos inline, CERO emojis. Clases exclusivamente de `app.css` (`.card`, `.input`, `.btn-primary`, `.badge`, `.vacio`, `.help-text`).
 - Vista delgada (<20 líneas), solo consulta ORM y render.
 
