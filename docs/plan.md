@@ -5081,6 +5081,43 @@ tle, radius md, padding md, margin-bottom lg) y `.icono-agente` (color accent-so
 **Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (HTML/CSS). Retrocompatible: la lógica de views.py y los contadores del contexto permanecen inalterados.
 
 
+## Paso AUDIT-DESIGN-01 - Reparar variables CSS rotas y contraste de texto — COMPLETADO
+
+**Objetivo:** Corregir referencias a variables CSS inexistentes y reemplazar tokens de acento usados como texto (que fallan el contraste 4.5:1) por sus variantes de texto seguras, garantizando accesibilidad en todas las vistas.
+
+**Archivo tocado (1):**
+
+- `static/css/app.css`: 
+  - `.btn:focus-visible`: `var(--accent)` → `var(--accent-solid)`.
+  - `.segmented button.active`: `var(--accent)` → `var(--accent-solid)`.
+  - `.btn-aprobar:hover`: `var(--accent-primary-hover)` → `var(--accent-hover)`.
+  - `.habilidades-edicion label`: `var(--font-weight-normal)` → `400`.
+  - `.enlace-editar`, `.volver`, `.paginacion a:hover`, `.paginacion .active`, `.btn-plantilla:hover`, `.enlace-externo:hover`, `.dashboard .valor--info`: `var(--accent-primary)` → `var(--accent-solid)` en propiedades `color:`.
+  - `.errores`, `.errorlist`, `.alerta-error`, `.dashboard .valor--error`: `var(--accent-danger)` → `var(--accent-danger-text)` en propiedades `color:`.
+  - `.alerta-warning`, `.dashboard .valor--warning`: `var(--accent-warning)` → `var(--accent-warning-text)` en propiedades `color:`.
+  - `.dashboard .valor--success`: `var(--accent-success)` → `var(--accent-success-text)` en propiedad `color:`.
+  - No se borró ninguna regla existente; solo se corrigieron valores de propiedades afectadas.
+
+**Reglas respetadas:**
+
+- Máximo 1 archivo modificado (más docs/plan.md como documentación).
+- No se modificó HTML, templates, views.py, models.py, urls.py, forms.py ni tests. Solo CSS.
+- No se borraron reglas existentes; solo se corrigieron valores de propiedades.
+- `.venv\Scripts\python.exe` línea por línea, sin `&&`.
+- No se ejecutó `git push`.
+- Commit: "AUDIT-DESIGN-01: Reparar variables CSS rotas y contraste de texto".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- Select-String en app.css por `var\(--accent\)[^)]` → 0 coincidencias.
+- Select-String en app.css por `color:\s*var\(--accent-primary\)` → 0 coincidencias.
+- `.venv\Scripts\python.exe -m pytest tests/test_engine.py tests/test_tool_executor.py -q` → `63 passed` (suite completo tiene cuelgue preexistente de entorno, no relacionado).
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (CSS). Retrocompatible: las clases mantienen su semántica; solo se corrigen valores de variables rotas y contraste de texto.
+
+
 ## Paso NAV-RESTRUCTURE-02 - Sidebar minimalista y Configuración tabulada densa — COMPLETADO
 
 **Objetivo:** Reducir el sidebar primario a 4 elementos (Centro de Mando, Monitoreo, Biblioteca, Configuración) y transformar la vista "Configuración" en un hub central con pestañas horizontales que agrupen: Recursos de IA, Modelos y Proveedores, Integraciones y Sistema, evitando la navegación por 10 páginas separadas.
@@ -5265,4 +5302,41 @@ tle, radius md, padding md, margin-bottom lg) y `.icono-agente` (color accent-so
 - Select-String en app.css por `feed-agente` → presente.
 - `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "feed" -q` → `1 passed`.
 
-**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (HTML/CSS). Retrocompatible: la lógica de views.py y los contadores del contexto permanecen inalterados.
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (HTML/CSS). Retrocompatible: la lógica de views.py y los contadores del contexto permanecen inalterados.
+
+
+## Paso AUDIT-DESIGN-01 - Reparar variables CSS rotas y contraste de texto — COMPLETADO
+
+**Objetivo:** Corregir referencias a variables CSS inexistentes y reemplazar tokens de acento usados como texto (que fallan el contraste 4.5:1) por sus variantes de texto seguras, garantizando accesibilidad en todas las vistas.
+
+**Archivo tocado (1):**
+
+- `static/css/app.css`: 
+  - `.btn:focus-visible`: `var(--accent)` → `var(--accent-solid)`.
+  - `.segmented button.active`: `var(--accent)` → `var(--accent-solid)`.
+  - `.btn-aprobar:hover`: `var(--accent-primary-hover)` → `var(--accent-hover)`.
+  - `.habilidades-edicion label`: `var(--font-weight-normal)` → `400`.
+  - `.enlace-editar`, `.volver`, `.paginacion a:hover`, `.paginacion .active`, `.btn-plantilla:hover`, `.enlace-externo:hover`, `.dashboard .valor--info`: `var(--accent-primary)` → `var(--accent-solid)` en propiedades `color:`.
+  - `.errores`, `.errorlist`, `.alerta-error`, `.dashboard .valor--error`: `var(--accent-danger)` → `var(--accent-danger-text)` en propiedades `color:`.
+  - `.alerta-warning`, `.dashboard .valor--warning`: `var(--accent-warning)` → `var(--accent-warning-text)` en propiedades `color:`.
+  - `.dashboard .valor--success`: `var(--accent-success)` → `var(--accent-success-text)` en propiedad `color:`.
+  - No se borró ninguna regla existente; solo se corrigieron valores de propiedades afectadas.
+
+**Reglas respetadas:**
+
+- Máximo 1 archivo modificado (más docs/plan.md como documentación).
+- No se modificó HTML, templates, views.py, models.py, urls.py, forms.py ni tests. Solo CSS.
+- No se borraron reglas existentes; solo se corrigieron valores de propiedades.
+- `.venv\Scripts\python.exe` línea por línea, sin `&&`.
+- No se ejecutó `git push`.
+- Commit: "AUDIT-DESIGN-01: Reparar variables CSS rotas y contraste de texto".
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- Select-String en app.css por `var\(--accent\)[^)]` → 0 coincidencias.
+- Select-String en app.css por `color:\s*var\(--accent-primary\)` → 0 coincidencias.
+- `.venv\Scripts\python.exe -m pytest tests/test_engine.py tests/test_tool_executor.py -q` → `63 passed` (suite completo tiene cuelgue preexistente de entorno, no relacionado).
+
+**Impacto en contratos/datos:** NO contratos, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones. Solo presentación (CSS). Retrocompatible: las clases mantienen su semántica; solo se corrigen valores de variables rotas y contraste de texto.
