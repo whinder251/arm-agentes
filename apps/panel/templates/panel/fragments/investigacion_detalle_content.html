@@ -2,35 +2,55 @@
 <div class="alerta-error">No se pudo generar el reporte. Intenta de nuevo más tarde.</div>
 {% endif %}
 
+<div class="detalle-cabecera">
+    <h2 class="detalle-titulo">{{ investigacion.nombre }}</h2>
+    <div class="detalle-chips">
+        <span class="chip-detalle">{{ investigacion.get_frecuencia_display }}</span>
+        <span class="chip-detalle">
+            <span class="estado-punto estado-punto--{{ investigacion.ultima_ejecucion|default:'sin'|lower }}"></span>
+            {{ investigacion.ultima_ejecucion|date:"d/m H:i"|default:"sin ejecuciones" }}
+        </span>
+        <span class="chip-detalle">{{ hallazgos|length }} hallazgos</span>
+    </div>
+    <a href="{% url 'detalle_investigacion' investigacion.pk %}" class="btn btn-secondary btn-sm enlace-ficha">Ver ficha completa</a>
+</div>
+
 {% if hallazgos %}
-<h3 class="subtitulo">Hallazgos recientes</h3>
-<ul class="lista-hallazgos">
-{% for h in hallazgos|slice:":10" %}
-<li class="fila-hallazgo">
-    <span class="titulo-hallazgo">{{ h.titulo|default:"Sin título"|truncatechars:80 }}</span>
-    <span class="badge badge-neutral">{{ h.get_tipo_fuente_display }}</span>
-    {% if h.fecha_publicacion %}
-    <span class="fecha-hallazgo help-text">{{ h.fecha_publicacion|date:"d/m/Y" }}</span>
-    {% else %}
-    <span class="fecha-hallazgo help-text">Sin fecha</span>
-    {% endif %}
-    {% if h.url_articulo %}
-    <a href="{{ h.url_articulo }}" target="_blank" rel="noopener noreferrer" class="enlace-externo" aria-label="Abrir {{ h.titulo|default:'artículo' }}">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-    </a>
-    {% endif %}
-    <form method="post" action="{% url 'crear_tarea_desde_hallazgo' h.pk %}">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-secondary btn-sm">Escribir con Agente</button>
-    </form>
-</li>
-{% endfor %}
-</ul>
+<section class="detalle-seccion">
+    <h3 class="subtitulo">Hallazgos recientes</h3>
+    <ul class="lista-hallazgos">
+    {% for h in hallazgos|slice:":10" %}
+    <li class="fila-hallazgo">
+        <span class="titulo-hallazgo">{{ h.titulo|default:"Sin título"|truncatechars:80 }}</span>
+        <span class="badge badge-neutral">{{ h.get_tipo_fuente_display }}</span>
+        {% if h.fecha_publicacion %}
+        <span class="fecha-hallazgo help-text">{{ h.fecha_publicacion|date:"d/m/Y" }}</span>
+        {% else %}
+        <span class="fecha-hallazgo help-text">Sin fecha</span>
+        {% endif %}
+        {% if h.url_articulo %}
+        <a href="{{ h.url_articulo }}" target="_blank" rel="noopener noreferrer" class="enlace-externo" aria-label="Abrir {{ h.titulo|default:'artículo' }}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </a>
+        {% else %}
+        <span class="enlace-externo" aria-hidden="true"></span>
+        {% endif %}
+        <form method="post" action="{% url 'crear_tarea_desde_hallazgo' h.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-secondary btn-sm">Escribir con Agente</button>
+        </form>
+    </li>
+    {% endfor %}
+    </ul>
+</section>
 {% else %}
-<p class="help-text">Aún no se han detectado artículos. Ejecuta el monitoreo manualmente.</p>
-{% if investigacion.palabras_clave %}
-<p class="help-text">Nota: si filtraste por palabras clave, es posible que ningún artículo de la fuente coincida con ellas.</p>
-{% endif %}
+<section class="detalle-seccion">
+    <h3 class="subtitulo">Hallazgos recientes</h3>
+    <p class="help-text">Aún no se han detectado artículos. Ejecuta el monitoreo manualmente.</p>
+    {% if investigacion.palabras_clave %}
+    <p class="help-text">Nota: si filtraste por palabras clave, es posible que ningún artículo de la fuente coincida con ellas.</p>
+    {% endif %}
+</section>
 {% endif %}
 
 {% if investigacion.ejecuciones_monitoreo.all %}
@@ -42,6 +62,7 @@
             <tr>
                 <th>Fecha/Hora</th>
                 <th>Hora de fin</th>
+                <th>Duración</th>
                 <th>Estado</th>
                 <th>Nuevos</th>
                 <th>Filtrados</th>
@@ -55,6 +76,13 @@
             <td>
                 {% if ejecucion.fin %}
                     {{ ejecucion.fin|date:"d/m/Y H:i" }}
+                {% else %}
+                    <span class="help-text">—</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if ejecucion.fin %}
+                    {{ ejecucion.fin|date:"H:i:s" }}
                 {% else %}
                     <span class="help-text">—</span>
                 {% endif %}
@@ -88,5 +116,3 @@
 </div>
 </div>
 {% endif %}
-
-<a href="{% url 'detalle_investigacion' investigacion.pk %}" class="btn btn-secondary btn-sm enlace-ficha">Ver ficha completa</a>
