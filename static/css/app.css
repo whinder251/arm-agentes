@@ -1842,3 +1842,18 @@ dialog#modal-config::backdrop {
 .modal-footer .btn-secondary {
   margin-right: auto;
 }
+
+/* ============================================================
+   Paso HUB-AUTH-01: Modal dinámico multi-campo
+   ============================================================ */
+.campo-oculto {
+  display: none !important;
+}
+
+.modal-body textarea {
+  width: 100%;
+  min-height: 120px;
+  resize: vertical;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}

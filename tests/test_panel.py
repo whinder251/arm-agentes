@@ -313,6 +313,56 @@ class TestPanel(TestCase):
         assert 'DuckDuckGo' in content
         assert 'Editar' in content
 
+    def test_configurar_wordpress_desde_hub(self):
+        """POST configurar_herramienta para wordpress guarda url, username y password."""
+        self.client.login(username='testuser', password='testpass123')
+        herramienta = Herramienta.objects.create(
+            nombre="WordPress",
+            slug="wordpress",
+            tipo="api",
+            descripcion="Publicación en WordPress",
+            es_sistema=True,
+        )
+        url = reverse('integraciones')
+        response = self.client.post(url, {
+            'configurar_herramienta': 'wordpress',
+            'url': 'https://mi-sitio.com',
+            'username': 'admin',
+            'password': 'app-password-123',
+        })
+        assert response.status_code == 302
+        herramienta.refresh_from_db()
+        assert herramienta.credencial is not None
+        cred = herramienta.credencial
+        assert cred.metadata.get('url') == 'https://mi-sitio.com'
+        assert cred.metadata.get('username') == 'admin'
+        assert cred.secreto_cifrado != 'app-password-123'
+        assert response.url == reverse('integraciones')
+
+    def test_configurar_googlesheets_json_desde_hub(self):
+        """POST configurar_herramienta para googlesheets con service_account guarda JSON."""
+        self.client.login(username='testuser', password='testpass123')
+        herramienta = Herramienta.objects.create(
+            nombre="Google Sheets",
+            slug="googlesheets",
+            tipo="api",
+            descripcion="Hoja de cálculo",
+            es_sistema=True,
+        )
+        url = reverse('integraciones')
+        response = self.client.post(url, {
+            'configurar_herramienta': 'googlesheets',
+            'auth_method': 'service_account',
+            'json_content': '{"type": "service_account", "project_id": "mi-proyecto"}',
+        })
+        assert response.status_code == 302
+        herramienta.refresh_from_db()
+        assert herramienta.credencial is not None
+        cred = herramienta.credencial
+        assert cred.metadata.get('auth_method') == 'service_account'
+        assert cred.secreto_cifrado != ''
+        assert response.url == reverse('integraciones')
+
     def test_integraciones_wordpress_webhooks_sin_boton(self):
         """WordPress y Webhooks (implementadas pero sin vista de destino) no tienen boton Configurar."""
         self.client.login(username='testuser', password='testpass123')
@@ -325,14 +375,15 @@ class TestPanel(TestCase):
         # WordPress y Webhooks muestran estado real (No configurado), sin boton
 
     def test_integraciones_no_duplica(self):
-        """WordPress y DuckDuckGo aparecen una sola vez (deduplicacion por slug)."""
+        """WordPress y DuckDuckGo aparecen una sola vez cada una (deduplicacion por slug)."""
         self.client.login(username='testuser', password='testpass123')
         url = reverse('integraciones')
         response = self.client.get(url)
         assert response.status_code == 200
         content = response.content.decode('utf-8')
         assert content.count('WordPress') == 1
-        assert content.count('DuckDuckGo') == 1
+        assert '<h3 class="hub-tarjeta-nombre">DuckDuckGo</h3>' in content
+        assert content.count('<h3 class="hub-tarjeta-nombre">DuckDuckGo</h3>') == 1
 
     def test_integraciones_notion_proximamente(self):
         """Notion (catalogo, no implementada) muestra Proximamente sin boton Configurar."""

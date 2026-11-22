@@ -1546,6 +1546,20 @@ def _icono_proveedor(nombre):
     return (None, _leer_svg_generico(archivo))
 
 
+# Tipos de credencial soportados por el modal dinámico del hub.
+# Se define a nivel de módulo para evitar problemas de ámbito local en la vista.
+TIPOS_CREDENCIAL = {
+    "duckduckgo-search": {"tipo": "api_key", "campos": ["api_key"]},
+    "tavily-search": {"tipo": "api_key", "campos": ["api_key"]},
+    "google-news": {"tipo": "api_key", "campos": ["api_key"]},
+    "wordpress": {"tipo": "basic_auth", "campos": ["url", "username", "password"]},
+    "googlesheets": {
+        "tipo": "google",
+        "campos": ["auth_method", "api_key", "json_content"],
+    },
+}
+
+
 @login_required
 def integraciones(request):
     """Gestiona las integraciones externas, rota la clave ARM API y
@@ -1706,6 +1720,8 @@ def integraciones(request):
         if categoria_actual and categoria_actual != categoria:
             continue
 
+        tipo_info = TIPOS_CREDENCIAL.get(slug_motor, {})
+        tipo_info = TIPOS_CREDENCIAL.get(slug_motor, {})
         herramientas_unificadas.append({
             "slug": slug_motor,
             "nombre": nombre,
@@ -1721,6 +1737,7 @@ def integraciones(request):
             "conectado": conectado,
             "implementada": True,
             "url_configurar": url_configurar,
+            "tipo_credencial": tipo_info.get("tipo", ""),
         })
 
     # 2) Luego el resto del catalogo (no implementadas), deduplicando por slug.
@@ -1756,30 +1773,78 @@ def integraciones(request):
     if request.method == "POST":
         if request.POST.get("configurar_herramienta"):
             slug = request.POST.get("configurar_herramienta")
-            secreto = (request.POST.get("secreto") or "").strip()
+            tipo_info = TIPOS_CREDENCIAL.get(slug)
             herramienta = Herramienta.objects.filter(slug=slug).first()
-            if herramienta and secreto:
-                if herramienta.credencial:
-                    credencial = herramienta.credencial
-                    credencial.secreto_cifrado = secreto
-                    credencial.save()
-                else:
-                    credencial = Credencial.objects.create(
-                        nombre=herramienta.nombre,
-                        slug=herramienta.slug,
-                        tipo=Credencial.Tipo.API_KEY,
-                        secreto_cifrado=secreto,
-                        metadata={},
-                    )
-                    herramienta.credencial = credencial
-                    herramienta.save()
-                messages.success(
-                    request, f"Credencial configurada para {herramienta.nombre}."
+            if not herramienta or not tipo_info:
+                messages.error(
+                    request, "Herramienta no encontrada o no configurable."
                 )
+                return redirect("integraciones")
+
+            tipo = tipo_info["tipo"]
+            metadata = {}
+
+            if tipo == "api_key":
+                secreto = (request.POST.get("secreto") or "").strip()
+                if not secreto:
+                    messages.error(request, "La API Key no puede ir vacía.")
+                    return redirect("integraciones")
+                secreto_a_guardar = secreto
+
+            elif tipo == "basic_auth":
+                url = (request.POST.get("url") or "").strip()
+                username = (request.POST.get("username") or "").strip()
+                password = (request.POST.get("password") or "").strip()
+                if not url or not username or not password:
+                    messages.error(
+                        request, "URL, usuario y contraseña son obligatorios."
+                    )
+                    return redirect("integraciones")
+                secreto_a_guardar = password
+                metadata = {"url": url, "username": username}
+
+            elif tipo == "google":
+                auth_method = request.POST.get("auth_method") or "api_key"
+                if auth_method == "service_account":
+                    json_content = (request.POST.get("json_content") or "").strip()
+                    if not json_content:
+                        messages.error(
+                            request, "El JSON de cuenta de servicio no puede ir vacío."
+                        )
+                        return redirect("integraciones")
+                    secreto_a_guardar = json_content
+                    metadata = {"auth_method": "service_account"}
+                else:
+                    secreto_api = (request.POST.get("secreto") or "").strip()
+                    if not secreto_api:
+                        messages.error(request, "La API Key no puede ir vacía.")
+                        return redirect("integraciones")
+                    secreto_a_guardar = secreto_api
+                    metadata = {"auth_method": "api_key"}
             else:
                 messages.error(
-                    request, "Credencial no válida o herramienta no encontrada."
+                    request, "Tipo de credencial no soportado."
                 )
+                return redirect("integraciones")
+
+            if herramienta.credencial:
+                credencial = herramienta.credencial
+                credencial.secreto_cifrado = secreto_a_guardar
+                credencial.metadata = metadata
+                credencial.save()
+            else:
+                credencial = Credencial.objects.create(
+                    nombre=herramienta.nombre,
+                    slug=herramienta.slug,
+                    tipo=Credencial.Tipo.API_KEY,
+                    secreto_cifrado=secreto_a_guardar,
+                    metadata=metadata,
+                )
+                herramienta.credencial = credencial
+                herramienta.save()
+            messages.success(
+                request, f"Credencial configurada para {herramienta.nombre}."
+            )
             return redirect("integraciones")
 
         form = DestinoPublicacionForm()
@@ -1796,6 +1861,7 @@ def integraciones(request):
         "categoria_actual": categoria_actual,
         "nueva_clave_arm": nueva_clave_arm,
         "form_destino": form,
+        "tipos_credencial": TIPOS_CREDENCIAL,
     })
 
 

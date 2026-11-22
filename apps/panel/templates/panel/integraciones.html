@@ -64,9 +64,9 @@
             <div class="hub-tarjeta-acciones">
                 {% if herramienta.url_configurar and herramienta.url_configurar != '#arm-api-key' %}
                     {% if herramienta.conectado %}
-                        <button type="button" class="hub-boton-configurar" onclick="abrirModal('{{ herramienta.slug }}')">Editar</button>
+                        <button type="button" class="hub-boton-configurar" onclick="abrirModal('{{ herramienta.slug }}', '{{ herramienta.nombre }}', '{{ herramienta.tipo_credencial }}')">Editar</button>
                     {% else %}
-                        <button type="button" class="hub-boton-configurar" onclick="abrirModal('{{ herramienta.slug }}')">Configurar</button>
+                        <button type="button" class="hub-boton-configurar" onclick="abrirModal('{{ herramienta.slug }}', '{{ herramienta.nombre }}', '{{ herramienta.tipo_credencial }}')">Configurar</button>
                     {% endif %}
                 {% elif herramienta.url_configurar == '#arm-api-key' %}
                     <a href="{{ herramienta.url_configurar }}" class="hub-boton-configurar">Configurar</a>
@@ -99,8 +99,31 @@
         </div>
         <input type="hidden" name="configurar_herramienta" id="modal-slug">
         <div class="modal-body">
-            <label for="modal-secreto">API Key o Token</label>
-            <input type="password" name="secreto" id="modal-secreto" class="input" placeholder="sk-... o token" required>
+            {% if tipo_credencial == 'api_key' %}
+            <label for="modal-api-key">API Key o Token</label>
+            <input type="password" name="secreto" id="modal-api-key" class="input" placeholder="sk-... o token" required>
+            {% elif tipo_credencial == 'basic_auth' %}
+            <label for="modal-url">URL</label>
+            <input type="url" name="url" id="modal-url" class="input" placeholder="https://ejemplo.com" required>
+            <label for="modal-username">Usuario</label>
+            <input type="text" name="username" id="modal-username" class="input" placeholder="usuario" required>
+            <label for="modal-password">Contraseña / Application Password</label>
+            <input type="password" name="password" id="modal-password" class="input" placeholder="contraseña" required>
+            {% elif tipo_credencial == 'google' %}
+            <label for="modal-auth-method">Método de autenticación</label>
+            <select name="auth_method" id="modal-auth-method" class="input">
+                <option value="api_key">API Key</option>
+                <option value="service_account">Cuenta de Servicio (JSON)</option>
+            </select>
+            <div id="modal-campo-api-key">
+                <label for="modal-api-key-google">API Key</label>
+                <input type="password" name="secreto" id="modal-api-key-google" class="input" placeholder="sk-... o token">
+            </div>
+            <div id="modal-campo-json" class="campo-oculto">
+                <label for="modal-json-content">JSON de cuenta de servicio</label>
+                <textarea name="json_content" id="modal-json-content" class="input" rows="6" placeholder='{"type": "service_account", ...}'></textarea>
+            </div>
+            {% endif %}
         </div>
         <div class="modal-footer">
             <button type="button" class="btn-secondary" onclick="cerrarModal()">Cancelar</button>
@@ -119,17 +142,27 @@ function copiarClave(btn) {
     });
 }
 
-function abrirModal(slug, nombre) {
+function abrirModal(slug, nombre, tipoCredencial) {
     var modal = document.getElementById('modal-config');
     var titulo = document.getElementById('modal-titulo');
     var slugInput = document.getElementById('modal-slug');
-    var secretoInput = document.getElementById('modal-secreto');
+    var apiKeyField = document.getElementById('modal-campo-api-key');
+    var jsonField = document.getElementById('modal-campo-json');
+    var authSelect = document.getElementById('modal-auth-method');
     slugInput.value = slug;
-    secretoInput.value = '';
     if (nombre) {
         titulo.textContent = 'Configurar ' + nombre;
     } else {
         titulo.textContent = 'Configurar herramienta';
+    }
+    // Mostrar/ocultar campos según tipo
+    if (apiKeyField) apiKeyField.classList.add('campo-oculto');
+    if (jsonField) jsonField.classList.add('campo-oculto');
+    if (tipoCredencial === 'api_key') {
+        if (apiKeyField) apiKeyField.classList.remove('campo-oculto');
+    } else if (tipoCredencial === 'google' && authSelect) {
+        authSelect.value = 'api_key';
+        if (apiKeyField) apiKeyField.classList.remove('campo-oculto');
     }
     modal.showModal();
 }
@@ -137,5 +170,18 @@ function abrirModal(slug, nombre) {
 function cerrarModal() {
     document.getElementById('modal-config').close();
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    var authSelect = document.getElementById('modal-auth-method');
+    if (authSelect) {
+        authSelect.addEventListener('change', function() {
+            var isJson = this.value === 'service_account';
+            var apiKeyField = document.getElementById('modal-campo-api-key');
+            var jsonField = document.getElementById('modal-campo-json');
+            if (apiKeyField) apiKeyField.classList.toggle('campo-oculto', isJson);
+            if (jsonField) jsonField.classList.toggle('campo-oculto', !isJson);
+        });
+    }
+});
 </script>
 {% endblock %}

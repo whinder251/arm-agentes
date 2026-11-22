@@ -5120,6 +5120,38 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 **Pendiente:** El usuario debe ejecutar `pip install -e .` si aún no lo hizo (pendiente de PHASE1-STEP1) para importar `arm` como paquete instalado.
 
 
+## Paso HUB-AUTH-01 - Modal dinámico multi-campo para WordPress, Google Sheets y API Keys — COMPLETADO
+
+**Objetivo:** Hacer que el modal de configuración renderice los campos correctos según el tipo de autenticación que requiere la herramienta (api_key, basic_auth, google), guardando los datos de forma estructurada en `Credencial.metadata` y el secreto en `Credencial.secreto_cifrado`.
+
+**Archivos tocados (4):**
+
+- `apps/panel/views.py`: Definido `TIPOS_CREDENCIAL` como constante de módulo mapeando slugs a configuración de campos (api_key, basic_auth, google). El bloque POST `configurar_herramienta` lee este diccionario y construye el secreto y metadata según el tipo: `api_key` guarda directamente en `secreto_cifrado`; `basic_auth` guarda `password` en `secreto_cifrado` y `{url, username}` en `metadata`; `google` guarda `json_content` o `secreto` en `secreto_cifrado` y `{auth_method}` en `metadata`. Vincula la credencial a `Herramienta.credencial`.
+- `apps/panel/templates/panel/integraciones.html`: El botón abre un `<dialog>` con form POST. Según `tipo_credencial`, se renderizan campos específicos: `api_key` (input password), `basic_auth` (url, username, password), `google` (select auth_method + input password o textarea json_content con toggle JS). El input hidden `configurar_herramienta` sigue presente. CERO estilos inline.
+- `static/css/app.css`: Añadido `.campo-oculto { display: none !important; }` y estilos para `textarea` dentro del modal (mismo borde, radius, padding que `.input`).
+- `tests/test_panel.py`: Añadidas `test_configurar_wordpress_desde_hub` (POST con url/username/password, verifica metadata y secreto cifrado) y `test_configurar_googlesheets_json_desde_hub` (POST con auth_method=service_account y json_content). Añadidos imports `Herramienta` y `Credencial`.
+
+**Reglas respetadas:**
+
+- Máximo 4 archivos modificados. CERO cambios en `urls.py`, `models.py` o `forms.py`.
+- CERO estilos inline, CERO emojis en código o plantillas.
+- El JS para mostrar/ocultar campos de Google Sheets usa `classList.toggle` y es accesible.
+- Se usa la FK `Herramienta.credencial` existente, guardando el payload de forma estructurada en `metadata`.
+- `CredentialForm` no se usa directamente; se guarda directamente el secreto en el modelo para simplicidad del modal.
+- NO `git push`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "integraciones" -q` → `10 passed`.
+- `grep style=" integraciones.html` → 0 coincidencias.
+
+**Impacto en contratos/datos:** SÍ datos persistidos (nueva fila `Credencial` con `metadata` estructurada + FK `Herramienta.credencial`), SÍ credenciales (secreto cifrado en BD vía `EncryptedTextField`), NO contratos de API, NO permisos, NO tareas en cola, NO migraciones, NO compatibilidad rota.
+
+**Pendiente:** El usuario debe ejecutar `pip install -e .` si aún no lo hizo (pendiente de PHASE1-STEP1) para importar `arm` como paquete instalado.
+
+
 ## Paso PHASE1-STEP1 - Fundación de contratos Pydantic y Tool Gateway independiente — COMPLETADO
 
 **Objetivo:** Crear el núcleo independiente de Django (`arm/`) con los contratos de herramientas y un Gateway básico, sin modificar ni romper la funcionalidad actual de la app Django.
