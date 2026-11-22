@@ -1754,6 +1754,34 @@ def integraciones(request):
         })
 
     if request.method == "POST":
+        if request.POST.get("configurar_herramienta"):
+            slug = request.POST.get("configurar_herramienta")
+            secreto = (request.POST.get("secreto") or "").strip()
+            herramienta = Herramienta.objects.filter(slug=slug).first()
+            if herramienta and secreto:
+                if herramienta.credencial:
+                    credencial = herramienta.credencial
+                    credencial.secreto_cifrado = secreto
+                    credencial.save()
+                else:
+                    credencial = Credencial.objects.create(
+                        nombre=herramienta.nombre,
+                        slug=herramienta.slug,
+                        tipo=Credencial.Tipo.API_KEY,
+                        secreto_cifrado=secreto,
+                        metadata={},
+                    )
+                    herramienta.credencial = credencial
+                    herramienta.save()
+                messages.success(
+                    request, f"Credencial configurada para {herramienta.nombre}."
+                )
+            else:
+                messages.error(
+                    request, "Credencial no válida o herramienta no encontrada."
+                )
+            return redirect("integraciones")
+
         form = DestinoPublicacionForm()
         if request.POST.get("rotar_arm_api"):
             nueva_clave_arm = IntegracionConfig.rotar_clave_arm()

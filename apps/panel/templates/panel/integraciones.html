@@ -62,9 +62,14 @@
                 {% endif %}
             </div>
             <div class="hub-tarjeta-acciones">
-                {% if herramienta.url_configurar %}
-                    <a href="{% if herramienta.url_configurar == '#arm-api-key' %}{{ herramienta.url_configurar }}{% else %}{% url herramienta.url_configurar %}{% endif %}"
-                       class="hub-boton-configurar">Configurar</a>
+                {% if herramienta.url_configurar and herramienta.url_configurar != '#arm-api-key' %}
+                    {% if herramienta.conectado %}
+                        <button type="button" class="hub-boton-configurar" onclick="abrirModal('{{ herramienta.slug }}')">Editar</button>
+                    {% else %}
+                        <button type="button" class="hub-boton-configurar" onclick="abrirModal('{{ herramienta.slug }}')">Configurar</button>
+                    {% endif %}
+                {% elif herramienta.url_configurar == '#arm-api-key' %}
+                    <a href="{{ herramienta.url_configurar }}" class="hub-boton-configurar">Configurar</a>
                 {% endif %}
             </div>
         </div>
@@ -86,6 +91,24 @@
     </form>
 </section>
 
+<dialog id="modal-config" class="modal">
+    <form method="post" class="modal-content">
+        {% csrf_token %}
+        <div class="modal-header">
+            <h3 id="modal-titulo">Configurar herramienta</h3>
+        </div>
+        <input type="hidden" name="configurar_herramienta" id="modal-slug">
+        <div class="modal-body">
+            <label for="modal-secreto">API Key o Token</label>
+            <input type="password" name="secreto" id="modal-secreto" class="input" placeholder="sk-... o token" required>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-secondary" onclick="cerrarModal()">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Guardar</button>
+        </div>
+    </form>
+</dialog>
+
 <script>
 function copiarClave(btn) {
     var input = btn.previousElementSibling;
@@ -94,6 +117,25 @@ function copiarClave(btn) {
         btn.textContent = "Copiado";
         setTimeout(function() { btn.textContent = textoOriginal; }, 1500);
     });
+}
+
+function abrirModal(slug, nombre) {
+    var modal = document.getElementById('modal-config');
+    var titulo = document.getElementById('modal-titulo');
+    var slugInput = document.getElementById('modal-slug');
+    var secretoInput = document.getElementById('modal-secreto');
+    slugInput.value = slug;
+    secretoInput.value = '';
+    if (nombre) {
+        titulo.textContent = 'Configurar ' + nombre;
+    } else {
+        titulo.textContent = 'Configurar herramienta';
+    }
+    modal.showModal();
+}
+
+function cerrarModal() {
+    document.getElementById('modal-config').close();
 }
 </script>
 {% endblock %}

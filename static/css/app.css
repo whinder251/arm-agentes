@@ -1790,3 +1790,55 @@ td input[type="checkbox"] {
   border-color: var(--accent-solid);
   color: var(--accent-solid);
 }
+
+/* ============================================================
+   Paso HUB-CONFIG-01: Modal de configuración in-situ
+   ============================================================ */
+dialog#modal-config {
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  max-width: 480px;
+  width: 90%;
+  box-shadow: var(--shadow-lg);
+}
+
+dialog#modal-config::backdrop {
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+}
+
+.modal-header {
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-md);
+}
+
+.modal-body {
+  margin-bottom: var(--space-md);
+}
+
+.modal-body label {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-xs);
+}
+
+.modal-body input {
+  width: 100%;
+}
+
+.modal-footer {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+  margin-top: var(--space-lg);
+}
+
+.modal-footer .btn-secondary {
+  margin-right: auto;
+}

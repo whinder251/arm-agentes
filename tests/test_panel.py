@@ -14,6 +14,7 @@ from apps.core.models import (
     Proveedor, ModeloLLM, Habilidad, Agente, Equipo, Tarea, Artefacto, Ejecucion,
     Workflow, PasoWorkflow, DestinoPublicacion, IntegracionConfig,
     InvestigacionProgramada, Hallazgo, RegistroEjecucionMonitoreo,
+    Herramienta, Credencial,
 )
 from apps.engine.tasks import continuar_workflow
 from apps.panel.forms import InvestigacionForm
@@ -266,6 +267,52 @@ class TestPanel(TestCase):
         # arm-api apunta al ancla dentro del hub
         assert '#arm-api-key' in content
 
+    def test_configurar_herramienta_desde_hub(self):
+        """POST configurar_herramienta guarda la credencial y marca conectado."""
+        self.client.login(username='testuser', password='testpass123')
+        herramienta = Herramienta.objects.create(
+            nombre="DuckDuckGo",
+            slug="duckduckgo-search",
+            tipo="busqueda",
+            descripcion="Búsqueda web",
+            es_sistema=True,
+        )
+        url = reverse('integraciones')
+        response = self.client.post(url, {
+            'configurar_herramienta': 'duckduckgo-search',
+            'secreto': 'test-key-123',
+        })
+        assert response.status_code == 302
+        herramienta.refresh_from_db()
+        assert herramienta.credencial is not None
+        assert herramienta.credencial.secreto_cifrado != 'test-key-123'
+        assert response.url == reverse('integraciones')
+
+    def test_configurar_herramienta_boton_editar_cuando_conectado(self):
+        """Cuando la herramienta ya tiene credencial, el boton dice Editar."""
+        self.client.login(username='testuser', password='testpass123')
+        credencial = Credencial.objects.create(
+            nombre="DuckDuckGo",
+            slug="duckduckgo-search",
+            tipo=Credencial.Tipo.API_KEY,
+            secreto_cifrado="secreto-existente",
+            metadata={},
+        )
+        herramienta = Herramienta.objects.create(
+            nombre="DuckDuckGo",
+            slug="duckduckgo-search",
+            tipo="busqueda",
+            descripcion="Búsqueda web",
+            credencial=credencial,
+            es_sistema=True,
+        )
+        url = reverse('integraciones')
+        response = self.client.get(url)
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        assert 'DuckDuckGo' in content
+        assert 'Editar' in content
+
     def test_integraciones_wordpress_webhooks_sin_boton(self):
         """WordPress y Webhooks (implementadas pero sin vista de destino) no tienen boton Configurar."""
         self.client.login(username='testuser', password='testpass123')
@@ -303,10 +350,11 @@ class TestPanel(TestCase):
         response = self.client.get(url)
         assert response.status_code == 200
         content = response.content.decode('utf-8')
-        # Implementadas con URL valida tienen boton Configurar
+        # Implementadas con URL valida tienen boton Configurar/Editar (modal)
         assert 'hub-boton-configurar' in content
-        # credenciales aparece para Tavily/DuckDuckGo/Google News
-        assert 'credenciales' in content
+        assert 'Tavily' in content
+        assert 'DuckDuckGo' in content
+        assert 'Google News' in content
         # arm-api apunta al ancla dentro del hub
         assert '#arm-api-key' in content
 

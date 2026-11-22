@@ -5088,6 +5088,38 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 **Pendiente:** El usuario debe ejecutar `pip install -e .` si aún no lo hizo (pendiente de PHASE1-STEP1) para importar `arm` como paquete instalado.
 
 
+## Paso HUB-CONFIG-01 - Modal de configuración in-situ en el Hub de Integraciones — COMPLETADO
+
+**Objetivo:** Añadir un modal de configuración al Hub de Integraciones que permita guardar la credencial de una herramienta por su slug, actualizando el estado de la tarjeta a "Conectado" y cambiando el texto del botón a "Editar".
+
+**Archivos tocados (4):**
+
+- `apps/panel/views.py`: Añadido bloque POST `configurar_herramienta` en la vista `integraciones`. Crea una `Credencial` con `secreto_cifrado` (cifrado automático vía `EncryptedTextField`) y la vincula a `Herramienta.credencial`, o actualiza la credencial existente. Usa `messages.success/error` para feedback y redirige a `integraciones`.
+- `apps/panel/templates/panel/integraciones.html`: En cada tarjeta implementada con URL real, el botón dice "Configurar" (sin credencial) o "Editar" (con credencial) y abre un `<dialog id="modal-config">` con form POST (`configurar_herramienta` hidden + campo `secreto` tipo password). JS `abrirModal(slug)` / `cerrarModal()` usa `showModal()`/`close()`. Las herramientas sin URL real (WordPress, Webhooks) no tienen botón; arm-api sigue siendo enlace al ancla. CERO estilos inline.
+- `static/css/app.css`: Añadidos estilos para `dialog#modal-config`, `::backdrop`, `.modal-header`, `.modal-body`, `.modal-footer` usando exclusivamente tokens Linear-Nod (`--bg-surface`, `--border-primary`, `--text-primary`, `--text-secondary`, `--radius-md`, `--space-lg`, `--shadow-lg`).
+- `tests/test_panel.py`: Añadidos `test_configurar_herramienta_desde_hub` (POST guarda credencial, verifica cifrado y redirección) y `test_configurar_herramienta_boton_editar_cuando_conectado` (botón dice "Editar" cuando hay credencial). Añadidos imports `Herramienta` y `Credencial`.
+
+**Reglas respetadas:**
+
+- Máximo 4 archivos modificados. CERO cambios en `urls.py`, `models.py` o `forms.py`.
+- CERO estilos inline, CERO emojis en código o plantillas.
+- Uso de `<dialog>` nativo de HTML5 con `showModal()` para accesibilidad.
+- El campo de credencial es `type="password"`; el texto se cifra automáticamente al guardarse en `Credencial.secreto_cifrado`.
+- `CredentialForm` no se usa directamente; se guarda directamente el secreto en el modelo para simplicidad del modal.
+- NO `git push`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "integraciones" -q` → `10 passed`.
+- `grep style=" integraciones.html` → 0 coincidencias.
+
+**Impacto en contratos/datos:** SÍ datos persistidos (nueva fila `Credencial` + FK `Herramienta.credencial`), SÍ credenciales (secreto cifrado en BD vía `EncryptedTextField`), NO contratos de API, NO permisos, NO tareas en cola, NO migraciones, NO compatibilidad rota.
+
+**Pendiente:** El usuario debe ejecutar `pip install -e .` si aún no lo hizo (pendiente de PHASE1-STEP1) para importar `arm` como paquete instalado.
+
+
 ## Paso PHASE1-STEP1 - Fundación de contratos Pydantic y Tool Gateway independiente — COMPLETADO
 
 **Objetivo:** Crear el núcleo independiente de Django (`arm/`) con los contratos de herramientas y un Gateway básico, sin modificar ni romper la funcionalidad actual de la app Django.
