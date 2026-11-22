@@ -64,7 +64,7 @@
 {% endif %}
 
 {% if form and proveedor_editar %}
-<div class="tarjeta" style="margin-top: 24px;">
+<div class="tarjeta">
     <h3>Editar proveedor: {{ proveedor_editar.nombre }}</h3>
     <form method="post">
         {% csrf_token %}
