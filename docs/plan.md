@@ -4997,6 +4997,34 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 **Pendiente:** El usuario debe ejecutar `pip install -e .` si aún no lo hizo (pendiente de PHASE1-STEP1) para importar `arm` como paquete instalado.
 
 
+## Paso ESCALADO-HERRAMIENTAS-01 - Hub de Integraciones escalable tipo n8n con búsqueda, filtros e iconos — COMPLETADO
+
+**Objetivo:** Transformar el Hub de Integraciones en un directorio profesional escalable con búsqueda en tiempo real, filtros por categoría e iconos honestos (marca oficial como img, fallback genérico como SVG inline, nunca logo inventado).
+
+**Archivos tocados (4):**
+
+- `apps/panel/views.py`: Vista `integraciones` mejorada para leer y cachear `catalogo.json` con `@lru_cache(maxsize=1)` en `_obtener_catalogo_herramientas()`. Recibe parámetros `?q=` (búsqueda por nombre) y `?categoria=` (filtro por categoría). Cruza los datos del catalogo con el estado real de conexión de la BD (Herramienta con `credencial_id`). Pasa al contexto: `herramientas_filtradas`, `categorias_unicas`, `busqueda_actual`, `categoria_actual`. Agregada importación `from functools import lru_cache`.
+- `apps/panel/templates/panel/integraciones.html`: Rediseño completo del hub con buscador `<input type="search" name="q" class="hub-buscador">`, pills de categoría `<nav class="hub-categorias">` (enlace "Todas" + una por categoría), grid `<div class="hub-grid">` con tarjetas `.hub-tarjeta`, iconos honestos (`<img class="hub-tarjeta-icono-img">` para marca oficial, `<span class="hub-tarjeta-icono--mono">` con SVG inline para genérico). Secciones de "Destinos de publicación" y "ARM API Key" separadas en `<section class="hub-seccion-admin">`. CERO estilos inline.
+- `static/css/app.css`: Estilos `.hub-seccion-admin`, `.hub-titulo-seccion`, `.hub-buscar-form`, `.hub-buscador`, `.hub-categorias`, `.hub-categoria-pill`, `.hub-categoria-pill--activo`, `.hub-grid`, `.hub-tarjeta`, `.hub-tarjeta:hover`, `.hub-tarjeta-icono`, `.hub-tarjeta-icono-img`, `.hub-tarjeta-icono--mono svg`, `.hub-tarjeta-nombre`, `.hub-tarjeta-categoria`, `.hub-tarjeta-estado`, `.hub-vacio`, `.form-eliminar-inline`. Usa exclusivamente tokens Linear-Nod existentes (`--bg-surface`, `--border-primary`, `--text-primary`, `--text-secondary`, `--accent-solid`, `--radius-md`, `--space-*`).
+- `tests/test_panel.py`: Pruebas actualizadas y nuevas: `test_integraciones_render` (hub, buscador, pills, iconos honestos, cero estilos inline), `test_integraciones_render_muestra_destinos`, `test_integraciones_busqueda_q` (`?q=duckduckgo` filtra), `test_integraciones_filtro_categoria` (`?categoria=Automatización` filtra n8n/Zapier/Make/IFTTT), `test_integraciones_icono_honesto` (img para marca, SVG inline para genérico).
+
+**Reglas respetadas:**
+
+- Máximo 4 archivos modificados. CERO cambios en `models.py`, `urls.py` o `forms.py`.
+- CERO estilos inline, CERO emojis en código o plantillas.
+- Fallback honesto: si `logotipo_oficial` es false, se usa SVG genérico inline, nunca logo inventado.
+- `@lru_cache(maxsize=1)` para lectura única de catalogo.json.
+- NO `git push`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "integraciones" -q` → `6 passed`.
+- `grep style=" integraciones.html` → 0 coincidencias.
+
+**Impacto en contratos/datos:** NO contratos de API, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones, NO compatibilidad rota. Solo presentación y filtrado del directorio de herramientas.
+
+**Pendiente:** El usuario debe ejecutar `pip install -e .` si aún no lo hizo (pendiente de PHASE1-STEP1) para importar `arm` como paquete instalado.
 
 
 ## Paso PHASE1-STEP1 - Fundación de contratos Pydantic y Tool Gateway independiente — COMPLETADO

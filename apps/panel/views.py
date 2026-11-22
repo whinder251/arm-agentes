@@ -24,6 +24,7 @@ from django.http import JsonResponse
 import markdown
 import secrets
 import logging
+from functools import lru_cache
 from pathlib import Path
 from dotenv import set_key
 from apps.checks.analisis import generar_reporte_competencia
@@ -1437,6 +1438,17 @@ def _cargar_catalogo_iconos():
     return _ICONOS_CATALOGO
 
 
+@lru_cache(maxsize=1)
+def _obtener_catalogo_herramientas():
+    """Carga catalogo.json una sola vez con lru_cache y devuelve la lista de entradas."""
+    ruta = Path(settings.BASE_DIR) / "static" / "iconos-integraciones" / "catalogo.json"
+    try:
+        datos = json.loads(ruta.read_text(encoding="utf-8"))
+        return datos.get("iconos", [])
+    except Exception:
+        return []
+
+
 def _leer_svg_navegacion(slug):
     """Lee el contenido de un SVG de navegacion (navegacion/<slug>.svg) con
     cache de módulo. Devuelve el texto del SVG o None si no existe."""
@@ -1558,77 +1570,45 @@ def integraciones(request):
         tipo="custom_api", activa=True
     ).exists()
 
-    tools_status = [
-        {
-            "nombre": "Tavily",
-            "slug": "tavily-search",
-            "descripcion": "Búsqueda web avanzada con IA para descubrir contenido de la competencia.",
-            "icono": '<path d="M21 21l-4.35-4.35M19 11a8 8 0 1 1-16 0 8 8 0 0 1 16 0z"/>',
-            "icono_archivo": _icono_archivo_marca("tavily-search"),
-            "url": "lista_herramientas",
-            "estado": (
-                "conectado"
-                if herramientas_sistema.get("tavily-search")
-                and herramientas_sistema["tavily-search"].credencial_id
-                else "pendiente"
+    # --- Hub de herramientas: catalogo, busqueda y filtros ---
+    catalogo = _obtener_catalogo_herramientas()
+    busqueda_actual = request.GET.get("q", "").strip()
+    categoria_actual = request.GET.get("categoria", "").strip()
+
+    herramientas_filtradas = []
+    for entrada in catalogo:
+        slug = entrada.get("slug", "")
+        nombre = entrada.get("nombre", "")
+        categoria = entrada.get("categoria", "")
+        archivo = entrada.get("archivo", "")
+        logotipo_oficial = entrada.get("logotipo_oficial", False)
+
+        if busqueda_actual and busqueda_actual.lower() not in nombre.lower():
+            continue
+        if categoria_actual and categoria_actual != categoria:
+            continue
+
+        conectado = bool(
+            herramientas_sistema.get(slug)
+            and herramientas_sistema[slug].credencial_id
+        )
+
+        herramientas_filtradas.append({
+            "slug": slug,
+            "nombre": nombre,
+            "categoria": categoria,
+            "icono_archivo": (
+                f"iconos-integraciones/{archivo}" if logotipo_oficial else ""
             ),
-        },
-        {
-            "nombre": "DuckDuckGo",
-            "slug": "duckduckgo-search",
-            "descripcion": "Búsqueda web privada y gratuita para rastrear fuentes de información.",
-            "icono": '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
-            "icono_archivo": _icono_archivo_marca("duckduckgo-search"),
-            "url": "lista_herramientas",
-            "estado": (
-                "conectado"
-                if herramientas_sistema.get("duckduckgo-search")
-                and herramientas_sistema["duckduckgo-search"].credencial_id
-                else "pendiente"
+            "icono_inline": (
+                _leer_svg_generico(archivo) if not logotipo_oficial else ""
             ),
-        },
-        {
-            "nombre": "Google News",
-            "slug": "google-news",
-            "descripcion": "Rastreo de actualidad mediante feeds de Google News RSS.",
-            "icono": '<path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h8M8 16h5"/>',
-            "icono_archivo": _icono_archivo_marca("google-news"),
-            "url": "lista_herramientas",
-            "estado": (
-                "conectado"
-                if herramientas_sistema.get("google-news")
-                and herramientas_sistema["google-news"].credencial_id
-                else "pendiente"
-            ),
-        },
-        {
-            "nombre": "WordPress",
-            "slug": "wordpress",
-            "descripcion": "Publicación de artefactos en sitios WordPress mediante REST API.",
-            "icono": '<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1.5 14.5L7 8h2.5l2 6 2-6H16l-3.5 8.5h-2z" fill="currentColor"/>',
-            "icono_archivo": _icono_archivo_marca("wordpress"),
-            "url": "integraciones",
-            "estado": "conectado" if wordpress_activo else "pendiente",
-        },
-        {
-            "nombre": "Webhooks",
-            "slug": "webhooks",
-            "descripcion": "Endpoints HTTP para recibir eventos de servicios externos.",
-            "icono": _leer_svg_navegacion("conexiones") or '<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>',
-            "icono_archivo": _icono_archivo_marca("webhooks"),
-            "url": "integraciones",
-            "estado": "conectado" if webhook_activo else "pendiente",
-        },
-        {
-            "nombre": "API del Sistema",
-            "slug": "arm-api",
-            "descripcion": "Clave de autenticación para consumir la API REST de ARM desde sistemas externos.",
-            "icono": _leer_svg_navegacion("boveda") or '<path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>',
-            "icono_archivo": _icono_archivo_marca("arm-api"),
-            "url": "integraciones",
-            "estado": "conectado" if api_activa else "pendiente",
-        },
-    ]
+            "conectado": conectado,
+        })
+
+    categorias_unicas = sorted(
+        {e.get("categoria", "") for e in catalogo if e.get("categoria")}
+    )
 
     if request.method == "POST":
         form = DestinoPublicacionForm()
@@ -1650,7 +1630,10 @@ def integraciones(request):
         "destinos": destinos,
         "form_destino": form,
         "nueva_clave_arm": nueva_clave_arm,
-        "tools_status": tools_status,
+        "herramientas_filtradas": herramientas_filtradas,
+        "categorias_unicas": categorias_unicas,
+        "busqueda_actual": busqueda_actual,
+        "categoria_actual": categoria_actual,
     })
 
 

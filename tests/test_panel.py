@@ -234,39 +234,63 @@ class TestPanel(TestCase):
         assert response.status_code == 200
         content = response.content.decode('utf-8')
         assert 'Integraciones del Sistema' in content
-        # Grid de tarjetas (no tabla)
-        assert 'grid-integraciones' in content
-        assert 'class="card"' in content
-        # Tarjetas de integración presentes
-        assert 'Tavily' in content
-        assert 'DuckDuckGo' in content
-        assert 'Google News' in content
-        assert 'WordPress' in content
-        assert 'Webhooks' in content
-        assert 'API del Sistema' in content
-        # Badges de estado
-        assert 'badge-success' in content or 'badge-neutral' in content
-        # Botones de configurar
-        assert 'Configurar' in content
-        # No queda la tabla antigua
-        assert '<table' not in content
-        assert 'class="tabla"' not in content
-        # Iconos de marca (duckduckgo y wordpress usan marca/<slug>.svg)
+        # Hub escalable: grid y tarjetas
+        assert 'hub-grid' in content
+        assert 'hub-tarjeta' in content
+        assert 'hub-buscador' in content
+        assert 'hub-categorias' in content
+        assert 'hub-categoria-pill' in content
+        # DuckDuckGo (marca oficial) renderiza img de marca
         assert 'iconos-integraciones/marca/duckduckgo.svg' in content
-        assert 'iconos-integraciones/marca/wordpress.svg' in content
-        # Los img de marca llevan alt="" y width/height
-        assert '<img class="icono-integracion" src="' in content
+        assert '<img class="hub-tarjeta-icono-img" src="' in content
         assert 'alt=""' in content
         assert 'width="32"' in content
         assert 'height="32"' in content
         assert 'loading="lazy"' in content
-        # tavily-search y google-news no tienen logo de marca: no renderizan img de marca inexistente
-        assert 'iconos-integraciones/marca/tavily-search.svg' not in content
-        assert 'iconos-integraciones/marca/google-news.svg' not in content
-        # webhooks y arm-api usan icono mono (clase tool-logo--mono)
-        assert 'tool-logo--mono' in content
+        # ahrefs (sin logo oficial) usa SVG inline generico, nunca marca inexistente
+        assert 'iconos-integraciones/marca/ahrefs.svg' not in content
+        assert 'hub-tarjeta-icono--mono' in content
+        # Secciones administrativas separadas
+        assert 'Destinos de Publicación' in content
+        assert 'ARM API Key' in content
         # Cero estilos inline
         assert 'style="' not in content
+
+    def test_integraciones_busqueda_q(self):
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('integraciones')
+        response = self.client.get(url, {'q': 'duckduckgo'})
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        assert 'DuckDuckGo' in content
+        # No debe mostrar herramientas que no coincidan
+        assert 'Zapier' not in content
+        assert 'n8n' not in content
+
+    def test_integraciones_filtro_categoria(self):
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('integraciones')
+        response = self.client.get(url, {'categoria': 'Automatización'})
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        assert 'n8n' in content
+        assert 'Zapier' in content
+        assert 'Make' in content
+        assert 'IFTTT' in content
+        # No debe mostrar herramientas de otras categorías
+        assert 'DuckDuckGo' not in content
+
+    def test_integraciones_icono_honesto(self):
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('integraciones')
+        response = self.client.get(url)
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        # Marca oficial: img
+        assert 'iconos-integraciones/marca/duckduckgo.svg' in content
+        # Sin logo oficial: SVG inline generico, nunca marca inventada
+        assert 'iconos-integraciones/marca/ahrefs.svg' not in content
+        assert 'hub-tarjeta-icono--mono' in content
 
     def test_lista_ejecuciones_render(self):
         tarea = Tarea.objects.create(
@@ -983,11 +1007,12 @@ class TestPanel(TestCase):
         assert response.status_code == 200
         content = response.content.decode('utf-8')
         assert 'Integraciones del Sistema' in content
-        assert 'grid-integraciones' in content
-        assert 'class="card"' in content
-        assert 'Tavily' in content
+        assert 'hub-grid' in content
+        assert 'hub-tarjeta' in content
+        assert 'Tavily' not in content
         assert 'WordPress' in content
-        assert 'API del Sistema' in content
+        assert 'Destinos de Publicación' in content
+        assert 'ARM API Key' in content
 
     def test_crear_destino_publicacion(self):
         self.client.login(username='testuser', password='testpass123')

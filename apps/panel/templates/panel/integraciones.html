@@ -17,35 +17,115 @@
 </div>
 {% endif %}
 
-<div class="grid-integraciones">
-    {% for tool in tools_status %}
-    <div class="card">
-        <span class="tool-logo{% if not tool.icono_archivo %} tool-logo--mono{% endif %}">
-            {% if tool.icono_archivo %}
-            <img class="icono-integracion" src="{% static tool.icono_archivo %}" alt="" width="32" height="32" loading="lazy">
-            {% else %}
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                {{ tool.icono|safe }}
-            </svg>
-            {% endif %}
-        </span>
-        <h3>{{ tool.nombre }}</h3>
-        <p class="help-text">{{ tool.descripcion }}</p>
-        <div>
-            {% if tool.estado == 'conectado' %}
-                <span class="badge badge-success">Conectado</span>
-            {% else %}
-                <span class="badge badge-neutral">Pendiente</span>
-            {% endif %}
-            <a href="{% url tool.url %}" class="btn btn-secondary btn-sm">Configurar</a>
+<section class="hub-seccion-admin">
+    <h2 class="hub-titulo-seccion">Directorio de Herramientas</h2>
+
+    <form method="get" class="hub-buscar-form">
+        <input type="search" name="q" value="{{ busqueda_actual }}"
+               placeholder="Buscar herramienta..." class="hub-buscador" autocomplete="off">
+    </form>
+
+    <nav class="hub-categorias">
+        <a href="?q={{ busqueda_actual }}" class="hub-categoria-pill{% if not categoria_actual %} hub-categoria-pill--activo{% endif %}">
+            Todas
+        </a>
+        {% for categoria in categorias_unicas %}
+        <a href="?categoria={{ categoria }}{% if busqueda_actual %}&q={{ busqueda_actual }}{% endif %}"
+           class="hub-categoria-pill{% if categoria_actual == categoria %} hub-categoria-pill--activo{% endif %}">
+            {{ categoria }}
+        </a>
+        {% endfor %}
+    </nav>
+
+    <div class="hub-grid">
+        {% for herramienta in herramientas_filtradas %}
+        <div class="hub-tarjeta">
+            <div class="hub-tarjeta-icono">
+                {% if herramienta.icono_archivo %}
+                <img class="hub-tarjeta-icono-img" src="{% static herramienta.icono_archivo %}"
+                     alt="" width="32" height="32" loading="lazy">
+                {% else %}
+                <span class="hub-tarjeta-icono--mono">{{ herramienta.icono_inline|safe }}</span>
+                {% endif %}
+            </div>
+            <h3 class="hub-tarjeta-nombre">{{ herramienta.nombre }}</h3>
+            <p class="hub-tarjeta-categoria">{{ herramienta.categoria }}</p>
+            <div class="hub-tarjeta-estado">
+                {% if herramienta.conectado %}
+                    <span class="badge badge-success">Conectado</span>
+                {% else %}
+                    <span class="badge badge-neutral">No configurado</span>
+                {% endif %}
+            </div>
         </div>
+        {% empty %}
+        <div class="hub-tarjeta hub-vacio">
+            <p class="vacio">No se encontraron herramientas con esos filtros.</p>
+        </div>
+        {% endfor %}
     </div>
-    {% empty %}
-    <div class="card">
-        <p class="vacio">No se pudieron cargar las integraciones.</p>
+</section>
+
+<section class="hub-seccion-admin">
+    <h2 class="hub-titulo-seccion">Destinos de Publicación</h2>
+    <table class="tabla">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Tipo</th>
+                <th>URL</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for destino in destinos %}
+            <tr>
+                <td>{{ destino.nombre }}</td>
+                <td>{{ destino.get_tipo_display }}</td>
+                <td>{{ destino.url }}</td>
+                <td>
+                    {% if destino.activa %}
+                        <span class="badge badge-success">Activo</span>
+                    {% else %}
+                        <span class="badge badge-error">Inactivo</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="{% url 'editar_destino' destino.pk %}" class="enlace-editar">Editar</a>
+                    <form method="post" action="{% url 'eliminar_destino' destino.pk %}" class="form-eliminar form-eliminar-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-danger-sm" onclick="return confirm('¿Eliminar este destino?');">Eliminar</button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="vacio">No hay destinos de publicación configurados.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="acciones-formulario">
+        <form method="post" class="form-destino">
+            {% csrf_token %}
+            <input type="hidden" name="crear_destino" value="1">
+            {{ form_destino.as_p }}
+            <button type="submit" class="btn btn-primary">Añadir Destino</button>
+        </form>
     </div>
-    {% endfor %}
-</div>
+</section>
+
+<section class="hub-seccion-admin">
+    <h2 class="hub-titulo-seccion">ARM API Key</h2>
+    <form method="post" class="form-rotar-arm">
+        {% csrf_token %}
+        <button type="submit" name="rotar_arm_api" class="btn btn-danger btn-sm" onclick="return confirm('¿Generar una nueva clave ARM API? La clave anterior se invalidará.');">
+            Rotar Clave API
+        </button>
+    </form>
+</section>
 
 <script>
 function copiarClave(btn) {

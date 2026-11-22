@@ -1623,3 +1623,140 @@ td input[type="checkbox"] {
   height: 20px;
   color: var(--text-secondary);
 }
+
+/* ============================================================
+   Paso ESCALADO-HERRAMIENTAS-01: Hub de Integraciones escalable
+   ============================================================ */
+.hub-seccion-admin {
+  margin-top: var(--space-lg);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border-primary);
+}
+
+.hub-titulo-seccion {
+  font-size: var(--text-lg);
+  color: var(--text-primary);
+  margin: 0 0 var(--space-md) 0;
+}
+
+.hub-buscar-form {
+  margin: 0 0 var(--space-md) 0;
+}
+
+.hub-buscador {
+  width: 100%;
+  max-width: 400px;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.hub-buscador:focus {
+  outline: none;
+  border-color: var(--accent-solid);
+}
+
+.hub-categorias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin: 0 0 var(--space-md) 0;
+  overflow-x: auto;
+}
+
+.hub-categoria-pill {
+  display: inline-block;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--border-primary);
+  border-radius: 999px;
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
+}
+
+.hub-categoria-pill:hover {
+  border-color: var(--accent-solid);
+}
+
+.hub-categoria-pill--activo {
+  background: var(--accent-solid);
+  color: #fff;
+  border-color: var(--accent-solid);
+}
+
+.hub-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-md);
+}
+
+.hub-tarjeta {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  text-align: center;
+  transition: border-color 0.15s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.hub-tarjeta:hover {
+  border-color: var(--accent-solid);
+}
+
+.hub-tarjeta-icono {
+  margin-bottom: var(--space-sm);
+}
+
+.hub-tarjeta-icono-img {
+  width: 32px;
+  height: 32px;
+}
+
+.hub-tarjeta-icono--mono {
+  display: inline-block;
+}
+
+.hub-tarjeta-icono--mono svg {
+  width: 32px;
+  height: 32px;
+  color: var(--text-secondary);
+}
+
+.hub-tarjeta-nombre {
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+  margin: 0 0 var(--space-xs) 0;
+}
+
+.hub-tarjeta-categoria {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  margin: 0 0 var(--space-sm) 0;
+}
+
+.hub-tarjeta-estado {
+  margin-top: auto;
+}
+
+.hub-vacio {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: var(--space-lg);
+  color: var(--text-secondary);
+}
+
+.form-eliminar-inline {
+  display: inline;
+}
