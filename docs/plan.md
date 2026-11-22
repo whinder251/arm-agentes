@@ -5027,6 +5027,35 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 **Pendiente:** El usuario debe ejecutar `pip install -e .` si aún no lo hizo (pendiente de PHASE1-STEP1) para importar `arm` como paquete instalado.
 
 
+## Paso HUB-FIX-01 - Hub limpio, boton Configurar en implementadas y Proximamente en no disponibles — COMPLETADO
+
+**Objetivo:** Limpiar el pie del hub de integraciones: ocultar el formulario de DestinosPublicacion por defecto, restaurar el boton Configurar solo en las 6 herramientas implementadas dirigiendo a URLs existentes, y marcar el resto como Proximamente sin boton.
+
+**Archivos tocados (4):**
+
+- `apps/panel/views.py`: En la vista `integraciones`, se agrega `SLUGS_IMPLEMENTADOS` con el mapeo slug → URL existente (`credenciales` para tavily-search/duckduckgo-search/google-news; `integraciones` para wordpress/webhooks/arm-api). Cada entrada de `herramientas_filtradas` se anota con `implementada` (bool) y `url_configurar` (str o None).
+- `apps/panel/templates/panel/integraciones.html`: El formulario de destino se envolvió en `<div id="form-destino" class="hub-form-oculto">` con boton "Añadir destino" que togglea `hub-form-visible` via `classList` (sin estilos inline). Cada `.hub-tarjeta` muestra boton "Configurar" (href a `url_configurar`) solo si `implementada`; si no, muestra badge "Proximamente" sin boton. Secciones de Destinos y ARM API Key mantienen su estructura.
+- `static/css/app.css`: Agregados `.hub-tarjeta-acciones`, `.hub-boton-configurar`, `.hub-form-oculto { display: none; }` y `.hub-form-oculto.hub-form-visible { display: block; }`. No se toco reglas existentes.
+- `tests/test_panel.py`: Extendido `test_integraciones_render` (form oculto por defecto, boton Configurar para implementadas, Proximamente para no implementadas, cero estilos inline), agregado `test_integraciones_configurar_solo_implementadas` y `test_integraciones_toggle_form_destino`.
+
+**Reglas respetadas:**
+
+- Máximo 4 archivos modificados. CERO cambios en `urls.py`, `models.py` o `forms.py`. No se crearon rutas nuevas.
+- CERO estilos inline, CERO emojis. El toggle usa `classList`, no `style`.
+- Fallback honesto: herramienta sin implementación no ofrece boton ni estado de conexión falso.
+- URLs existentes reutilizadas (`credenciales`, `integraciones`), no se crearon rutas nuevas.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "integraciones" -q` → `8 passed`.
+- `grep style=" integraciones.html` → 0 coincidencias.
+
+**Impacto en contratos/datos:** NO contratos de API, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones, NO compatibilidad rota. Solo presentación del hub.
+
+**Pendiente:** El usuario debe ejecutar `pip install -e .` si aún no lo hizo (pendiente de PHASE1-STEP1) para importar `arm` como paquete instalado.
+
+
 ## Paso PHASE1-STEP1 - Fundación de contratos Pydantic y Tool Gateway independiente — COMPLETADO
 
 **Objetivo:** Crear el núcleo independiente de Django (`arm/`) con los contratos de herramientas y un Gateway básico, sin modificar ni romper la funcionalidad actual de la app Django.

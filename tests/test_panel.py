@@ -253,8 +253,54 @@ class TestPanel(TestCase):
         # Secciones administrativas separadas
         assert 'Destinos de Publicación' in content
         assert 'ARM API Key' in content
-        # Cero estilos inline
+        # Boton Configurar para implementadas (duckduckgo y wordpress)
+        assert 'hub-tarjeta-acciones' in content
+        assert 'hub-boton-configurar' in content
+        # No implementada (notion) muestra Proximamente, sin boton Configurar
+        assert 'Notion' in content
+        assert 'Proximamente' in content
+        # Formulario de destino oculto por defecto (clase, no estilo inline)
+        assert 'hub-form-oculto' in content
+        assert 'id="form-destino"' in content
+        assert 'btn-anadir-destino' in content
+        # El elemento form-destino no tiene la clase visible en su atributo class
+        import re
+        m = re.search(r'id="form-destino"[^>]*class="([^"]*)"', content)
+        assert m is not None
+        assert 'hub-form-visible' not in m.group(1)
+        assert 'hub-form-oculto' in m.group(1)
+        # No deben aparecer campos sueltos del form VISIBLES (oculto por clase, no estilo inline)
         assert 'style="' not in content
+
+    def test_integraciones_configurar_solo_implementadas(self):
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('integraciones')
+        response = self.client.get(url)
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        # Implementadas: wordpress y duckduckgo tienen boton Configurar
+        assert 'hub-boton-configurar' in content
+        # No implementada: Notion no tiene boton Configurar
+        assert 'Notion' in content
+        # Proximamente aparece para no implementadas
+        assert 'Proximamente' in content
+
+    def test_integraciones_toggle_form_destino(self):
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('integraciones')
+        response = self.client.get(url)
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        # Boton Anadir destino existe
+        assert 'btn-anadir-destino' in content
+        # Form destino existe con id y clase oculta por defecto (no visible)
+        assert 'id="form-destino"' in content
+        assert 'hub-form-oculto' in content
+        import re
+        m = re.search(r'id="form-destino"[^>]*class="([^"]*)"', content)
+        assert m is not None
+        assert 'hub-form-visible' not in m.group(1)
+        assert 'hub-form-oculto' in m.group(1)
 
     def test_integraciones_busqueda_q(self):
         self.client.login(username='testuser', password='testpass123')

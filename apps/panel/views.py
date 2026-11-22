@@ -1610,6 +1610,22 @@ def integraciones(request):
         {e.get("categoria", "") for e in catalogo if e.get("categoria")}
     )
 
+    # Slugs de herramientas realmente implementadas en el motor, y la URL
+    # existente a la que dirige su boton Configurar. NO se crean rutas nuevas.
+    SLUGS_IMPLEMENTADOS = {
+        "tavily-search": "credenciales",
+        "duckduckgo-search": "credenciales",
+        "google-news": "credenciales",
+        "wordpress": "integraciones",
+        "webhooks": "integraciones",
+        "arm-api": "integraciones",
+    }
+
+    for herramienta in herramientas_filtradas:
+        slug = herramienta["slug"]
+        herramienta["implementada"] = slug in SLUGS_IMPLEMENTADOS
+        herramienta["url_configurar"] = SLUGS_IMPLEMENTADOS.get(slug)
+
     if request.method == "POST":
         form = DestinoPublicacionForm()
         if request.POST.get("rotar_arm_api"):

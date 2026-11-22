@@ -51,10 +51,19 @@
             <h3 class="hub-tarjeta-nombre">{{ herramienta.nombre }}</h3>
             <p class="hub-tarjeta-categoria">{{ herramienta.categoria }}</p>
             <div class="hub-tarjeta-estado">
-                {% if herramienta.conectado %}
-                    <span class="badge badge-success">Conectado</span>
+                {% if herramienta.implementada %}
+                    {% if herramienta.conectado %}
+                        <span class="badge badge-success">Conectado</span>
+                    {% else %}
+                        <span class="badge badge-neutral">No configurado</span>
+                    {% endif %}
                 {% else %}
-                    <span class="badge badge-neutral">No configurado</span>
+                    <span class="badge badge-neutral">Proximamente</span>
+                {% endif %}
+            </div>
+            <div class="hub-tarjeta-acciones">
+                {% if herramienta.implementada %}
+                    <a href="{% url herramienta.url_configurar %}" class="hub-boton-configurar">Configurar</a>
                 {% endif %}
             </div>
         </div>
@@ -107,13 +116,18 @@
         </tbody>
     </table>
 
-    <div class="acciones-formulario">
-        <form method="post" class="form-destino">
-            {% csrf_token %}
-            <input type="hidden" name="crear_destino" value="1">
-            {{ form_destino.as_p }}
-            <button type="submit" class="btn btn-primary">Añadir Destino</button>
-        </form>
+    <button type="button" class="btn btn-secondary btn-sm" id="btn-anadir-destino" onclick="toggleFormDestino()">
+        Añadir destino
+    </button>
+    <div id="form-destino" class="hub-form-oculto">
+        <div class="acciones-formulario">
+            <form method="post" class="form-destino">
+                {% csrf_token %}
+                <input type="hidden" name="crear_destino" value="1">
+                {{ form_destino.as_p }}
+                <button type="submit" class="btn btn-primary">Añadir Destino</button>
+            </form>
+        </div>
     </div>
 </section>
 
@@ -135,6 +149,18 @@ function copiarClave(btn) {
         btn.textContent = "Copiado";
         setTimeout(function() { btn.textContent = textoOriginal; }, 1500);
     });
+}
+
+function toggleFormDestino() {
+    var form = document.getElementById('form-destino');
+    var btn = document.getElementById('btn-anadir-destino');
+    if (form.classList.contains('hub-form-visible')) {
+        form.classList.remove('hub-form-visible');
+        btn.textContent = 'Añadir destino';
+    } else {
+        form.classList.add('hub-form-visible');
+        btn.textContent = 'Ocultar formulario';
+    }
 }
 </script>
 {% endblock %}
