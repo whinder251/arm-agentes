@@ -12,7 +12,7 @@
     <strong>Copia esta clave ahora. No se volverá a mostrar.</strong>
 </div>
 <div class="api-key-fila">
-    <input type="text" class="input" value="{{ nueva_clave_arm }}" readonly>
+    <input type="text" class="input" id="arm-api-key" value="{{ nueva_clave_arm }}" readonly>
     <button type="button" class="btn-secondary" onclick="copiarClave(this)">Copiar</button>
 </div>
 {% endif %}
@@ -38,7 +38,7 @@
     </nav>
 
     <div class="hub-grid">
-        {% for herramienta in herramientas_filtradas %}
+        {% for herramienta in herramientas_unificadas %}
         <div class="hub-tarjeta">
             <div class="hub-tarjeta-icono">
                 {% if herramienta.icono_archivo %}
@@ -62,8 +62,9 @@
                 {% endif %}
             </div>
             <div class="hub-tarjeta-acciones">
-                {% if herramienta.implementada %}
-                    <a href="{% url herramienta.url_configurar %}" class="hub-boton-configurar">Configurar</a>
+                {% if herramienta.url_configurar %}
+                    <a href="{% if herramienta.url_configurar == '#arm-api-key' %}{{ herramienta.url_configurar }}{% else %}{% url herramienta.url_configurar %}{% endif %}"
+                       class="hub-boton-configurar">Configurar</a>
                 {% endif %}
             </div>
         </div>
@@ -75,63 +76,7 @@
     </div>
 </section>
 
-<section class="hub-seccion-admin">
-    <h2 class="hub-titulo-seccion">Destinos de Publicación</h2>
-    <table class="tabla">
-        <thead>
-            <tr>
-                <th>Nombre</th>
-                <th>Tipo</th>
-                <th>URL</th>
-                <th>Estado</th>
-                <th>Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for destino in destinos %}
-            <tr>
-                <td>{{ destino.nombre }}</td>
-                <td>{{ destino.get_tipo_display }}</td>
-                <td>{{ destino.url }}</td>
-                <td>
-                    {% if destino.activa %}
-                        <span class="badge badge-success">Activo</span>
-                    {% else %}
-                        <span class="badge badge-error">Inactivo</span>
-                    {% endif %}
-                </td>
-                <td>
-                    <a href="{% url 'editar_destino' destino.pk %}" class="enlace-editar">Editar</a>
-                    <form method="post" action="{% url 'eliminar_destino' destino.pk %}" class="form-eliminar form-eliminar-inline">
-                        {% csrf_token %}
-                        <button type="submit" class="btn-danger-sm" onclick="return confirm('¿Eliminar este destino?');">Eliminar</button>
-                    </form>
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="5" class="vacio">No hay destinos de publicación configurados.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <button type="button" class="btn btn-secondary btn-sm" id="btn-anadir-destino" onclick="toggleFormDestino()">
-        Añadir destino
-    </button>
-    <div id="form-destino" class="hub-form-oculto">
-        <div class="acciones-formulario">
-            <form method="post" class="form-destino">
-                {% csrf_token %}
-                <input type="hidden" name="crear_destino" value="1">
-                {{ form_destino.as_p }}
-                <button type="submit" class="btn btn-primary">Añadir Destino</button>
-            </form>
-        </div>
-    </div>
-</section>
-
-<section class="hub-seccion-admin">
+<section class="hub-seccion-admin" id="arm-api-key">
     <h2 class="hub-titulo-seccion">ARM API Key</h2>
     <form method="post" class="form-rotar-arm">
         {% csrf_token %}
@@ -149,18 +94,6 @@ function copiarClave(btn) {
         btn.textContent = "Copiado";
         setTimeout(function() { btn.textContent = textoOriginal; }, 1500);
     });
-}
-
-function toggleFormDestino() {
-    var form = document.getElementById('form-destino');
-    var btn = document.getElementById('btn-anadir-destino');
-    if (form.classList.contains('hub-form-visible')) {
-        form.classList.remove('hub-form-visible');
-        btn.textContent = 'Añadir destino';
-    } else {
-        form.classList.add('hub-form-visible');
-        btn.textContent = 'Ocultar formulario';
-    }
 }
 </script>
 {% endblock %}

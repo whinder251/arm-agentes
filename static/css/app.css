@@ -1790,11 +1790,3 @@ td input[type="checkbox"] {
   border-color: var(--accent-solid);
   color: var(--accent-solid);
 }
-
-.hub-form-oculto {
-  display: none;
-}
-
-.hub-form-oculto.hub-form-visible {
-  display: block;
-}

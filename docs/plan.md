@@ -5056,6 +5056,38 @@ Toggle "Modo avanzado" que expone el textarea JSON crudo para casos exóticos. R
 **Pendiente:** El usuario debe ejecutar `pip install -e .` si aún no lo hizo (pendiente de PHASE1-STEP1) para importar `arm` como paquete instalado.
 
 
+## Paso HUB-FIX-02 - Hub une motor y catalogo, corrige slugs y retira Destinos — COMPLETADO
+
+**Objetivo:** Unir el motor y el catalogo en el hub de integraciones: las 6 herramientas del motor aparecen al inicio con boton Configurar honesto (solo si tienen URL valida), el resto del catalogo aparece como "Proximamente" sin boton, y la seccion "Destinos de Publicacion" se retira del hub.
+
+**Archivos tocados (4):**
+
+- `apps/panel/views.py`: Definido `HERRAMIENTAS_MOTOR` con mapeo slug_motor→slug_catalogo→url_configurar→icono_fallback (tavily-search→lista_credenciales, duckduckgo-search→duckduckgo/lista_credenciales, google-news→lista_credenciales, wordpress→wordpress/sin boton, webhooks→sin boton, arm-api→#arm-api-key). Listado unificado: primero las 6 del motor, luego el resto del catalogo deduplicado por slug (excluyendo wordpress/duckduckgo). Quitado bloque POST `crear_destino` y contexto `form_destino`/`destinos`; se conserva `rotar_arm_api`.
+- `apps/panel/templates/panel/integraciones.html`: Quitado la seccion completa "Destinos de Publicacion", boton "Añadir destino", div#form-destino y funcion JS `toggleFormDestino`. El grid recorre `herramientas_unificadas`: las del motor con boton "Configurar" (si tienen url_configurar), las del catalogo con badge "Proximamente" sin boton. Se conservan buscador, pills de categoria y la seccion "ARM API Key" con `id="arm-api-key"`. CERO estilos inline.
+- `static/css/app.css`: Quitadas reglas `.hub-form-oculto` y `.hub-form-oculto.hub-form-visible`. Conservadas `.hub-tarjeta-acciones` y `.hub-boton-configurar`.
+- `tests/test_panel.py`: Quitado `test_integraciones_toggle_form_destino`. Ajustado `test_integraciones_render` (sin form-destino, btn-anadir-destino ni "Destinos de Publicacion"; espera las 6 del motor con DuckDuckGo boton Configurar). Agregadas pruebas: `test_integraciones_no_duplica` (una sola tarjeta por slug), `test_integraciones_notion_proximamente` (Notion como Proximamente sin boton), `test_integraciones_wordpress_webhooks_sin_boton` (sin boton para WordPress/Webhooks), `test_integraciones_configurar_solo_implementadas` (solo implementadas con URL valida tienen boton), y seccion Destinos ausente del HTML.
+
+**Reglas respetadas:**
+
+- Máximo 4 archivos modificados. CERO cambios en `urls.py`, `models.py` o `forms.py`. No se crearon rutas nuevas.
+- CERO estilos inline, CERO emojis en código o plantillas.
+- Fallback honesto: herramienta del motor sin entrada de catalogo usa icono generico/navegacion, nunca logo inventado.
+- Ningún boton apunta a la vista del hub sin ancla concreta; WordPress y Webhooks no llevan boton (su gestion de destinos se retira de este hub).
+- `@lru_cache(maxsize=1)` para lectura única de catalogo.json.
+- NO `git push`.
+
+**Evidencia de aceptación (ejecutado en esta sesión):**
+
+- `.venv\Scripts\python.exe manage.py check` → `System check identified no issues (0 silenced)`.
+- `.venv\Scripts\python.exe manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `.venv\Scripts\python.exe -m pytest tests/test_panel.py -k "integraciones" -q` → `10 passed`.
+- `grep style=" integraciones.html` → 0 coincidencias.
+
+**Impacto en contratos/datos:** NO contratos de API, NO datos persistidos, NO credenciales, NO permisos, NO tareas en cola, NO migraciones, NO compatibilidad rota. Solo presentación del hub; DestinosPublicacion se retira DEL HUB solo (el modelo/URLs se mantienen para otro paso).
+
+**Pendiente:** El usuario debe ejecutar `pip install -e .` si aún no lo hizo (pendiente de PHASE1-STEP1) para importar `arm` como paquete instalado.
+
+
 ## Paso PHASE1-STEP1 - Fundación de contratos Pydantic y Tool Gateway independiente — COMPLETADO
 
 **Objetivo:** Crear el núcleo independiente de Django (`arm/`) con los contratos de herramientas y un Gateway básico, sin modificar ni romper la funcionalidad actual de la app Django.

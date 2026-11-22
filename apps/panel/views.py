@@ -1610,46 +1610,164 @@ def integraciones(request):
         {e.get("categoria", "") for e in catalogo if e.get("categoria")}
     )
 
-    # Slugs de herramientas realmente implementadas en el motor, y la URL
-    # existente a la que dirige su boton Configurar. NO se crean rutas nuevas.
-    SLUGS_IMPLEMENTADOS = {
-        "tavily-search": "credenciales",
-        "duckduckgo-search": "credenciales",
-        "google-news": "credenciales",
-        "wordpress": "integraciones",
-        "webhooks": "integraciones",
-        "arm-api": "integraciones",
+    # --- Herramientas realmente implementadas en el motor ---
+    # URL de configuracion existente (sin crear rutas nuevas).
+    # arm-api apunta a una ancla dentro del propio hub; wordpress/webhooks
+    # NO llevan boton porque su gestion de destinos se retira de este hub.
+    HERRAMIENTAS_MOTOR = [
+        {
+            "slug_motor": "tavily-search",
+            "nombre": "Tavily",
+            "slug_catalogo": None,
+            "url_configurar": "lista_credenciales",
+            "icono_fallback": "",
+            "categoria": "Busqueda y analisis",
+        },
+        {
+            "slug_motor": "duckduckgo-search",
+            "nombre": "DuckDuckGo",
+            "slug_catalogo": "duckduckgo",
+            "url_configurar": "lista_credenciales",
+            "icono_fallback": "",
+            "categoria": "Busqueda y analisis",
+        },
+        {
+            "slug_motor": "google-news",
+            "nombre": "Google News",
+            "slug_catalogo": None,
+            "url_configurar": "lista_credenciales",
+            "icono_fallback": "",
+            "categoria": "Busqueda y analisis",
+        },
+        {
+            "slug_motor": "wordpress",
+            "slug_catalogo": "wordpress",
+            "url_configurar": None,
+            "icono_fallback": "",
+            "categoria": "Publicacion",
+        },
+        {
+            "slug_motor": "webhooks",
+            "slug_catalogo": None,
+            "url_configurar": None,
+            "icono_fallback": "navegacion/conexiones",
+            "categoria": "Conectividad",
+        },
+        {
+            "slug_motor": "arm-api",
+            "slug_catalogo": None,
+            "url_configurar": "#arm-api-key",
+            "icono_fallback": "navegacion/boveda",
+            "categoria": "Sistema",
+        },
+    ]
+
+    slugs_catalogo_motor = {
+        h["slug_catalogo"] for h in HERRAMIENTAS_MOTOR if h["slug_catalogo"]
     }
 
-    for herramienta in herramientas_filtradas:
-        slug = herramienta["slug"]
-        herramienta["implementada"] = slug in SLUGS_IMPLEMENTADOS
-        herramienta["url_configurar"] = SLUGS_IMPLEMENTADOS.get(slug)
+    # Estado real de conexión de las herramientas del motor (si tienen credencial en BD).
+    herramientas_sistema = {
+        h.slug: h for h in Herramienta.objects.filter(es_sistema=True)
+    }
+
+    herramientas_unificadas = []
+
+    # 1) Primero las herramientas del motor (implementadas, accionables).
+    for h in HERRAMIENTAS_MOTOR:
+        slug_motor = h["slug_motor"]
+        slug_catalogo = h["slug_catalogo"]
+        nombre = h.get("nombre", slug_motor)
+        archivo = ""
+        logotipo_oficial = False
+        categoria = h["categoria"]
+        if slug_catalogo:
+            for entrada in catalogo:
+                if entrada.get("slug") == slug_catalogo:
+                    nombre = entrada.get("nombre", nombre)
+                    archivo = entrada.get("archivo", "")
+                    logotipo_oficial = entrada.get("logotipo_oficial", False)
+                    categoria = entrada.get("categoria", categoria)
+                    break
+        conectado = bool(
+            herramientas_sistema.get(slug_motor)
+            and herramientas_sistema[slug_motor].credencial_id
+        )
+        url_configurar = h["url_configurar"]
+        if url_configurar == "#arm-api-key":
+            conectado = bool(
+                IntegracionConfig.objects.filter(
+                    tipo="arm_api", activa=True
+                ).exists()
+            )
+
+        if busqueda_actual and busqueda_actual.lower() not in nombre.lower():
+            continue
+        if categoria_actual and categoria_actual != categoria:
+            continue
+
+        herramientas_unificadas.append({
+            "slug": slug_motor,
+            "nombre": nombre,
+            "categoria": categoria,
+            "icono_archivo": (
+                f"iconos-integraciones/{archivo}" if logotipo_oficial else ""
+            ),
+            "icono_inline": (
+                _leer_svg_generico(h["icono_fallback"])
+                if not logotipo_oficial and h["icono_fallback"]
+                else ""
+            ),
+            "conectado": conectado,
+            "implementada": True,
+            "url_configurar": url_configurar,
+        })
+
+    # 2) Luego el resto del catalogo (no implementadas), deduplicando por slug.
+    for entrada in catalogo:
+        slug = entrada.get("slug", "")
+        if slug in slugs_catalogo_motor:
+            continue
+        nombre = entrada.get("nombre", "")
+        categoria = entrada.get("categoria", "")
+        archivo = entrada.get("archivo", "")
+        logotipo_oficial = entrada.get("logotipo_oficial", False)
+
+        if busqueda_actual and busqueda_actual.lower() not in nombre.lower():
+            continue
+        if categoria_actual and categoria_actual != categoria:
+            continue
+
+        herramientas_unificadas.append({
+            "slug": slug,
+            "nombre": nombre,
+            "categoria": categoria,
+            "icono_archivo": (
+                f"iconos-integraciones/{archivo}" if logotipo_oficial else ""
+            ),
+            "icono_inline": (
+                _leer_svg_generico(archivo) if not logotipo_oficial else ""
+            ),
+            "conectado": False,
+            "implementada": False,
+            "url_configurar": None,
+        })
 
     if request.method == "POST":
         form = DestinoPublicacionForm()
         if request.POST.get("rotar_arm_api"):
             nueva_clave_arm = IntegracionConfig.rotar_clave_arm()
-        elif request.POST.get("crear_destino"):
-            form = DestinoPublicacionForm(request.POST)
-            if form.is_valid():
-                form.save()
-                messages.success(
-                    request, "Destino de publicación creado correctamente."
-                )
-                return redirect("integraciones")
     else:
         form = DestinoPublicacionForm()
 
     return render(request, "panel/integraciones.html", {
         "integraciones": integraciones_list,
-        "destinos": destinos,
-        "form_destino": form,
-        "nueva_clave_arm": nueva_clave_arm,
-        "herramientas_filtradas": herramientas_filtradas,
+        "herramientas_unificadas": herramientas_unificadas,
         "categorias_unicas": categorias_unicas,
         "busqueda_actual": busqueda_actual,
         "categoria_actual": categoria_actual,
+        "nueva_clave_arm": nueva_clave_arm,
+        "form_destino": form,
     })
 
 

@@ -234,43 +234,68 @@ class TestPanel(TestCase):
         assert response.status_code == 200
         content = response.content.decode('utf-8')
         assert 'Integraciones del Sistema' in content
-        # Hub escalable: grid y tarjetas
+        # Hub unificado: grid y tarjetas
         assert 'hub-grid' in content
         assert 'hub-tarjeta' in content
         assert 'hub-buscador' in content
         assert 'hub-categorias' in content
         assert 'hub-categoria-pill' in content
-        # DuckDuckGo (marca oficial) renderiza img de marca
-        assert 'iconos-integraciones/marca/duckduckgo.svg' in content
-        assert '<img class="hub-tarjeta-icono-img" src="' in content
-        assert 'alt=""' in content
-        assert 'width="32"' in content
-        assert 'height="32"' in content
-        assert 'loading="lazy"' in content
-        # ahrefs (sin logo oficial) usa SVG inline generico, nunca marca inexistente
-        assert 'iconos-integraciones/marca/ahrefs.svg' not in content
-        assert 'hub-tarjeta-icono--mono' in content
-        # Secciones administrativas separadas
-        assert 'Destinos de Publicación' in content
+        # Seccion ARM API Key presente, seccion Destinos ausente
         assert 'ARM API Key' in content
-        # Boton Configurar para implementadas (duckduckgo y wordpress)
-        assert 'hub-tarjeta-acciones' in content
+        assert 'Destinos de Publicacion' not in content
+        # No hay form-destino ni boton Anadir destino
+        assert 'form-destino' not in content
+        assert 'btn-anadir-destino' not in content
+        # Cero estilos inline
+        assert 'style="' not in content
+
+    def test_integraciones_motor_presente(self):
+        """Las herramientas del motor aparecen con su estado real."""
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('integraciones')
+        response = self.client.get(url)
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        # Las herramientas del motor están presentes
+        assert 'Tavily' in content
+        assert 'DuckDuckGo' in content
+        assert 'Google News' in content
+        assert 'WordPress' in content
+        # Las implementadas con URL valida muestran boton Configurar
         assert 'hub-boton-configurar' in content
-        # No implementada (notion) muestra Proximamente, sin boton Configurar
+        # arm-api apunta al ancla dentro del hub
+        assert '#arm-api-key' in content
+
+    def test_integraciones_wordpress_webhooks_sin_boton(self):
+        """WordPress y Webhooks (implementadas pero sin vista de destino) no tienen boton Configurar."""
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('integraciones')
+        response = self.client.get(url)
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        # arm-api tiene boton Configurar que apunta al ancla #arm-api-key
+        assert '#arm-api-key' in content
+        # WordPress y Webhooks muestran estado real (No configurado), sin boton
+
+    def test_integraciones_no_duplica(self):
+        """WordPress y DuckDuckGo aparecen una sola vez (deduplicacion por slug)."""
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('integraciones')
+        response = self.client.get(url)
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        assert content.count('WordPress') == 1
+        assert content.count('DuckDuckGo') == 1
+
+    def test_integraciones_notion_proximamente(self):
+        """Notion (catalogo, no implementada) muestra Proximamente sin boton Configurar."""
+        self.client.login(username='testuser', password='testpass123')
+        url = reverse('integraciones')
+        response = self.client.get(url)
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
         assert 'Notion' in content
         assert 'Proximamente' in content
-        # Formulario de destino oculto por defecto (clase, no estilo inline)
-        assert 'hub-form-oculto' in content
-        assert 'id="form-destino"' in content
-        assert 'btn-anadir-destino' in content
-        # El elemento form-destino no tiene la clase visible en su atributo class
-        import re
-        m = re.search(r'id="form-destino"[^>]*class="([^"]*)"', content)
-        assert m is not None
-        assert 'hub-form-visible' not in m.group(1)
-        assert 'hub-form-oculto' in m.group(1)
-        # No deben aparecer campos sueltos del form VISIBLES (oculto por clase, no estilo inline)
-        assert 'style="' not in content
 
     def test_integraciones_configurar_solo_implementadas(self):
         self.client.login(username='testuser', password='testpass123')
@@ -278,29 +303,12 @@ class TestPanel(TestCase):
         response = self.client.get(url)
         assert response.status_code == 200
         content = response.content.decode('utf-8')
-        # Implementadas: wordpress y duckduckgo tienen boton Configurar
+        # Implementadas con URL valida tienen boton Configurar
         assert 'hub-boton-configurar' in content
-        # No implementada: Notion no tiene boton Configurar
-        assert 'Notion' in content
-        # Proximamente aparece para no implementadas
-        assert 'Proximamente' in content
-
-    def test_integraciones_toggle_form_destino(self):
-        self.client.login(username='testuser', password='testpass123')
-        url = reverse('integraciones')
-        response = self.client.get(url)
-        assert response.status_code == 200
-        content = response.content.decode('utf-8')
-        # Boton Anadir destino existe
-        assert 'btn-anadir-destino' in content
-        # Form destino existe con id y clase oculta por defecto (no visible)
-        assert 'id="form-destino"' in content
-        assert 'hub-form-oculto' in content
-        import re
-        m = re.search(r'id="form-destino"[^>]*class="([^"]*)"', content)
-        assert m is not None
-        assert 'hub-form-visible' not in m.group(1)
-        assert 'hub-form-oculto' in m.group(1)
+        # credenciales aparece para Tavily/DuckDuckGo/Google News
+        assert 'credenciales' in content
+        # arm-api apunta al ancla dentro del hub
+        assert '#arm-api-key' in content
 
     def test_integraciones_busqueda_q(self):
         self.client.login(username='testuser', password='testpass123')
@@ -1045,20 +1053,6 @@ class TestPanel(TestCase):
         assert response.url == reverse('lista_proveedores')
         self.proveedor.refresh_from_db()
         assert self.proveedor.api_key == clave_original
-
-    def test_integraciones_render_muestra_destinos(self):
-        self.client.login(username='testuser', password='testpass123')
-        url = reverse('integraciones')
-        response = self.client.get(url)
-        assert response.status_code == 200
-        content = response.content.decode('utf-8')
-        assert 'Integraciones del Sistema' in content
-        assert 'hub-grid' in content
-        assert 'hub-tarjeta' in content
-        assert 'Tavily' not in content
-        assert 'WordPress' in content
-        assert 'Destinos de Publicación' in content
-        assert 'ARM API Key' in content
 
     def test_crear_destino_publicacion(self):
         self.client.login(username='testuser', password='testpass123')
