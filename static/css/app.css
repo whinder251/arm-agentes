@@ -1609,3 +1609,17 @@ td input[type="checkbox"] {
   height: 24px;
   color: var(--text-secondary);
 }
+
+.icono-fila {
+  width: 20px;
+  height: 20px;
+  vertical-align: middle;
+  margin-right: var(--space-sm);
+  display: inline-block;
+}
+
+.icono-fila--mono svg {
+  width: 20px;
+  height: 20px;
+  color: var(--text-secondary);
+}

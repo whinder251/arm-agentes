@@ -872,6 +872,40 @@ class TestPanel(TestCase):
         assert self.proveedor.nombre in content
         assert self.modelo.model_id in content
 
+    def test_lista_proveedores_iconos_marca_con_fallback(self):
+        self.client.login(username='testuser', password='testpass123')
+        Proveedor.objects.create(
+            nombre='OpenRouter',
+            api_key='fake',
+            base_url='http://openrouter.invalid',
+        )
+        Proveedor.objects.create(
+            nombre='OpenAI',
+            api_key='fake',
+            base_url='http://openai.invalid',
+        )
+        Proveedor.objects.create(
+            nombre='Mi Proveedor Personalizado',
+            api_key='fake',
+            base_url='http://custom.invalid',
+        )
+        url = reverse('lista_proveedores')
+        response = self.client.get(url)
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        # OpenRouter tiene logotipo oficial: ruta de marca (resuelta por static)
+        assert 'marca/openrouter.svg' in content
+        # OpenAI no tiene logo oficial: nunca aparece marca/openai.svg
+        assert 'marca/openai.svg' not in content
+        # Proveedor personalizado sin entrada: no renderiza img en su celda
+        soup = BeautifulSoup(content, 'html.parser')
+        nodo = soup.find(string=lambda s: s and 'Mi Proveedor Personalizado' in s)
+        assert nodo is not None
+        celda = nodo.find_parent('td')
+        assert celda.find('img') is None
+        # Cero estilos inline en la respuesta
+        assert 'style="' not in content
+
     def test_lista_modelos_render(self):
         self.client.login(username='testuser', password='testpass123')
         url = reverse('lista_modelos')

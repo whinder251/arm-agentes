@@ -1466,6 +1466,74 @@ def _icono_archivo_marca(slug):
     return ""
 
 
+# ============================================================
+# Paso PROVEEDORES-ICONOS-01: logos de marca en listado de proveedores
+# ============================================================
+_PROVEEDOR_A_CATALOGO = {
+    "openrouter": "openrouter",
+    "openai": "openai",
+    "anthropic": "anthropic",
+    "googlegemini": "googlegemini",
+    "mistralai": "mistralai",
+    "perplexity": "perplexity",
+    "huggingface": "huggingface",
+    "ollama": "ollama",
+    "deepseek": "deepseek",
+}
+
+
+def _normalizar_nombre_proveedor(nombre):
+    """Normaliza un nombre de proveedor a minúsculas sin espacios ni acentos."""
+    if not nombre:
+        return ""
+    normalizado = nombre.strip().lower()
+    reemplazos = {
+        "á": "a", "é": "e", "í": "i", "ó": "o", "ú": "u", "ñ": "n",
+        "ü": "u",
+    }
+    for con_acento, sin_acento in reemplazos.items():
+        normalizado = normalizado.replace(con_acento, sin_acento)
+    return normalizado.replace(" ", "").replace("_", "").replace("-", "")
+
+
+def _leer_svg_generico(ruta_relativa):
+    """Lee el contenido de un SVG de 'generico/<ruta>' con cache de módulo.
+
+    Devuelve el texto del SVG o None si no existe."""
+    try:
+        ruta = Path(settings.BASE_DIR) / "static" / "iconos-integraciones" / ruta_relativa
+        if ruta.exists():
+            return ruta.read_text(encoding="utf-8")
+    except Exception:
+        pass
+    return None
+
+
+def _icono_proveedor(nombre):
+    """Devuelve (icono_archivo, icono_inline) para un proveedor.
+
+    - icono_archivo: ruta relativa 'iconos-integraciones/marca/<slug>.svg'
+      si hay logotipo oficial.
+    - icono_inline: contenido SVG de 'generico/<slug>.svg' si no hay logo
+      oficial (trazo currentColor).
+    - (None, None) si no hay entrada en el catalogo.
+    Nunca inventa un logo: si no hay entrada, devuelve (None, None).
+    """
+    slug_normalizado = _normalizar_nombre_proveedor(nombre)
+    slug_catalogo = _PROVEEDOR_A_CATALOGO.get(slug_normalizado, slug_normalizado)
+    catalogo = _cargar_catalogo_iconos()
+    entrada = catalogo.get(slug_catalogo)
+    if not entrada:
+        return (None, None)
+    archivo = entrada.get("archivo")
+    if not archivo:
+        return (None, None)
+    if entrada.get("logotipo_oficial"):
+        return (archivo, None)
+    # Sin logo oficial: icono neutro en trazo (inline)
+    return (None, _leer_svg_generico(archivo))
+
+
 @login_required
 def integraciones(request):
     """Gestiona las integraciones externas, rota la clave ARM API y
@@ -1645,11 +1713,15 @@ def eliminar_destino(request, pk):
 
 @login_required
 def lista_proveedores(request):
-    """Lista de proveedores con sus modelos anidados."""
+    """Lista de proveedores con sus modelos anidados y logos de marca."""
     proveedores = (
         Proveedor.objects.prefetch_related('modelos')
         .order_by('nombre')
     )
+    for proveedor in proveedores:
+        icono_archivo, icono_inline = _icono_proveedor(proveedor.nombre)
+        proveedor.icono_archivo = icono_archivo
+        proveedor.icono_inline = icono_inline
     return render(request, 'panel/lista_proveedores.html', {
         'proveedores': proveedores,
     })

@@ -1,4 +1,5 @@
 {% extends "panel/base.html" %}
+{% load static %}
 
 {% block content %}
 <div class="page-header">
@@ -24,7 +25,14 @@
     <tbody>
         {% for proveedor in proveedores %}
         <tr>
-            <td>{{ proveedor.nombre }}</td>
+            <td>
+                {% if proveedor.icono_archivo %}
+                <img class="icono-fila" src="{% static proveedor.icono_archivo %}" alt="" width="20" height="20" loading="lazy">
+                {% elif proveedor.icono_inline %}
+                <span class="icono-fila icono-fila--mono">{{ proveedor.icono_inline|safe }}</span>
+                {% endif %}
+                {{ proveedor.nombre }}
+            </td>
             <td>{{ proveedor.base_url }}</td>
             <td>
                 {% with proveedor.modelos.all as modelos %}
